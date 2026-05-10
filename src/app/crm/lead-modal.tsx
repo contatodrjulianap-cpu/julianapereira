@@ -21,6 +21,11 @@ export type LeadFull = {
   deal_value: number | null;
   quiz_answers: Record<string, string> | null;
   archetype_scores: Record<Archetype, number> | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_term: string | null;
+  utm_content: string | null;
   last_message_at: string | null;
   created_at: string;
   updated_at: string;
@@ -289,6 +294,60 @@ export function LeadModal({
               )}
             </div>
           </details>
+        )}
+
+        {(lead.utm_source ||
+          lead.utm_medium ||
+          lead.utm_campaign ||
+          lead.utm_term ||
+          lead.utm_content) && (
+          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-md p-3">
+            <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 mb-2">
+              🔗 Atribuição (UTM)
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1.5 text-[12px]">
+              {lead.utm_source && (
+                <div>
+                  <span className="text-slate-400 font-mono text-[10px]">source</span>
+                  <p className="text-slate-800 font-medium truncate">
+                    {lead.utm_source}
+                  </p>
+                </div>
+              )}
+              {lead.utm_medium && (
+                <div>
+                  <span className="text-slate-400 font-mono text-[10px]">medium</span>
+                  <p className="text-slate-800 font-medium truncate">
+                    {lead.utm_medium}
+                  </p>
+                </div>
+              )}
+              {lead.utm_campaign && (
+                <div>
+                  <span className="text-slate-400 font-mono text-[10px]">campaign</span>
+                  <p className="text-slate-800 font-medium truncate">
+                    {lead.utm_campaign}
+                  </p>
+                </div>
+              )}
+              {lead.utm_term && (
+                <div>
+                  <span className="text-slate-400 font-mono text-[10px]">term</span>
+                  <p className="text-slate-800 font-medium truncate">
+                    {lead.utm_term}
+                  </p>
+                </div>
+              )}
+              {lead.utm_content && (
+                <div>
+                  <span className="text-slate-400 font-mono text-[10px]">content</span>
+                  <p className="text-slate-800 font-medium truncate">
+                    {lead.utm_content}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {lead.tags?.length > 0 && (

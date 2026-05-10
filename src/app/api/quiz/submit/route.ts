@@ -9,6 +9,16 @@ import {
   renderGreeting,
 } from "@/lib/integration-config";
 
+const UtmSchema = z
+  .object({
+    utm_source: z.string().optional(),
+    utm_medium: z.string().optional(),
+    utm_campaign: z.string().optional(),
+    utm_term: z.string().optional(),
+    utm_content: z.string().optional(),
+  })
+  .optional();
+
 // Body usa keys livres em answers/scores — config do quiz pode mudar via builder.
 const Body = z.object({
   name: z.string().min(2),
@@ -20,6 +30,7 @@ const Body = z.object({
   scores: z.record(z.string(), z.number()),
   knockout: z.boolean().default(false),
   answers: z.record(z.string(), z.string()),
+  utm: UtmSchema,
 });
 
 export async function POST(req: NextRequest) {
@@ -41,6 +52,7 @@ export async function POST(req: NextRequest) {
     scores,
     knockout,
     answers,
+    utm,
   } = parsed.data;
 
   const integration = await getIntegrationConfig();
@@ -60,7 +72,17 @@ export async function POST(req: NextRequest) {
         case_type: case_type ?? null,
         archetype_scores: scores,
         quiz_answers: answers,
-        tags: [`arch:${archetype}`, `geo:${geo}`, ...(knockout ? ["knockout"] : [])],
+        tags: [
+          `arch:${archetype}`,
+          `geo:${geo}`,
+          ...(knockout ? ["knockout"] : []),
+          ...(utm?.utm_source ? [`utm:${utm.utm_source}`] : []),
+        ],
+        utm_source: utm?.utm_source ?? null,
+        utm_medium: utm?.utm_medium ?? null,
+        utm_campaign: utm?.utm_campaign ?? null,
+        utm_term: utm?.utm_term ?? null,
+        utm_content: utm?.utm_content ?? null,
         last_message_at: new Date().toISOString(),
       },
       { onConflict: "phone" },
@@ -137,6 +159,7 @@ export async function POST(req: NextRequest) {
               geo,
               case_type: case_type ?? "unknown",
               knockout,
+              ...(utm ?? {}),
             },
           },
           { lead_id: lead.id },

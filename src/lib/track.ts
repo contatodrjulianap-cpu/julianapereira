@@ -28,7 +28,7 @@ function getSessionId(): string {
  * Se já tem UTM salvo na sessão e a URL não tem novo, mantém o salvo
  * (evita perder atribuição quando user navega internamente).
  */
-function getUtm(): UtmData {
+export function getUtm(): UtmData {
   if (typeof window === "undefined") return {};
   try {
     const url = new URL(window.location.href);

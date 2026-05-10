@@ -8,7 +8,7 @@ import {
   type ScoreResult,
 } from "@/lib/quiz-archetypes";
 import type { QuizConfig } from "@/lib/quiz-config";
-import { trackEvent } from "@/lib/track";
+import { trackEvent, getUtm } from "@/lib/track";
 
 type Step =
   | { kind: "cover" }
@@ -98,6 +98,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
     go({ kind: "loading" });
 
     try {
+      const utm = getUtm();
       const res = await fetch("/api/quiz/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -111,6 +112,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
           scores: result.scores,
           knockout: result.knockout,
           answers,
+          utm,
         }),
       });
       const data = await res.json();

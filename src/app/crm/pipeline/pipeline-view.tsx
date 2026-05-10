@@ -378,6 +378,11 @@ function exportCsv(leads: PipelineLead[]) {
       "assigned_to",
       "next_contact_at",
       "deal_value",
+      "utm_source",
+      "utm_medium",
+      "utm_campaign",
+      "utm_term",
+      "utm_content",
       "created_at",
     ];
     const rows = leads.map((l) =>
@@ -392,6 +397,11 @@ function exportCsv(leads: PipelineLead[]) {
         csvEscape(l.assigned_to),
         l.next_contact_at ?? "",
         l.deal_value ?? "",
+        csvEscape(l.utm_source),
+        csvEscape(l.utm_medium),
+        csvEscape(l.utm_campaign),
+        csvEscape(l.utm_term),
+        csvEscape(l.utm_content),
         l.created_at,
       ].join(","),
     );
