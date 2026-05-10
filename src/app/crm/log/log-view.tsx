@@ -50,6 +50,20 @@ const TYPE_COLOR: Record<string, string> = {
 
 const STATUS_OPTS = ["all", "success", "failed", "skipped"] as const;
 const DIRECTION_OPTS = ["all", "inbound", "outbound", "internal"] as const;
+const UTM_KEYS = [
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+] as const;
+type UtmKey = (typeof UTM_KEYS)[number];
+
+function getUtm(payload: Record<string, unknown> | null, key: UtmKey): string | null {
+  if (!payload) return null;
+  const v = payload[key];
+  return typeof v === "string" && v.length > 0 ? v : null;
+}
 
 export function LogView({
   initialEvents,
@@ -66,6 +80,13 @@ export function LogView({
   const [filterDirection, setFilterDirection] =
     useState<(typeof DIRECTION_OPTS)[number]>("all");
   const [filterType, setFilterType] = useState<string>("all");
+  const [filterUtm, setFilterUtm] = useState<Record<UtmKey, string>>({
+    utm_source: "all",
+    utm_medium: "all",
+    utm_campaign: "all",
+    utm_term: "all",
+    utm_content: "all",
+  });
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // Realtime: novos eventos
@@ -98,12 +119,49 @@ export function LogView({
     return ["all", ...Array.from(s).sort()];
   }, [events]);
 
+  // Valores únicos por UTM key (com 'none' = sem o UTM, 'all' = qualquer)
+  const utmOptions = useMemo(() => {
+    const map: Record<UtmKey, string[]> = {
+      utm_source: [],
+      utm_medium: [],
+      utm_campaign: [],
+      utm_term: [],
+      utm_content: [],
+    };
+    for (const k of UTM_KEYS) {
+      const set = new Set<string>();
+      let hasNone = false;
+      for (const e of events) {
+        const v = getUtm(e.payload, k);
+        if (v) set.add(v);
+        else hasNone = true;
+      }
+      map[k] = [
+        "all",
+        ...(hasNone ? ["(sem)"] : []),
+        ...Array.from(set).sort(),
+      ];
+    }
+    return map;
+  }, [events]);
+
   const filtered = useMemo(() => {
     return events.filter((e) => {
       if (filterStatus !== "all" && e.status !== filterStatus) return false;
       if (filterDirection !== "all" && e.direction !== filterDirection)
         return false;
       if (filterType !== "all" && e.type !== filterType) return false;
+      // UTM filters
+      for (const k of UTM_KEYS) {
+        const want = filterUtm[k];
+        if (want === "all") continue;
+        const val = getUtm(e.payload, k);
+        if (want === "(sem)") {
+          if (val !== null) return false;
+        } else {
+          if (val !== want) return false;
+        }
+      }
       if (search) {
         const t = search.toLowerCase();
         const lead = e.lead_id ? leadsById.get(e.lead_id) : null;
@@ -121,7 +179,7 @@ export function LogView({
       }
       return true;
     });
-  }, [events, filterStatus, filterDirection, filterType, search, leadsById]);
+  }, [events, filterStatus, filterDirection, filterType, filterUtm, search, leadsById]);
 
   // Métricas
   const stats = useMemo(() => {
@@ -216,6 +274,51 @@ export function LogView({
             >
               {d === "all" ? "Direção" : d}
             </button>
+          ))}
+        </div>
+      </section>
+
+      {/* UTM filters */}
+      <section className="bg-white border border-slate-200 rounded-md p-3 mb-3">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500">
+            Filtros UTM
+          </p>
+          <button
+            onClick={() =>
+              setFilterUtm({
+                utm_source: "all",
+                utm_medium: "all",
+                utm_campaign: "all",
+                utm_term: "all",
+                utm_content: "all",
+              })
+            }
+            className="text-xs text-slate-500 hover:text-slate-900 underline"
+          >
+            limpar UTMs
+          </button>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-2">
+          {UTM_KEYS.map((k) => (
+            <label key={k} className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-wider text-slate-500 font-mono">
+                {k.replace("utm_", "")}
+              </span>
+              <select
+                value={filterUtm[k]}
+                onChange={(e) =>
+                  setFilterUtm((prev) => ({ ...prev, [k]: e.target.value }))
+                }
+                className="px-2 py-1.5 text-xs border border-slate-200 rounded outline-none"
+              >
+                {utmOptions[k].map((v) => (
+                  <option key={v} value={v}>
+                    {v === "all" ? "Todos" : v}
+                  </option>
+                ))}
+              </select>
+            </label>
           ))}
         </div>
       </section>
