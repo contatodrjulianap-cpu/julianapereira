@@ -165,7 +165,12 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
         )}
         {step.kind === "loading" && <LoadingScreen />}
         {step.kind === "result" && (
-          <ResultScreen result={step.result} firstName={lead.name} config={config} />
+          <ResultScreen
+            result={step.result}
+            firstName={lead.name}
+            leadId={step.leadId}
+            config={config}
+          />
         )}
       </main>
 
@@ -502,10 +507,12 @@ function LoadingScreen() {
 function ResultScreen({
   result,
   firstName,
+  leadId,
   config,
 }: {
   result: ScoreResult;
   firstName: string;
+  leadId: string;
   config: QuizConfig;
 }) {
   const copy = config.results[result.archetype];
@@ -562,7 +569,7 @@ function ResultScreen({
         onClick={() =>
           trackEvent(
             result.archetype === "CETICA" ? "quiz_instagram_click" : "quiz_wa_click",
-            { archetype: result.archetype, geo: result.geo },
+            { archetype: result.archetype, geo: result.geo, lead_id: leadId },
           )
         }
         className="block text-center font-semibold py-4 px-6 rounded-none mb-3 transition hover:opacity-90"

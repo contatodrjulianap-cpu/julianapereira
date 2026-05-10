@@ -19,14 +19,9 @@ export type CapiUserData = {
 };
 
 export type CapiEvent = {
-  event_name:
-    | "Lead"
-    | "CompleteRegistration"
-    | "ViewContent"
-    | "PageView"
-    | "Contact"
-    | "Schedule"
-    | "Purchase";
+  // string aberta — config do CRM permite qualquer evento padrão FB.
+  // Recomendados: PageView, ViewContent, Lead, AddToCart, InitiateCheckout, Contact, Purchase, Schedule.
+  event_name: string;
   event_time?: number;
   event_id?: string;
   event_source_url?: string;

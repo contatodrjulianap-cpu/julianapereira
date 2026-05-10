@@ -4,6 +4,10 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { sendText } from "@/lib/zapi";
 import { sendCapiEvent } from "@/lib/facebook";
 import { logEvent } from "@/lib/event-log";
+import {
+  getIntegrationConfig,
+  renderGreeting,
+} from "@/lib/integration-config";
 
 // Body usa keys livres em answers/scores — config do quiz pode mudar via builder.
 const Body = z.object({
@@ -17,15 +21,6 @@ const Body = z.object({
   knockout: z.boolean().default(false),
   answers: z.record(z.string(), z.string()),
 });
-
-// Mensagem WhatsApp inicial (somente PRONTA + ESPERANCOSA recebem).
-// CETICA é redirecionada pro Instagram da Ju — não manda WhatsApp inicial.
-const GREETINGS_BY_ARCHETYPE: Record<"PRONTA" | "ESPERANCOSA", string> = {
-  PRONTA:
-    "Oi {name}! 🌸 Recebi o resultado do seu quiz aqui — *Sorriso Pronto pra Avaliação*. A Ju vai te chamar nas próximas horas pra alinhar agenda. Se quiser adiantar, me responde aqui que já te passo os horários disponíveis.",
-  ESPERANCOSA:
-    "Oi {name}! 🌸 Vi seu quiz aqui — você está no momento de entender o caminho certo. O plano não é tabela, depende do seu caso. A avaliação personalizada com a Ju (ou com a equipe) é onde tudo se define, inclusive o parcelamento. Posso te explicar como funciona?",
-};
 
 export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json());
@@ -47,6 +42,8 @@ export async function POST(req: NextRequest) {
     knockout,
     answers,
   } = parsed.data;
+
+  const integration = await getIntegrationConfig();
 
   const supabase = createServiceClient();
 
@@ -85,16 +82,16 @@ export async function POST(req: NextRequest) {
     payload: { archetype, geo, case_type, knockout, scores },
   });
 
-  // Manda WhatsApp inicial apenas pra PRONTA e ESPERANCOSA.
-  // CETICA cai no Instagram da Ju — equipe não inicia conversa.
-  if (archetype === "PRONTA" || archetype === "ESPERANCOSA") {
-    const greeting = GREETINGS_BY_ARCHETYPE[archetype].replace(
-      "{name}",
-      name.split(" ")[0],
-    );
-
+  // Greeting WhatsApp — config-driven via /crm/integrations.
+  // Por padrão CETICA é desligada (vai pro Instagram), mas pode ligar via UI.
+  const greetingCfg = integration.whatsapp.greetings[archetype];
+  if (greetingCfg.enabled) {
+    const greeting = renderGreeting(greetingCfg.message, name);
     try {
-      const zapiRes = await sendText({ phone, message: greeting }, { lead_id: lead.id });
+      const zapiRes = await sendText(
+        { phone, message: greeting },
+        { lead_id: lead.id },
+      );
       await supabase.from("messages").insert({
         lead_id: lead.id,
         direction: "outbound",
@@ -117,35 +114,38 @@ export async function POST(req: NextRequest) {
     undefined;
   const ua = req.headers.get("user-agent") ?? undefined;
 
-  after(async () => {
-    try {
-      await sendCapiEvent(
-        {
-          event_name: "Lead",
-          event_id: `lead-${lead.id}`,
-          event_source_url: req.headers.get("referer") ?? undefined,
-          user_data: {
-            phone,
-            external_id: lead.id,
-            fbp,
-            fbc,
-            client_ip: ip,
-            client_user_agent: ua,
+  const fbCfg = integration.facebook.quiz_submit;
+  if (fbCfg.enabled) {
+    after(async () => {
+      try {
+        await sendCapiEvent(
+          {
+            event_name: fbCfg.event_name,
+            event_id: `lead-${lead.id}`,
+            event_source_url: req.headers.get("referer") ?? undefined,
+            user_data: {
+              phone,
+              external_id: lead.id,
+              fbp,
+              fbc,
+              client_ip: ip,
+              client_user_agent: ua,
+            },
+            custom_data: {
+              content_name: fbCfg.content_name ?? "quiz_submission",
+              archetype,
+              geo,
+              case_type: case_type ?? "unknown",
+              knockout,
+            },
           },
-          custom_data: {
-            content_name: "quiz_submission",
-            archetype,
-            geo,
-            case_type: case_type ?? "unknown",
-            knockout,
-          },
-        },
-        { lead_id: lead.id },
-      );
-    } catch (err) {
-      console.error("FB CAPI Lead failed", err);
-    }
-  });
+          { lead_id: lead.id },
+        );
+      } catch (err) {
+        console.error("FB CAPI submit failed", err);
+      }
+    });
+  }
 
   return NextResponse.json({ ok: true, lead_id: lead.id, archetype, geo });
 }
