@@ -1,12 +1,24 @@
 -- =========================================
--- Migration: RPC quiz_funnel_metrics — agrega métricas do funil
+-- Migration: RPC quiz_funnel_metrics — cleanup forçado + recriação
 -- Aceita intervalo (start_at, end_at) pra suportar presets variados na UI:
 --   hoje · ontem · 7d · 30d · 90d · custom (data a data)
--- Date: 2026-05-10 (revisão final)
+-- Date: 2026-05-10 (revisão final com cleanup brutal)
 -- =========================================
 
-drop function if exists public.quiz_funnel_metrics(integer);
-drop function if exists public.quiz_funnel_metrics(timestamptz, timestamptz);
+-- Remove TODAS as versões/signatures existentes (ovewrite seguro)
+do $$
+declare
+  r record;
+begin
+  for r in
+    select oid, pg_get_function_identity_arguments(oid) as args
+    from pg_proc
+    where proname = 'quiz_funnel_metrics'
+      and pronamespace = 'public'::regnamespace
+  loop
+    execute format('drop function if exists public.quiz_funnel_metrics(%s)', r.args);
+  end loop;
+end$$;
 
 create function public.quiz_funnel_metrics(
   start_at timestamptz default (now() - interval '30 days'),
@@ -79,3 +91,6 @@ as $$
 $$;
 
 grant execute on function public.quiz_funnel_metrics(timestamptz, timestamptz) to authenticated, service_role;
+
+-- Refresh do schema cache do PostgREST (Supabase API gateway)
+notify pgrst, 'reload schema';
