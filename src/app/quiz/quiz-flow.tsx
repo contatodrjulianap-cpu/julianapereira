@@ -136,14 +136,18 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
 
       <main className="flex-1 flex flex-col mx-auto w-full max-w-xl px-5 py-6">
         {step.kind === "cover" && (
-          <CoverScreen onStart={() => go({ kind: "commitment" })} />
+          <CoverScreen
+            cover={config.cover}
+            onStart={() => go({ kind: "commitment" })}
+          />
         )}
         {step.kind === "commitment" && (
           <CommitmentScreen
+            commitment={config.commitment}
             onYes={() => go({ kind: "question", index: 0 })}
             onNo={() => {
               setAnswers({});
-              go({ kind: "result", result: scoreAnswers({}), leadId: "" });
+              go({ kind: "result", result: scoreAnswers({}, QUESTIONS), leadId: "" });
             }}
           />
         )}
@@ -231,7 +235,24 @@ function ProgressBar({
   );
 }
 
-function CoverScreen({ onStart }: { onStart: () => void }) {
+function CoverScreen({
+  cover,
+  onStart,
+}: {
+  cover: QuizConfig["cover"];
+  onStart: () => void;
+}) {
+  const c = cover ?? {
+    badge: "Diagnóstico do Sorriso · 3 minutos",
+    headline: "Descubra qual sorriso",
+    headline_highlight: "combina com você",
+    subtitle1:
+      "Não é sobre dentes. É sobre se reconhecer no espelho e gostar do que vê.",
+    subtitle2:
+      "Em 8 perguntas curtas a Dra. Juliana entende seu caso e monta um caminho personalizado pro seu sorriso. Sem pressão, sem venda.",
+    cta_label: "Iniciar diagnóstico →",
+    legal: "Suas respostas são tratadas com sigilo (LGPD).",
+  };
   return (
     <FadeUp className="flex-1 flex flex-col">
       <div className="flex-1 flex flex-col">
@@ -242,7 +263,7 @@ function CoverScreen({ onStart }: { onStart: () => void }) {
             color: "var(--sakura-cocoa-2)",
           }}
         >
-          Diagnóstico do Sorriso · 3 minutos
+          {c.badge}
         </span>
         <h1
           className="font-[family-name:var(--font-cormorant)] font-light leading-[1.04] mb-4"
@@ -251,12 +272,12 @@ function CoverScreen({ onStart }: { onStart: () => void }) {
             color: "var(--sakura-cocoa)",
           }}
         >
-          Descubra qual sorriso{" "}
+          {c.headline}{" "}
           <em
             className="not-italic font-normal"
             style={{ color: "var(--sakura-rose-2)", fontStyle: "italic" }}
           >
-            combina com você
+            {c.headline_highlight}
           </em>
           .
         </h1>
@@ -264,14 +285,13 @@ function CoverScreen({ onStart }: { onStart: () => void }) {
           className="text-base leading-relaxed mb-2"
           style={{ color: "var(--sakura-cocoa-2)" }}
         >
-          Não é sobre dentes. É sobre se reconhecer no espelho e gostar do que vê.
+          {c.subtitle1}
         </p>
         <p
           className="text-sm font-light leading-relaxed mb-8"
           style={{ color: "var(--sakura-cocoa-3)" }}
         >
-          Em 8 perguntas curtas a Dra. Juliana entende seu caso e monta um caminho
-          personalizado pro seu sorriso. Sem pressão, sem venda.
+          {c.subtitle2}
         </p>
         <div
           className="aspect-[4/5] mb-6 flex items-center justify-center text-xs uppercase tracking-[2px]"
@@ -284,18 +304,34 @@ function CoverScreen({ onStart }: { onStart: () => void }) {
           [foto Ju · placeholder]
         </div>
       </div>
-      <PrimaryButton onClick={onStart}>Iniciar diagnóstico →</PrimaryButton>
+      <PrimaryButton onClick={onStart}>{c.cta_label}</PrimaryButton>
       <p
         className="text-center text-xs mt-3"
         style={{ color: "var(--sakura-cocoa-3)" }}
       >
-        Suas respostas são tratadas com sigilo (LGPD).
+        {c.legal}
       </p>
     </FadeUp>
   );
 }
 
-function CommitmentScreen({ onYes, onNo }: { onYes: () => void; onNo: () => void }) {
+function CommitmentScreen({
+  commitment,
+  onYes,
+  onNo,
+}: {
+  commitment: QuizConfig["commitment"];
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  const c = commitment ?? {
+    pre_title: "Antes de começar:",
+    body:
+      "Pra Ju te indicar o caminho certo, ela precisa ler suas respostas com cuidado. O resultado depende da sua honestidade — não tem resposta errada.",
+    question: "Você se compromete a responder com sinceridade?",
+    yes_label: "Sim, me comprometo",
+    no_label: "Ainda não tenho certeza",
+  };
   return (
     <FadeUp className="flex-1 flex flex-col justify-center">
       <h2
@@ -306,29 +342,28 @@ function CommitmentScreen({ onYes, onNo }: { onYes: () => void; onNo: () => void
           fontWeight: 500,
         }}
       >
-        Antes de começar:
+        {c.pre_title}
       </h2>
       <p
         className="text-base leading-relaxed mb-8"
         style={{ color: "var(--sakura-cocoa-2)" }}
       >
-        Pra Ju te indicar o caminho certo, ela precisa ler suas respostas com cuidado.
-        O resultado depende da sua honestidade — não tem resposta errada.
+        {c.body}
       </p>
       <h3
         className="font-[family-name:var(--font-cormorant)] mb-6"
         style={{ fontSize: "22px", fontWeight: 600 }}
       >
-        Você se compromete a responder com sinceridade?
+        {c.question}
       </h3>
       <div className="grid grid-cols-2 gap-3">
         <OptionButton onClick={onYes}>
           <span className="text-2xl mr-2">🌸</span>
-          <span>Sim, me comprometo</span>
+          <span>{c.yes_label}</span>
         </OptionButton>
         <OptionButton onClick={onNo} dim>
           <span className="text-2xl mr-2">🚫</span>
-          <span>Ainda não tenho certeza</span>
+          <span>{c.no_label}</span>
         </OptionButton>
       </div>
     </FadeUp>

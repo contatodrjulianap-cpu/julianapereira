@@ -192,6 +192,30 @@ export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
         </div>
       </section>
 
+      {/* Cover (1ª tela) */}
+      <CoverEditor
+        cover={config.cover}
+        onChange={(patch) => {
+          setConfig((c) => ({
+            ...c,
+            cover: { ...(c.cover ?? DEFAULT_COVER), ...patch },
+          }));
+          setDirty(true);
+        }}
+      />
+
+      {/* Commitment (2ª tela) */}
+      <CommitmentEditor
+        commitment={config.commitment}
+        onChange={(patch) => {
+          setConfig((c) => ({
+            ...c,
+            commitment: { ...(c.commitment ?? DEFAULT_COMMITMENT), ...patch },
+          }));
+          setDirty(true);
+        }}
+      />
+
       {/* Perguntas */}
       <section className="space-y-3 mb-6">
         <h3 className="text-xs uppercase tracking-wider font-bold text-slate-500">
@@ -537,5 +561,191 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+// =================================================
+// Cover + Commitment editors (telas 1 e 2 do quiz)
+// =================================================
+
+const DEFAULT_COVER: NonNullable<QuizConfig["cover"]> = {
+  badge: "Diagnóstico do Sorriso · 3 minutos",
+  headline: "Descubra qual sorriso",
+  headline_highlight: "combina com você",
+  subtitle1: "Não é sobre dentes. É sobre se reconhecer no espelho e gostar do que vê.",
+  subtitle2:
+    "Em 8 perguntas curtas a Dra. Juliana entende seu caso e monta um caminho personalizado pro seu sorriso. Sem pressão, sem venda.",
+  cta_label: "Iniciar diagnóstico →",
+  legal: "Suas respostas são tratadas com sigilo (LGPD).",
+};
+
+const DEFAULT_COMMITMENT: NonNullable<QuizConfig["commitment"]> = {
+  pre_title: "Antes de começar:",
+  body: "Pra Ju te indicar o caminho certo, ela precisa ler suas respostas com cuidado. O resultado depende da sua honestidade — não tem resposta errada.",
+  question: "Você se compromete a responder com sinceridade?",
+  yes_label: "Sim, me comprometo",
+  no_label: "Ainda não tenho certeza",
+};
+
+function CoverEditor({
+  cover,
+  onChange,
+}: {
+  cover: QuizConfig["cover"];
+  onChange: (patch: Partial<NonNullable<QuizConfig["cover"]>>) => void;
+}) {
+  const c = cover ?? DEFAULT_COVER;
+  const [open, setOpen] = useState(true);
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-md mb-3">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-100 text-rose-800 rounded">
+            Tela 1
+          </span>
+          <span className="text-sm font-medium text-slate-900">
+            Capa (cover) — primeira tela do quiz
+          </span>
+        </div>
+        <span className="text-slate-400 text-xs">{open ? "▼" : "▶"}</span>
+      </button>
+      {open && (
+        <div className="px-4 py-4 border-t border-slate-100 bg-slate-50/40 space-y-3">
+          <Field label="Badge (texto pequeno acima do título)">
+            <input
+              value={c.badge}
+              onChange={(e) => onChange({ badge: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+            />
+          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Headline (parte normal)">
+              <input
+                value={c.headline}
+                onChange={(e) => onChange({ headline: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+              />
+            </Field>
+            <Field label="Headline (parte rosa, destaque)">
+              <input
+                value={c.headline_highlight}
+                onChange={(e) =>
+                  onChange({ headline_highlight: e.target.value })
+                }
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+              />
+            </Field>
+          </div>
+          <Field label="Subtítulo 1 (parágrafo principal)">
+            <textarea
+              value={c.subtitle1}
+              onChange={(e) => onChange({ subtitle1: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+            />
+          </Field>
+          <Field label="Subtítulo 2 (parágrafo secundário)">
+            <textarea
+              value={c.subtitle2}
+              onChange={(e) => onChange({ subtitle2: e.target.value })}
+              rows={2}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+            />
+          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Texto do botão (CTA)">
+              <input
+                value={c.cta_label}
+                onChange={(e) => onChange({ cta_label: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+              />
+            </Field>
+            <Field label="Texto legal (LGPD, abaixo do botão)">
+              <input
+                value={c.legal}
+                onChange={(e) => onChange({ legal: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+              />
+            </Field>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function CommitmentEditor({
+  commitment,
+  onChange,
+}: {
+  commitment: QuizConfig["commitment"];
+  onChange: (patch: Partial<NonNullable<QuizConfig["commitment"]>>) => void;
+}) {
+  const c = commitment ?? DEFAULT_COMMITMENT;
+  const [open, setOpen] = useState(false);
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-md mb-5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full px-4 py-3 flex items-center justify-between hover:bg-slate-50 text-left"
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] font-mono px-2 py-0.5 bg-rose-100 text-rose-800 rounded">
+            Tela 2
+          </span>
+          <span className="text-sm font-medium text-slate-900">
+            Compromisso — pré-pergunta de honestidade
+          </span>
+        </div>
+        <span className="text-slate-400 text-xs">{open ? "▼" : "▶"}</span>
+      </button>
+      {open && (
+        <div className="px-4 py-4 border-t border-slate-100 bg-slate-50/40 space-y-3">
+          <Field label="Pré-título">
+            <input
+              value={c.pre_title}
+              onChange={(e) => onChange({ pre_title: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+            />
+          </Field>
+          <Field label="Corpo (parágrafo)">
+            <textarea
+              value={c.body}
+              onChange={(e) => onChange({ body: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+            />
+          </Field>
+          <Field label="Pergunta de compromisso">
+            <input
+              value={c.question}
+              onChange={(e) => onChange({ question: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+            />
+          </Field>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Field label="Botão 'Sim'">
+              <input
+                value={c.yes_label}
+                onChange={(e) => onChange({ yes_label: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+              />
+            </Field>
+            <Field label="Botão 'Não'">
+              <input
+                value={c.no_label}
+                onChange={(e) => onChange({ no_label: e.target.value })}
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
+              />
+            </Field>
+          </div>
+        </div>
+      )}
+    </section>
   );
 }

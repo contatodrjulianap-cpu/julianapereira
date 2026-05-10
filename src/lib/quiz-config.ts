@@ -43,7 +43,27 @@ const ResultCopySchema = z.object({
   tone: z.enum(["rose", "cream", "cocoa"]).optional(),
 });
 
+const CoverSchema = z.object({
+  badge: z.string().min(1),
+  headline: z.string().min(1),
+  headline_highlight: z.string().min(1),
+  subtitle1: z.string().min(1),
+  subtitle2: z.string().min(1),
+  cta_label: z.string().min(1),
+  legal: z.string().min(1),
+});
+
+const CommitmentSchema = z.object({
+  pre_title: z.string().min(1),
+  body: z.string().min(1),
+  question: z.string().min(1),
+  yes_label: z.string().min(1),
+  no_label: z.string().min(1),
+});
+
 export const QuizConfigSchema = z.object({
+  cover: CoverSchema.optional(),
+  commitment: CommitmentSchema.optional(),
   questions: z.array(QuestionSchema).min(1),
   results: z.object({
     PRONTA: ResultCopySchema,
@@ -58,6 +78,25 @@ export type QuizConfig = z.infer<typeof QuizConfigSchema>;
 
 // Default a partir do hardcoded em quiz-archetypes.ts
 export const DEFAULT_CONFIG: QuizConfig = {
+  cover: {
+    badge: "Diagnóstico do Sorriso · 3 minutos",
+    headline: "Descubra qual sorriso",
+    headline_highlight: "combina com você",
+    subtitle1:
+      "Não é sobre dentes. É sobre se reconhecer no espelho e gostar do que vê.",
+    subtitle2:
+      "Em 8 perguntas curtas a Dra. Juliana entende seu caso e monta um caminho personalizado pro seu sorriso. Sem pressão, sem venda.",
+    cta_label: "Iniciar diagnóstico →",
+    legal: "Suas respostas são tratadas com sigilo (LGPD).",
+  },
+  commitment: {
+    pre_title: "Antes de começar:",
+    body:
+      "Pra Ju te indicar o caminho certo, ela precisa ler suas respostas com cuidado. O resultado depende da sua honestidade — não tem resposta errada.",
+    question: "Você se compromete a responder com sinceridade?",
+    yes_label: "Sim, me comprometo",
+    no_label: "Ainda não tenho certeza",
+  },
   questions: HARDCODED_QUESTIONS as Question[],
   results: {
     PRONTA: {
