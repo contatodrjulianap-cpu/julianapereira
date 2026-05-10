@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,17 +20,16 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/crm/auth/callback`,
-      },
+      password,
     });
     setLoading(false);
     if (error) {
       setError(error.message);
     } else {
-      setSent(true);
+      router.push("/crm");
+      router.refresh();
     }
   }
 
@@ -39,29 +40,34 @@ export default function LoginPage() {
           <CardTitle>CRM — Login</CardTitle>
         </CardHeader>
         <CardContent>
-          {sent ? (
-            <p className="text-sm text-slate-600">
-              Te mandei um magic link em <strong>{email}</strong>. Abre no celular
-              ou no navegador pra entrar.
-            </p>
-          ) : (
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              {error && <p className="text-xs text-red-600">{error}</p>}
-              <Button type="submit" disabled={loading} className="w-full">
-                {loading ? "Enviando..." : "Receber magic link"}
-              </Button>
-            </form>
-          )}
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+            {error && <p className="text-xs text-red-600">{error}</p>}
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Entrando..." : "Entrar"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
     </main>
