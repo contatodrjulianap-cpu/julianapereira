@@ -8,19 +8,22 @@ import { logEvent } from "@/lib/event-log";
 const Body = z.object({
   name: z.string().min(2),
   phone: z.string().min(10).regex(/^\d+$/),
-  goal: z.enum(["clarear", "lentes", "corrigir", "outro"]),
-  budget: z.enum(["ate_5k", "5k_15k", "15k_30k", "30k_mais"]),
+  instagram: z.string().nullable().optional(),
+  archetype: z.enum(["PRONTA", "ESPERANCOSA", "CETICA"]),
+  geo: z.enum(["SP", "BR", "INTL"]),
+  case_type: z.string().nullable().optional(),
+  scores: z.record(z.string(), z.number()),
+  knockout: z.boolean().default(false),
+  answers: z.record(z.string(), z.string()),
 });
 
-const GREETINGS: Record<string, string> = {
-  clarear:
-    "Oi {name}! Recebi sua resposta sobre clareamento. A Dra. Juliana vai te chamar com a melhor opção pro seu caso 💚",
-  lentes:
-    "Oi {name}! Recebi seu interesse em lentes. A equipe vai te chamar com as opções (resina e porcelana) e valores 💚",
-  corrigir:
-    "Oi {name}! Anotamos aqui. A equipe vai te chamar pra entender melhor o que você quer corrigir e indicar o tratamento certo 💚",
-  outro:
-    "Oi {name}! Recebido. A equipe vai te chamar pra entender melhor seu caso e indicar o caminho 💚",
+// Mensagem WhatsApp inicial (somente PRONTA + ESPERANCOSA recebem).
+// CETICA é redirecionada pro Instagram da Ju — não manda WhatsApp inicial.
+const GREETINGS_BY_ARCHETYPE: Record<"PRONTA" | "ESPERANCOSA", string> = {
+  PRONTA:
+    "Oi {name}! 🌸 Recebi o resultado do seu quiz aqui — *Sorriso Pronto pra Avaliação*. A Ju vai te chamar nas próximas horas pra alinhar agenda. Se quiser adiantar, me responde aqui que já te passo os horários disponíveis.",
+  ESPERANCOSA:
+    "Oi {name}! 🌸 Vi seu quiz aqui — você está no momento de entender o caminho certo. O plano não é tabela, depende do seu caso. A avaliação personalizada com a Ju (ou com a equipe) é onde tudo se define, inclusive o parcelamento. Posso te explicar como funciona?",
 };
 
 export async function POST(req: NextRequest) {
@@ -32,7 +35,18 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { name, phone, goal, budget } = parsed.data;
+  const {
+    name,
+    phone,
+    instagram,
+    archetype,
+    geo,
+    case_type,
+    scores,
+    knockout,
+    answers,
+  } = parsed.data;
+
   const supabase = createServiceClient();
 
   const { data: lead, error: leadErr } = await supabase
@@ -41,9 +55,14 @@ export async function POST(req: NextRequest) {
       {
         phone,
         name,
+        instagram: instagram ?? null,
         source: "quiz",
-        quiz_goal: goal,
-        quiz_budget: budget,
+        archetype,
+        geo,
+        case_type: case_type ?? null,
+        archetype_scores: scores,
+        quiz_answers: answers,
+        tags: [`arch:${archetype}`, `geo:${geo}`, ...(knockout ? ["knockout"] : [])],
         last_message_at: new Date().toISOString(),
       },
       { onConflict: "phone" },
@@ -62,29 +81,33 @@ export async function POST(req: NextRequest) {
     target: "internal",
     lead_id: lead.id,
     status: "success",
-    payload: { name, phone, goal, budget },
+    payload: { archetype, geo, case_type, knockout, scores },
   });
 
-  const greeting = GREETINGS[goal].replace("{name}", name.split(" ")[0]);
-
-  try {
-    const zapiRes = await sendText(
-      { phone, message: greeting },
-      { lead_id: lead.id },
+  // Manda WhatsApp inicial apenas pra PRONTA e ESPERANCOSA.
+  // CETICA cai no Instagram da Ju — equipe não inicia conversa.
+  if (archetype === "PRONTA" || archetype === "ESPERANCOSA") {
+    const greeting = GREETINGS_BY_ARCHETYPE[archetype].replace(
+      "{name}",
+      name.split(" ")[0],
     );
-    await supabase.from("messages").insert({
-      lead_id: lead.id,
-      direction: "outbound",
-      text: greeting,
-      raw: zapiRes as unknown as Record<string, unknown>,
-      zapi_message_id: (zapiRes as { messageId?: string })?.messageId ?? null,
-    });
-  } catch (e) {
-    console.error("zapi send failed", e);
-    // não falha o quiz por isso — lead já foi salvo
+
+    try {
+      const zapiRes = await sendText({ phone, message: greeting }, { lead_id: lead.id });
+      await supabase.from("messages").insert({
+        lead_id: lead.id,
+        direction: "outbound",
+        text: greeting,
+        raw: zapiRes as unknown as Record<string, unknown>,
+        zapi_message_id: (zapiRes as { messageId?: string })?.messageId ?? null,
+      });
+    } catch (e) {
+      console.error("zapi send failed", e);
+      // não falha o quiz por isso — lead já foi salvo
+    }
   }
 
-  // Facebook Conversions API — evento Lead
+  // Facebook Conversions API — evento Lead (todos os arquétipos disparam)
   const fbp = req.cookies.get("_fbp")?.value;
   const fbc = req.cookies.get("_fbc")?.value;
   const ip =
@@ -93,8 +116,6 @@ export async function POST(req: NextRequest) {
     undefined;
   const ua = req.headers.get("user-agent") ?? undefined;
 
-  // Roda APÓS a response retornar — mantém a função alive (Next 16 `after`).
-  // Sem isso, em serverless o fetch é morto antes de completar.
   after(async () => {
     try {
       await sendCapiEvent(
@@ -112,8 +133,10 @@ export async function POST(req: NextRequest) {
           },
           custom_data: {
             content_name: "quiz_submission",
-            goal,
-            budget,
+            archetype,
+            geo,
+            case_type: case_type ?? "unknown",
+            knockout,
           },
         },
         { lead_id: lead.id },
@@ -123,5 +146,5 @@ export async function POST(req: NextRequest) {
     }
   });
 
-  return NextResponse.json({ ok: true, lead_id: lead.id });
+  return NextResponse.json({ ok: true, lead_id: lead.id, archetype, geo });
 }

@@ -128,3 +128,21 @@
     @apply font-sans;
   }
 }
+
+/* ====================================================================
+   Sakura — paleta cream/cocoa/rose/gold (clínica B2C, premium)
+   Source canônico: Funil-Quiz-Diagnostico.html
+   Adjetivos: Cuidado · Naturalidade · Feminilidade · Confiança
+==================================================================== */
+:root {
+  --sakura-cream: #FBF6EE;
+  --sakura-cream-2: #F4ECDF;
+  --sakura-cream-3: #EAE0CE;
+  --sakura-cocoa: #3A2A20;
+  --sakura-cocoa-2: #5C453A;
+  --sakura-cocoa-3: #8C7565;
+  --sakura-rose: #C68F7B;
+  --sakura-rose-2: #A06A56;
+  --sakura-gold: #A88452;
+  --sakura-hairline: #D9CCB6;
+}
