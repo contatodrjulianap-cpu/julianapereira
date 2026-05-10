@@ -168,6 +168,9 @@ export function IntegrationsView({
         </div>
       )}
 
+      {/* Tabela estática: o que dispara HOJE */}
+      <DisparosAtuaisTable config={config} />
+
       {/* WhatsApp */}
       <section className="mb-8">
         <div className="flex items-center gap-2 mb-3">
@@ -340,6 +343,129 @@ function FbEventCard({
         </label>
       </div>
     </div>
+  );
+}
+
+// =================================================
+// DisparosAtuaisTable — read-only resumo do que está
+// disparando hoje (lê do config). Tabela estática.
+// =================================================
+
+function DisparosAtuaisTable({ config }: { config: IntegrationConfig }) {
+  type Row = {
+    icon: string;
+    when: string;
+    what: string;
+    status: "ativo" | "desligado" | "sempre";
+    delay: string;
+  };
+
+  const rows: Row[] = [
+    {
+      icon: "📱",
+      when: "Lead finaliza quiz · 🔥 PRONTA",
+      what: "Greeting WhatsApp via Z-API",
+      status: config.whatsapp.greetings.PRONTA.enabled ? "ativo" : "desligado",
+      delay: "imediato",
+    },
+    {
+      icon: "📱",
+      when: "Lead finaliza quiz · 🟡 ESPERANCOSA",
+      what: "Greeting WhatsApp via Z-API",
+      status: config.whatsapp.greetings.ESPERANCOSA.enabled
+        ? "ativo"
+        : "desligado",
+      delay: "imediato",
+    },
+    {
+      icon: "📱",
+      when: "Lead finaliza quiz · 📍 CETICA",
+      what: "Greeting WhatsApp (geralmente vai pro Instagram)",
+      status: config.whatsapp.greetings.CETICA.enabled ? "ativo" : "desligado",
+      delay: "imediato",
+    },
+    {
+      icon: "💬",
+      when: "Você digita no /crm/Conversas",
+      what: "Envio manual via /api/zapi/send",
+      status: "sempre",
+      delay: "imediato",
+    },
+    {
+      icon: "📘",
+      when: "User abre /quiz",
+      what: `FB CAPI → ${config.facebook.pageview.event_name}`,
+      status: config.facebook.pageview.enabled ? "ativo" : "desligado",
+      delay: "imediato",
+    },
+    {
+      icon: "📘",
+      when: "Lead finaliza quiz",
+      what: `FB CAPI → ${config.facebook.quiz_submit.event_name}`,
+      status: config.facebook.quiz_submit.enabled ? "ativo" : "desligado",
+      delay: "imediato",
+    },
+    {
+      icon: "📘",
+      when: "Lead clica WhatsApp na tela de resultado",
+      what: `FB CAPI → ${config.facebook.wa_click.event_name}`,
+      status: config.facebook.wa_click.enabled ? "ativo" : "desligado",
+      delay: "imediato",
+    },
+  ];
+
+  return (
+    <section className="bg-white border border-slate-200 rounded-md overflow-hidden mb-6">
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-bold">🚀 Disparos ativos hoje</h3>
+          <p className="text-[11px] text-slate-500">
+            Tudo é síncrono · sem delay · sem follow-up automático (ainda).
+          </p>
+        </div>
+        <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
+          read-only
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
+              <th className="px-3 py-2 text-left font-semibold w-8"></th>
+              <th className="px-3 py-2 text-left font-semibold">Quando dispara</th>
+              <th className="px-3 py-2 text-left font-semibold">O que acontece</th>
+              <th className="px-3 py-2 text-left font-semibold w-24">Delay</th>
+              <th className="px-3 py-2 text-left font-semibold w-28">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={i} className="border-b border-slate-100">
+                <td className="px-3 py-2 text-lg">{r.icon}</td>
+                <td className="px-3 py-2 text-slate-800">{r.when}</td>
+                <td className="px-3 py-2 text-slate-600">{r.what}</td>
+                <td className="px-3 py-2 text-[12px] text-slate-500">
+                  {r.delay}
+                </td>
+                <td className="px-3 py-2">
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      r.status === "ativo"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : r.status === "sempre"
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-slate-200 text-slate-500"
+                    }`}
+                  >
+                    {r.status === "sempre" ? "sempre on" : r.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
