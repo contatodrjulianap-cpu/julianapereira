@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Dra. Juliana Pereira
 
-## Getting Started
+Plataforma do consultório (Clínica Sakura, B2C) e da educação B2B (VLR / Mentoria Legacy).
 
-First, run the development server:
+**Funcionalidades:**
+
+- `/` — landing
+- `/quiz` — quiz público que qualifica lead e dispara mensagem WhatsApp via Z-API
+- `/crm` — CRM interno (auth Supabase magic link), chat em tempo real (Realtime Postgres)
+- `/api/zapi/webhook` — recebe mensagens do WhatsApp via Z-API
+- `/api/zapi/send` — envia mensagem (consumido pelo CRM)
+- `/api/quiz/submit` — recebe submissão do quiz, cria lead, envia WhatsApp
+
+## Stack
+
+- Next.js 16 (App Router) + React 19 + TypeScript
+- Tailwind CSS v4 + shadcn/ui
+- Supabase (Postgres + Auth + Realtime)
+- Z-API (WhatsApp)
+- Deploy: Vercel
+- DNS: Cloudflare → `clinicasakura.org`
+
+## Setup local
 
 ```bash
+npm install
+cp .env.example .env.local
+# preencher .env.local com chaves do 1Password (vault Juliana)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Variáveis de ambiente
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Ver `.env.example`. Valores ficam no Vercel env (prod/preview) e em `.env.local` (dev).
 
-## Learn More
+## Schema Supabase
 
-To learn more about Next.js, take a look at the following resources:
+Ver migrations em `supabase/migrations/` (a criar).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Push em `main` → Vercel auto-deploy.
 
-## Deploy on Vercel
+## Doc canônico de infra
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`~/Projetos/2-Areas/empresas/dd-mm/clientes/juliana/infra.md`
