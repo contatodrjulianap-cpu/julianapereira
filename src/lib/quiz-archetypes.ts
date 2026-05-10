@@ -232,7 +232,7 @@ export type ResultCopy = {
   tone: "rose" | "cream" | "cocoa";
 };
 
-export const INSTAGRAM_URL = "https://instagram.com/drajulianap.pereira"; // confirmar handle
+export const INSTAGRAM_URL = "https://www.instagram.com/drajuliana.pereira/";
 
 export const RESULT_COPY: Record<Archetype, ResultCopy> = {
   PRONTA: {
@@ -264,7 +264,7 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
       "Você ainda está pesquisando — e isso é saudável. A Ju posta no Instagram bastidores, casos reais e quebra das principais dúvidas (resina amarela, fake, desgaste). Quando fizer sentido, a porta fica aberta.",
     tone: "cocoa",
     ctaPrimary: {
-      label: "Seguir @drajulianap.pereira no Instagram →",
+      label: "Seguir @drajuliana.pereira no Instagram →",
       href: () => INSTAGRAM_URL,
     },
   },
