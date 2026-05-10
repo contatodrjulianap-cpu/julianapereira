@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type CrmTab = "inbox" | "pipeline";
+export type CrmTab = "inbox" | "pipeline" | "funnel";
 
 export function CrmShell({
   active,
@@ -28,6 +28,9 @@ export function CrmShell({
               </TabLink>
               <TabLink href="/crm/pipeline" active={active === "pipeline"}>
                 📊 Pipeline
+              </TabLink>
+              <TabLink href="/crm/funnel" active={active === "funnel"}>
+                📈 Funil
               </TabLink>
             </nav>
           </div>

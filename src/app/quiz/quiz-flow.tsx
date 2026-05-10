@@ -9,6 +9,7 @@ import {
   type QuestionKey,
   type ScoreResult,
 } from "@/lib/quiz-archetypes";
+import { trackEvent } from "@/lib/track";
 
 type Step =
   | { kind: "cover" }
@@ -22,9 +23,25 @@ type Lead = { name: string; phone: string; instagram: string; lgpd: boolean };
 
 const TOTAL_VISUAL_STEPS = 1 + QUESTIONS.length + 1; // commitment + 8q + lead
 
+function stepNameOf(s: Step): string | null {
+  if (s.kind === "cover") return "cover";
+  if (s.kind === "commitment") return "commitment";
+  if (s.kind === "question") return `q${s.index + 1}`;
+  if (s.kind === "lead") return "lead";
+  if (s.kind === "loading") return "loading";
+  if (s.kind === "result") return `result_${s.result.archetype}`;
+  return null;
+}
+
 export function QuizFlow() {
   const [step, setStep] = useState<Step>({ kind: "cover" });
   const [history, setHistory] = useState<Step[]>([{ kind: "cover" }]);
+
+  // Pageview + initial step view (cover) on mount
+  useEffect(() => {
+    trackEvent("quiz_pageview");
+    trackEvent("quiz_step_view", { step: "cover" });
+  }, []);
   const [answers, setAnswers] = useState<Partial<Answers>>({});
   const [lead, setLead] = useState<Lead>({
     name: "",
@@ -48,6 +65,9 @@ export function QuizFlow() {
     setStep(next);
     setHistory((h) => [...h, next]);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    // Tracking
+    const stepName = stepNameOf(next);
+    if (stepName) trackEvent("quiz_step_view", { step: stepName });
   }
 
   function back() {
@@ -544,6 +564,12 @@ function ResultScreen({
         href={copy.ctaPrimary.href(firstName)}
         target={result.archetype === "CETICA" ? "_blank" : "_self"}
         rel="noopener noreferrer"
+        onClick={() =>
+          trackEvent(
+            result.archetype === "CETICA" ? "quiz_instagram_click" : "quiz_wa_click",
+            { archetype: result.archetype, geo: result.geo },
+          )
+        }
         className="block text-center font-semibold py-4 px-6 rounded-none mb-3 transition hover:opacity-90"
         style={{
           background:
