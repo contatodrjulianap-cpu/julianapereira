@@ -5,6 +5,7 @@ import { sendText } from "@/lib/zapi";
 import { sendCapiEvent } from "@/lib/facebook";
 import { logEvent } from "@/lib/event-log";
 
+// Body usa keys livres em answers/scores — config do quiz pode mudar via builder.
 const Body = z.object({
   name: z.string().min(2),
   phone: z.string().min(10).regex(/^\d+$/),

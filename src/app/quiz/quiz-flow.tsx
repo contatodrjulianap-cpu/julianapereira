@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  QUESTIONS,
   scoreAnswers,
-  RESULT_COPY,
-  type Answers,
-  type QuestionKey,
+  whatsappMessageFor,
+  type Question,
   type ScoreResult,
 } from "@/lib/quiz-archetypes";
+import type { QuizConfig } from "@/lib/quiz-config";
 import { trackEvent } from "@/lib/track";
 
 type Step =
@@ -21,8 +20,6 @@ type Step =
 
 type Lead = { name: string; phone: string; instagram: string; lgpd: boolean };
 
-const TOTAL_VISUAL_STEPS = 1 + QUESTIONS.length + 1; // commitment + 8q + lead
-
 function stepNameOf(s: Step): string | null {
   if (s.kind === "cover") return "cover";
   if (s.kind === "commitment") return "commitment";
@@ -33,7 +30,10 @@ function stepNameOf(s: Step): string | null {
   return null;
 }
 
-export function QuizFlow() {
+export function QuizFlow({ config }: { config: QuizConfig }) {
+  const QUESTIONS = config.questions;
+  const TOTAL_VISUAL_STEPS = 1 + QUESTIONS.length + 1;
+
   const [step, setStep] = useState<Step>({ kind: "cover" });
   const [history, setHistory] = useState<Step[]>([{ kind: "cover" }]);
 
@@ -42,7 +42,7 @@ export function QuizFlow() {
     trackEvent("quiz_pageview");
     trackEvent("quiz_step_view", { step: "cover" });
   }, []);
-  const [answers, setAnswers] = useState<Partial<Answers>>({});
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [lead, setLead] = useState<Lead>({
     name: "",
     phone: "",
@@ -77,7 +77,7 @@ export function QuizFlow() {
     setStep(newHistory[newHistory.length - 1]);
   }
 
-  function answerQuestion(key: QuestionKey, value: string) {
+  function answerQuestion(key: string, value: string) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
     const idx = QUESTIONS.findIndex((q) => q.key === key);
     setTimeout(() => {
@@ -94,7 +94,7 @@ export function QuizFlow() {
     setSubmitting(true);
     const phone = lead.phone.replace(/\D/g, "");
     const phoneFmt = phone.startsWith("55") ? phone : `55${phone}`;
-    const result = scoreAnswers(answers);
+    const result = scoreAnswers(answers, QUESTIONS);
     go({ kind: "loading" });
 
     try {
@@ -165,7 +165,7 @@ export function QuizFlow() {
         )}
         {step.kind === "loading" && <LoadingScreen />}
         {step.kind === "result" && (
-          <ResultScreen result={step.result} firstName={lead.name} />
+          <ResultScreen result={step.result} firstName={lead.name} config={config} />
         )}
       </main>
 
@@ -334,7 +334,7 @@ function QuestionScreen({
   question,
   onAnswer,
 }: {
-  question: (typeof QUESTIONS)[number];
+  question: Question;
   onAnswer: (value: string) => void;
 }) {
   return (
@@ -502,42 +502,37 @@ function LoadingScreen() {
 function ResultScreen({
   result,
   firstName,
+  config,
 }: {
   result: ScoreResult;
   firstName: string;
+  config: QuizConfig;
 }) {
-  const copy = RESULT_COPY[result.archetype];
+  const copy = config.results[result.archetype];
+  const tone = copy.tone ?? "cream";
   const nome = firstName.trim().split(" ")[0] || "você";
 
-  const toneStyles: Record<typeof copy.tone, { bg: string; fg: string; border: string }> =
-    {
-      rose: {
-        bg: "var(--sakura-rose-2)",
-        fg: "var(--sakura-cream)",
-        border: "var(--sakura-rose-2)",
-      },
-      cream: {
-        bg: "var(--sakura-cream-2)",
-        fg: "var(--sakura-cocoa)",
-        border: "var(--sakura-hairline)",
-      },
-      cocoa: {
-        bg: "var(--sakura-cocoa)",
-        fg: "var(--sakura-cream)",
-        border: "var(--sakura-cocoa)",
-      },
-    };
+  const toneStyles: Record<"rose" | "cream" | "cocoa", { bg: string; fg: string }> = {
+    rose: { bg: "var(--sakura-rose-2)", fg: "var(--sakura-cream)" },
+    cream: { bg: "var(--sakura-cream-2)", fg: "var(--sakura-cocoa)" },
+    cocoa: { bg: "var(--sakura-cocoa)", fg: "var(--sakura-cream)" },
+  };
 
-  const tone = toneStyles[copy.tone];
+  const t = toneStyles[tone];
+
+  // Build CTA href dinamicamente da config
+  const ctaHref =
+    result.archetype === "CETICA"
+      ? config.instagram_url
+      : `https://wa.me/${config.whatsapp_number}?text=${encodeURIComponent(
+          whatsappMessageFor(result.archetype, firstName),
+        )}`;
 
   return (
     <FadeUp className="flex-1 flex flex-col">
       <div
         className="text-center text-[11px] tracking-[2px] uppercase font-semibold py-3 px-4 mb-6"
-        style={{
-          background: tone.bg,
-          color: tone.fg,
-        }}
+        style={{ background: t.bg, color: t.fg }}
       >
         {copy.badge}
       </div>
@@ -561,7 +556,7 @@ function ResultScreen({
       </p>
 
       <a
-        href={copy.ctaPrimary.href(firstName)}
+        href={ctaHref}
         target={result.archetype === "CETICA" ? "_blank" : "_self"}
         rel="noopener noreferrer"
         onClick={() =>
@@ -581,7 +576,7 @@ function ResultScreen({
           letterSpacing: "0.5px",
         }}
       >
-        {copy.ctaPrimary.label}
+        {copy.ctaLabel}
       </a>
 
       <p

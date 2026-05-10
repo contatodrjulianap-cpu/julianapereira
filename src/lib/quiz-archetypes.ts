@@ -8,15 +8,10 @@
 export type Archetype = "PRONTA" | "ESPERANCOSA" | "CETICA";
 export type Geo = "SP" | "BR" | "INTL";
 
-export type QuestionKey =
-  | "q1_caso"
-  | "q2_urgencia_emocional"
-  | "q3_objecao"
-  | "q4_lente_amarela"
-  | "q5_expectativa"
-  | "q6_geo"
-  | "q7_urgencia_temporal"
-  | "q7_5_capacidade";
+// QuestionKey é string runtime-loaded da config DB.
+// Hardcoded são os 8 keys canônicos (q1_caso, q2_urgencia_emocional, ...) mas
+// o builder pode adicionar/renomear, então o tipo precisa ser aberto.
+export type QuestionKey = string;
 
 export type OptionWeight = Partial<Record<Archetype, number>>;
 
@@ -26,7 +21,7 @@ export type QuizOption = {
   emoji?: string;
   weights?: OptionWeight;
   geo?: Geo;
-  knockout?: true; // marca CÉTICA / Instagram independente do score
+  knockout?: boolean; // marca CÉTICA / Instagram independente do score
   caseType?: string; // Q1: tipo de caso clínico
 };
 
@@ -153,13 +148,16 @@ export type ScoreResult = {
   knockout: boolean;
 };
 
-export function scoreAnswers(answers: Partial<Answers>): ScoreResult {
+export function scoreAnswers(
+  answers: Record<string, string>,
+  questions: Question[] = QUESTIONS,
+): ScoreResult {
   const scores: Record<Archetype, number> = { PRONTA: 0, ESPERANCOSA: 0, CETICA: 0 };
   let geo: Geo = "SP";
   let caseType: string | null = null;
   let knockout = false;
 
-  for (const q of QUESTIONS) {
+  for (const q of questions) {
     const ans = answers[q.key];
     if (!ans) continue;
     const opt = q.options.find((o) => o.value === ans);
