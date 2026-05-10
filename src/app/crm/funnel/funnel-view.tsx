@@ -52,6 +52,7 @@ const STEP_LABEL: Record<string, string> = {
   q7: "Q7 · Urgência",
   q8: "Q8 · Capacidade financeira",
   lead: "Captura (nome + WhatsApp)",
+  wa_click: "💬 Clicou no WhatsApp",
   result_PRONTA: "Resultado · Pronta",
   result_ESPERANCOSA: "Resultado · Esperançosa",
   result_CETICA: "Resultado · Cética",
@@ -81,15 +82,35 @@ export function FunnelView({
   const pageviews = metrics.pageviews;
   const top = Math.max(pageviews, stepMap["cover"] ?? 0, 1);
 
-  const steps = STEP_ORDER.filter((s) => !s.startsWith("result_")).map(
-    (s, idx, arr) => {
-      const count = stepMap[s] ?? 0;
-      const prev = idx === 0 ? top : (stepMap[arr[idx - 1]] ?? top);
-      const pctOfTop = (count / top) * 100;
-      const dropoff = prev > 0 ? ((prev - count) / prev) * 100 : 0;
-      return { step: s, label: STEP_LABEL[s], count, pctOfTop, dropoff };
-    },
-  );
+  type StepRow = {
+    step: string;
+    label: string;
+    count: number;
+    pctOfTop: number;
+    dropoff: number;
+  };
+
+  const steps: StepRow[] = STEP_ORDER.filter(
+    (s) => !s.startsWith("result_"),
+  ).map((s, idx, arr) => {
+    const count = stepMap[s] ?? 0;
+    const prev = idx === 0 ? top : (stepMap[arr[idx - 1]] ?? top);
+    const pctOfTop = (count / top) * 100;
+    const dropoff = prev > 0 ? ((prev - count) / prev) * 100 : 0;
+    return { step: s, label: STEP_LABEL[s], count, pctOfTop, dropoff };
+  });
+
+  // wa_click vem de metrics.wa_clicks (evento separado do quiz_step_view).
+  // Adiciona como última etapa do funil, com dropoff calculado vs `lead`.
+  const leadCount = stepMap["lead"] ?? 0;
+  const waCount = metrics.wa_clicks;
+  steps.push({
+    step: "wa_click",
+    label: STEP_LABEL["wa_click"],
+    count: waCount,
+    pctOfTop: (waCount / top) * 100,
+    dropoff: leadCount > 0 ? ((leadCount - waCount) / leadCount) * 100 : 0,
+  });
 
   const resultBuckets = (
     ["result_PRONTA", "result_ESPERANCOSA", "result_CETICA"] as const
