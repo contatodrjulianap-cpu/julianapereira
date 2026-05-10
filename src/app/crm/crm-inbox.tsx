@@ -8,18 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-
-type Lead = {
-  id: string;
-  name: string | null;
-  phone: string;
-  source: string | null;
-  last_message_at: string | null;
-  created_at: string;
-  archetype: string | null;
-  geo: string | null;
-  case_type: string | null;
-};
+import { ARCH_LABEL, LeadModal, type LeadFull } from "./lead-modal";
 
 type Message = {
   id: string;
@@ -29,10 +18,11 @@ type Message = {
   created_at: string;
 };
 
-export function CrmInbox({ initialLeads }: { initialLeads: Lead[] }) {
+export function CrmInbox({ initialLeads }: { initialLeads: LeadFull[] }) {
   const supabase = createClient();
-  const [leads, setLeads] = useState<Lead[]>(initialLeads);
-  const [selected, setSelected] = useState<Lead | null>(initialLeads[0] ?? null);
+  const [leads, setLeads] = useState<LeadFull[]>(initialLeads);
+  const [selected, setSelected] = useState<LeadFull | null>(initialLeads[0] ?? null);
+  const [editing, setEditing] = useState<LeadFull | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
@@ -47,10 +37,19 @@ export function CrmInbox({ initialLeads }: { initialLeads: Lead[] }) {
         { event: "*", schema: "public", table: "leads" },
         (payload) => {
           if (payload.eventType === "INSERT") {
-            setLeads((prev) => [payload.new as Lead, ...prev]);
+            setLeads((prev) => [payload.new as LeadFull, ...prev]);
           } else if (payload.eventType === "UPDATE") {
             setLeads((prev) =>
-              prev.map((l) => (l.id === (payload.new as Lead).id ? (payload.new as Lead) : l)),
+              prev.map((l) =>
+                l.id === (payload.new as LeadFull).id
+                  ? (payload.new as LeadFull)
+                  : l,
+              ),
+            );
+            setSelected((cur) =>
+              cur && cur.id === (payload.new as LeadFull).id
+                ? (payload.new as LeadFull)
+                : cur,
             );
           }
         },
@@ -161,13 +160,24 @@ export function CrmInbox({ initialLeads }: { initialLeads: Lead[] }) {
         {selected ? (
           <>
             <header className="p-4 border-b bg-white">
-              <div className="font-semibold">{selected.name ?? selected.phone}</div>
-              <div className="text-xs text-slate-500">
-                {selected.phone}
-                {selected.archetype && ` · ${selected.archetype}`}
-                {selected.geo && ` · ${selected.geo}`}
-                {selected.case_type && ` · caso: ${selected.case_type}`}
-              </div>
+              <button
+                onClick={() => setEditing(selected)}
+                className="text-left group"
+                title="Ver / editar dados do lead"
+              >
+                <div className="font-semibold group-hover:underline">
+                  {selected.name ?? selected.phone}
+                  <span className="ml-2 text-[11px] font-normal text-slate-400 group-hover:text-slate-600">
+                    📋 ver detalhes
+                  </span>
+                </div>
+                <div className="text-xs text-slate-500">
+                  {selected.phone}
+                  {selected.archetype && ` · ${ARCH_LABEL[selected.archetype]}`}
+                  {selected.geo && ` · ${selected.geo}`}
+                  {selected.case_type && ` · caso: ${selected.case_type}`}
+                </div>
+              </button>
             </header>
 
             <ScrollArea className="flex-1 p-4 bg-slate-100">
@@ -216,6 +226,20 @@ export function CrmInbox({ initialLeads }: { initialLeads: Lead[] }) {
           </div>
         )}
       </section>
+
+      {editing && (
+        <LeadModal
+          lead={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(updated) => {
+            setLeads((prev) =>
+              prev.map((l) => (l.id === updated.id ? updated : l)),
+            );
+            setSelected((cur) => (cur && cur.id === updated.id ? updated : cur));
+            setEditing(updated);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -16,9 +16,7 @@ export default async function CrmPage() {
 
   const { data: leads } = await supabase
     .from("leads")
-    .select(
-      "id, name, phone, source, last_message_at, created_at, archetype, geo, case_type",
-    )
+    .select("*")
     .order("last_message_at", { ascending: false, nullsFirst: false })
     .limit(100);
 
