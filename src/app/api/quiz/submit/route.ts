@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendText } from "@/lib/zapi";
@@ -93,27 +93,35 @@ export async function POST(req: NextRequest) {
     undefined;
   const ua = req.headers.get("user-agent") ?? undefined;
 
-  sendCapiEvent(
-    {
-      event_name: "Lead",
-      event_id: `lead-${lead.id}`,
-      event_source_url: req.headers.get("referer") ?? undefined,
-      user_data: {
-        phone,
-        external_id: lead.id,
-        fbp,
-        fbc,
-        client_ip: ip,
-        client_user_agent: ua,
-      },
-      custom_data: {
-        content_name: "quiz_submission",
-        goal,
-        budget,
-      },
-    },
-    { lead_id: lead.id },
-  ).catch((err) => console.error("FB CAPI Lead failed", err));
+  // Roda APÓS a response retornar — mantém a função alive (Next 16 `after`).
+  // Sem isso, em serverless o fetch é morto antes de completar.
+  after(async () => {
+    try {
+      await sendCapiEvent(
+        {
+          event_name: "Lead",
+          event_id: `lead-${lead.id}`,
+          event_source_url: req.headers.get("referer") ?? undefined,
+          user_data: {
+            phone,
+            external_id: lead.id,
+            fbp,
+            fbc,
+            client_ip: ip,
+            client_user_agent: ua,
+          },
+          custom_data: {
+            content_name: "quiz_submission",
+            goal,
+            budget,
+          },
+        },
+        { lead_id: lead.id },
+      );
+    } catch (err) {
+      console.error("FB CAPI Lead failed", err);
+    }
+  });
 
   return NextResponse.json({ ok: true, lead_id: lead.id });
 }
