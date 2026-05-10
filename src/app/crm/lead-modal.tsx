@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { QUESTIONS, type Archetype } from "@/lib/quiz-archetypes";
 
 export type LeadFull = {
@@ -72,6 +73,17 @@ export const STATUS_OPTIONS = [
   "lost",
 ];
 
+type HistoryItem = {
+  id: string;
+  ts: string;
+  kind: "event" | "msg_in" | "msg_out";
+  type: string;
+  label: string;
+  detail?: string;
+  status?: string;
+  emoji: string;
+};
+
 export function LeadModal({
   lead,
   onClose,
@@ -92,6 +104,69 @@ export function LeadModal({
   const [error, setError] = useState<string | null>(null);
 
   const notes = lead.notes_log ?? [];
+
+  // ---- Histórico (events + messages) ----
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    let active = true;
+    (async () => {
+      setLoadingHistory(true);
+      const [eventsRes, msgsRes] = await Promise.all([
+        supabase
+          .from("event_log")
+          .select("id, type, status, target, error, payload, created_at")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabase
+          .from("messages")
+          .select("id, direction, text, created_at")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false })
+          .limit(100),
+      ]);
+      if (!active) return;
+
+      const items: HistoryItem[] = [];
+
+      for (const e of eventsRes.data ?? []) {
+        const meta = describeEvent(e.type, e.status as string);
+        items.push({
+          id: `e-${e.id}`,
+          ts: e.created_at,
+          kind: "event",
+          type: e.type,
+          label: meta.label,
+          emoji: meta.emoji,
+          status: e.status as string,
+          detail: buildEventDetail(e.type, e.payload, e.error, e.target),
+        });
+      }
+
+      for (const m of msgsRes.data ?? []) {
+        const isOut = m.direction === "outbound";
+        items.push({
+          id: `m-${m.id}`,
+          ts: m.created_at,
+          kind: isOut ? "msg_out" : "msg_in",
+          type: isOut ? "WhatsApp enviado" : "WhatsApp recebido",
+          label: isOut ? "Mensagem enviada" : "Mensagem recebida",
+          emoji: isOut ? "➡️" : "⬅️",
+          detail: m.text,
+        });
+      }
+
+      items.sort((a, b) => (a.ts < b.ts ? 1 : -1));
+      setHistory(items);
+      setLoadingHistory(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [lead.id]);
 
   async function handleSave() {
     setSaving(true);
@@ -296,6 +371,59 @@ export function LeadModal({
           </details>
         )}
 
+        {/* Histórico (timeline de eventos + mensagens) */}
+        <details className="mb-4 text-sm" open>
+          <summary className="cursor-pointer font-semibold text-slate-600">
+            🕐 Histórico ({loadingHistory ? "..." : history.length} itens)
+          </summary>
+          <div className="mt-3 max-h-72 overflow-y-auto border border-slate-100 rounded-md bg-slate-50/40">
+            {loadingHistory ? (
+              <p className="p-3 text-xs text-slate-400 italic">Carregando...</p>
+            ) : history.length === 0 ? (
+              <p className="p-3 text-xs text-slate-400 italic">
+                Sem eventos ainda.
+              </p>
+            ) : (
+              <ul className="divide-y divide-slate-100">
+                {history.map((h) => (
+                  <li
+                    key={h.id}
+                    className={`px-3 py-2 flex items-start gap-2 ${
+                      h.kind === "msg_out"
+                        ? "bg-emerald-50/40"
+                        : h.kind === "msg_in"
+                          ? "bg-blue-50/40"
+                          : ""
+                    }`}
+                  >
+                    <span className="text-base leading-tight pt-0.5">{h.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[12px] font-medium text-slate-800">
+                          {h.label}
+                          {h.status === "failed" && (
+                            <span className="ml-1.5 text-[10px] text-red-700 bg-red-100 px-1 rounded">
+                              falhou
+                            </span>
+                          )}
+                        </p>
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap font-mono">
+                          {fmtTimelineTime(h.ts)}
+                        </span>
+                      </div>
+                      {h.detail && (
+                        <p className="text-[11px] text-slate-600 mt-0.5 break-words">
+                          {h.detail}
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </details>
+
         {(lead.utm_source ||
           lead.utm_medium ||
           lead.utm_campaign ||
@@ -414,6 +542,80 @@ function Field({
       </span>
       {children}
     </label>
+  );
+}
+
+// =================================================
+// Helpers de histórico
+// =================================================
+
+function describeEvent(
+  type: string,
+  status: string,
+): { emoji: string; label: string } {
+  const map: Record<string, { emoji: string; label: string }> = {
+    quiz_submit: { emoji: "📝", label: "Quiz finalizado" },
+    quiz_pageview: { emoji: "👁", label: "Abriu a página do quiz" },
+    quiz_step_view: { emoji: "📍", label: "Avançou etapa do quiz" },
+    quiz_wa_click: { emoji: "💬", label: "Clicou no WhatsApp" },
+    quiz_instagram_click: { emoji: "📷", label: "Clicou no Instagram" },
+    fb_capi: { emoji: "📘", label: "Evento Facebook (CAPI)" },
+    zapi_send_text: { emoji: "📤", label: "Z-API: mensagem enviada" },
+    zapi_webhook: { emoji: "📥", label: "Z-API: webhook recebido" },
+    lead_update: { emoji: "✏️", label: "Lead atualizado" },
+    lead_note: { emoji: "📌", label: "Nota adicionada" },
+    integration_config_update: { emoji: "🔌", label: "Config integrações alterada" },
+    quiz_config_update: { emoji: "🛠️", label: "Config do quiz alterada" },
+  };
+  const base = map[type] ?? { emoji: "•", label: type };
+  if (status === "failed") return { ...base, emoji: "⚠️" };
+  if (status === "skipped") return { ...base, emoji: "⏭" };
+  return base;
+}
+
+function buildEventDetail(
+  type: string,
+  payload: Record<string, unknown> | null,
+  error: string | null,
+  target: string | null,
+): string | undefined {
+  if (error) return `erro: ${error}`;
+  if (!payload) return target ? `→ ${target}` : undefined;
+
+  if (type === "fb_capi") {
+    const evt = payload.event_name as string | undefined;
+    return evt ? `evento: ${evt}` : undefined;
+  }
+  if (type === "quiz_submit") {
+    const arch = payload.archetype as string | undefined;
+    const geo = payload.geo as string | undefined;
+    if (arch && geo) return `${arch} · ${geo}`;
+  }
+  if (type === "quiz_step_view") {
+    const step = payload.step as string | undefined;
+    return step ? `step: ${step}` : undefined;
+  }
+  if (type === "lead_update") {
+    const status = payload.status as string | undefined;
+    return status ? `status → ${status}` : undefined;
+  }
+  return target ?? undefined;
+}
+
+function fmtTimelineTime(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const isToday = d.toDateString() === today.toDateString();
+  const time = d.toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (isToday) return `Hoje · ${time}`;
+  return (
+    d.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+    }) + ` · ${time}`
   );
 }
 
