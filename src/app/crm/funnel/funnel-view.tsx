@@ -53,6 +53,7 @@ const STEP_LABEL: Record<string, string> = {
   q8: "Q8 · Capacidade financeira",
   lead: "Captura (nome + WhatsApp)",
   wa_click: "💬 Clicou no WhatsApp",
+  phone_match: "✅ Número bateu no WhatsApp",
   result_PRONTA: "Resultado · Pronta",
   result_ESPERANCOSA: "Resultado · Esperançosa",
   result_CETICA: "Resultado · Cética",
@@ -100,16 +101,24 @@ export function FunnelView({
     return { step: s, label: STEP_LABEL[s], count, pctOfTop, dropoff };
   });
 
-  // wa_click vem de metrics.wa_clicks (evento separado do quiz_step_view).
-  // Adiciona como última etapa do funil, com dropoff calculado vs `lead`.
+  // wa_click + phone_match vêm de metrics (eventos separados do quiz_step_view).
+  // Adicionados como últimas etapas do funil, com dropoff em cascata.
   const leadCount = stepMap["lead"] ?? 0;
   const waCount = metrics.wa_clicks;
+  const matchCount = metrics.phone_matched;
   steps.push({
     step: "wa_click",
     label: STEP_LABEL["wa_click"],
     count: waCount,
     pctOfTop: (waCount / top) * 100,
     dropoff: leadCount > 0 ? ((leadCount - waCount) / leadCount) * 100 : 0,
+  });
+  steps.push({
+    step: "phone_match",
+    label: STEP_LABEL["phone_match"],
+    count: matchCount,
+    pctOfTop: (matchCount / top) * 100,
+    dropoff: waCount > 0 ? ((waCount - matchCount) / waCount) * 100 : 0,
   });
 
   const resultBuckets = (
