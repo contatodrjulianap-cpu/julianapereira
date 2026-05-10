@@ -16,8 +16,9 @@ type Lead = {
   source: string | null;
   last_message_at: string | null;
   created_at: string;
-  quiz_goal: string | null;
-  quiz_budget: string | null;
+  archetype: string | null;
+  geo: string | null;
+  case_type: string | null;
 };
 
 type Message = {
@@ -28,13 +29,7 @@ type Message = {
   created_at: string;
 };
 
-export function CrmDashboard({
-  initialLeads,
-  userEmail,
-}: {
-  initialLeads: Lead[];
-  userEmail: string;
-}) {
+export function CrmInbox({ initialLeads }: { initialLeads: Lead[] }) {
   const supabase = createClient();
   const [leads, setLeads] = useState<Lead[]>(initialLeads);
   const [selected, setSelected] = useState<Lead | null>(initialLeads[0] ?? null);
@@ -123,20 +118,12 @@ export function CrmDashboard({
     }
   }
 
-  async function logout() {
-    await supabase.auth.signOut();
-    window.location.href = "/crm/login";
-  }
-
   return (
-    <div className="grid grid-cols-[320px_1fr] h-screen">
+    <div className="grid grid-cols-[320px_1fr] flex-1 min-h-0">
       {/* Sidebar */}
-      <aside className="border-r bg-slate-50 flex flex-col">
-        <div className="p-4 border-b flex items-center justify-between">
-          <h1 className="font-semibold">Leads</h1>
-          <button onClick={logout} className="text-xs text-slate-500 hover:underline">
-            sair ({userEmail})
-          </button>
+      <aside className="border-r bg-white flex flex-col">
+        <div className="p-3 border-b">
+          <h2 className="text-sm font-semibold text-slate-700">Leads</h2>
         </div>
         <ScrollArea className="flex-1">
           {leads.length === 0 ? (
@@ -177,8 +164,9 @@ export function CrmDashboard({
               <div className="font-semibold">{selected.name ?? selected.phone}</div>
               <div className="text-xs text-slate-500">
                 {selected.phone}
-                {selected.quiz_goal && ` · objetivo: ${selected.quiz_goal}`}
-                {selected.quiz_budget && ` · budget: ${selected.quiz_budget}`}
+                {selected.archetype && ` · ${selected.archetype}`}
+                {selected.geo && ` · ${selected.geo}`}
+                {selected.case_type && ` · caso: ${selected.case_type}`}
               </div>
             </header>
 
