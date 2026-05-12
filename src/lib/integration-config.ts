@@ -41,12 +41,12 @@ export const DEFAULT_INTEGRATION_CONFIG: IntegrationConfig = {
       PRONTA: {
         enabled: true,
         message:
-          "Oi {name}! 🌸 Recebi o resultado do seu quiz aqui — *Sorriso Pronto pra Avaliação*. A Ju vai te chamar nas próximas horas pra alinhar agenda. Se quiser adiantar, me responde aqui que já te passo os horários disponíveis.",
+          "Oi {name}! 🌸 Recebi suas respostas aqui — você está pronta pra avaliação. A equipe da Ju vai te chamar nas próximas horas pra alinhar agenda. Se quiser adiantar, me responde aqui que já te passo os horários disponíveis.",
       },
       ESPERANCOSA: {
         enabled: true,
         message:
-          "Oi {name}! 🌸 Vi seu quiz aqui — você está no momento de entender o caminho certo. O plano não é tabela, depende do seu caso. A avaliação personalizada com a Ju (ou com a equipe) é onde tudo se define, inclusive o parcelamento. Posso te explicar como funciona?",
+          "Oi {name}! 🌸 Vi suas respostas aqui — você ainda quer entender melhor antes de decidir, faz total sentido. Investimento e parcelamento são definidos na avaliação com a equipe (não temos tabela). Posso te explicar como funciona?",
       },
       CETICA: {
         enabled: false,

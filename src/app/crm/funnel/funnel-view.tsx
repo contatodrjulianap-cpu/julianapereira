@@ -138,12 +138,14 @@ export function FunnelView({
       : 0;
 
   return (
-    <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-6 w-full">
+    <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-8 w-full">
       {/* Header + filtros */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <div>
-          <h2 className="text-xl font-bold tracking-tight">Funil</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+            Funil
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">
             Conversão por etapa · {range.label}
           </p>
         </div>
@@ -151,28 +153,28 @@ export function FunnelView({
       </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+        <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
           ⚠️ Erro ao carregar funil: {error}
         </div>
       )}
 
       {/* Cards macro */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <Stat label="Pageviews" value={pageviews} sub="visitantes únicos da capa" />
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Stat label="Pageviews" value={pageviews} sub="Visitantes únicos da capa" />
         <Stat
           label="Conclusão"
           value={`${completion.toFixed(1)}%`}
           sub={`${metrics.leads_total} de ${pageviews} preencheram`}
-          accent="green"
+          accent="indigo"
         />
         <Stat
           label="Click WhatsApp"
           value={`${waClickRate.toFixed(1)}%`}
           sub={`${metrics.wa_clicks} de ${metrics.leads_total} clicaram`}
-          accent="amber"
+          accent="violet"
         />
         <Stat
-          label="Phone match"
+          label="Número bateu"
           value={`${phoneMatchRate.toFixed(1)}%`}
           sub={`${metrics.phone_matched} de ${metrics.wa_clicks} mandaram msg`}
           accent="emerald"
@@ -180,12 +182,16 @@ export function FunnelView({
       </section>
 
       {/* Funil por step */}
-      <section className="bg-white border border-slate-200 rounded-md p-5 mb-6">
-        <h3 className="text-sm font-semibold mb-1">Funil por etapa</h3>
-        <p className="text-xs text-slate-500 mb-5">
-          % calculado sobre o topo do funil (capa). Drop-off é a queda entre etapas.
-        </p>
-        <div className="space-y-2">
+      <section className="bg-white rounded-xl ring-1 ring-slate-200/70 shadow-sm p-6 mb-6">
+        <div className="mb-6">
+          <h3 className="text-base font-semibold text-slate-900">
+            Funil por etapa
+          </h3>
+          <p className="text-sm text-slate-500 mt-0.5">
+            % sobre o topo do funil (capa). Drop-off é a queda entre etapas.
+          </p>
+        </div>
+        <div className="space-y-2.5">
           {steps.map((s, i) => (
             <FunnelBar
               key={s.step}
@@ -199,34 +205,68 @@ export function FunnelView({
       </section>
 
       {/* Distribuição por arquétipo */}
-      <section className="bg-white border border-slate-200 rounded-md p-5">
-        <h3 className="text-sm font-semibold mb-1">Distribuição por arquétipo</h3>
-        <p className="text-xs text-slate-500 mb-5">
-          Quem completou o quiz, em qual bucket caiu. Total leads:{" "}
-          {metrics.leads_total}.
-        </p>
-        <div className="grid grid-cols-3 gap-3">
+      <section className="bg-white rounded-xl ring-1 ring-slate-200/70 shadow-sm p-6">
+        <div className="mb-6">
+          <h3 className="text-base font-semibold text-slate-900">
+            Distribuição por arquétipo
+          </h3>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Em qual bucket os leads que completaram caíram. Total:{" "}
+            {metrics.leads_total}.
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
           {resultBuckets.map((b) => {
             const pct =
               metrics.leads_total > 0
                 ? (b.count / metrics.leads_total) * 100
                 : 0;
-            const accent =
+            const styles =
               b.step === "result_PRONTA"
-                ? "bg-green-100 text-green-800 border-green-200"
+                ? {
+                    bar: "bg-emerald-500",
+                    dot: "bg-emerald-500",
+                    label: "text-emerald-700",
+                  }
                 : b.step === "result_ESPERANCOSA"
-                  ? "bg-amber-100 text-amber-800 border-amber-200"
-                  : "bg-slate-200 text-slate-700 border-slate-300";
+                  ? {
+                      bar: "bg-amber-400",
+                      dot: "bg-amber-400",
+                      label: "text-amber-700",
+                    }
+                  : {
+                      bar: "bg-slate-400",
+                      dot: "bg-slate-400",
+                      label: "text-slate-600",
+                    };
             return (
               <div
                 key={b.step}
-                className={`px-4 py-4 rounded-md border ${accent}`}
+                className="rounded-lg ring-1 ring-slate-200 bg-white p-4"
               >
-                <p className="text-xs font-semibold uppercase tracking-wide mb-1">
-                  {b.label.replace("Resultado · ", "")}
+                <div className="flex items-center gap-2 mb-3">
+                  <span
+                    className={`w-2 h-2 rounded-full ${styles.dot}`}
+                    aria-hidden
+                  />
+                  <p
+                    className={`text-[11px] font-semibold uppercase tracking-wider ${styles.label}`}
+                  >
+                    {b.label.replace("Resultado · ", "")}
+                  </p>
+                </div>
+                <p className="text-3xl font-semibold text-slate-900 tabular-nums">
+                  {b.count}
                 </p>
-                <p className="text-3xl font-bold">{b.count}</p>
-                <p className="text-xs mt-1">{pct.toFixed(1)}% dos leads</p>
+                <div className="mt-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${styles.bar} rounded-full transition-all duration-500`}
+                    style={{ width: `${Math.max(pct, 1)}%` }}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-2 tabular-nums">
+                  {pct.toFixed(1)}% dos leads
+                </p>
               </div>
             );
           })}
@@ -234,7 +274,8 @@ export function FunnelView({
       </section>
 
       <p className="text-xs text-slate-400 mt-6 text-center">
-        Tracking via <code>session_id</code> em sessionStorage · agregação por sessão única.
+        Tracking via <code className="font-mono">session_id</code> em
+        sessionStorage · agregação por sessão única.
       </p>
     </div>
   );
@@ -257,16 +298,16 @@ function RangeFilter({ range }: { range: FunnelRange }) {
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex flex-wrap gap-1">
+      <div className="inline-flex items-center bg-white rounded-lg ring-1 ring-slate-200 p-0.5 shadow-sm">
         {PRESETS.map((p) => (
           <Link
             key={p.key}
             href={`/crm/funnel?preset=${p.key}`}
             onClick={() => setShowCustom(false)}
-            className={`px-3 py-1.5 text-xs rounded-md border transition ${
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
               range.preset === p.key
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
+                ? "bg-slate-900 text-white"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
             }`}
           >
             {p.label}
@@ -274,24 +315,24 @@ function RangeFilter({ range }: { range: FunnelRange }) {
         ))}
         <button
           onClick={() => setShowCustom((v) => !v)}
-          className={`px-3 py-1.5 text-xs rounded-md border transition ${
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
             range.preset === "custom"
-              ? "bg-slate-900 text-white border-slate-900"
-              : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
+              ? "bg-slate-900 text-white"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
           }`}
         >
-          📅 Custom
+          Custom
         </button>
       </div>
       {showCustom && (
-        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-2 text-xs">
+        <div className="flex items-center gap-2 bg-white ring-1 ring-slate-200 shadow-sm rounded-lg px-3 py-2 text-xs">
           <span className="text-slate-500">de</span>
           <input
             type="date"
             value={from}
             max={to}
             onChange={(e) => setFrom(e.target.value)}
-            className="px-2 py-1 text-xs border border-slate-200 rounded outline-none"
+            className="px-2 py-1 text-xs ring-1 ring-slate-200 rounded outline-none focus:ring-slate-400"
           />
           <span className="text-slate-500">até</span>
           <input
@@ -300,11 +341,11 @@ function RangeFilter({ range }: { range: FunnelRange }) {
             min={from}
             max={toIsoDate(new Date())}
             onChange={(e) => setTo(e.target.value)}
-            className="px-2 py-1 text-xs border border-slate-200 rounded outline-none"
+            className="px-2 py-1 text-xs ring-1 ring-slate-200 rounded outline-none focus:ring-slate-400"
           />
           <button
             onClick={applyCustom}
-            className="px-3 py-1 text-xs rounded bg-slate-900 text-white hover:bg-slate-700"
+            className="px-3 py-1 text-xs rounded-md bg-slate-900 text-white hover:bg-slate-700 font-medium"
           >
             Aplicar
           </button>
@@ -327,23 +368,28 @@ function Stat({
   label: string;
   value: string | number;
   sub?: string;
-  accent?: "green" | "amber" | "emerald";
+  accent?: "indigo" | "violet" | "emerald";
 }) {
-  const color =
-    accent === "green"
-      ? "text-green-600"
-      : accent === "amber"
-        ? "text-amber-600"
+  const dot =
+    accent === "indigo"
+      ? "bg-indigo-500"
+      : accent === "violet"
+        ? "bg-violet-500"
         : accent === "emerald"
-          ? "text-emerald-700"
-          : "text-slate-900";
+          ? "bg-emerald-500"
+          : "bg-slate-400";
   return (
-    <div className="bg-white border border-slate-200 rounded-md px-4 py-4">
-      <p className="text-[10px] uppercase tracking-wider font-bold text-slate-500 mb-1">
-        {label}
+    <div className="bg-white rounded-xl ring-1 ring-slate-200/70 shadow-sm px-5 py-4">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} aria-hidden />
+        <p className="text-[11px] uppercase tracking-wider font-medium text-slate-500">
+          {label}
+        </p>
+      </div>
+      <p className="text-3xl font-semibold text-slate-900 tabular-nums tracking-tight">
+        {value}
       </p>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      {sub && <p className="text-[11px] text-slate-500 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-slate-500 mt-1.5">{sub}</p>}
     </div>
   );
 }
@@ -359,28 +405,47 @@ function FunnelBar({
   pct: number;
   dropoff: number | null;
 }) {
+  // Cor da barra escala com pct: > 50% indigo cheio, 20-50% indigo médio, < 20% slate
+  const barColor =
+    pct >= 50
+      ? "bg-indigo-600"
+      : pct >= 20
+        ? "bg-indigo-400"
+        : "bg-slate-300";
+
   return (
-    <div className="grid grid-cols-[200px_1fr_auto] items-center gap-3">
-      <span className="text-xs text-slate-700 font-medium">{label}</span>
-      <div className="relative h-7 bg-slate-100 rounded">
+    <div className="grid grid-cols-[220px_1fr_72px] items-center gap-4">
+      <span className="text-sm text-slate-700 font-medium truncate">
+        {label}
+      </span>
+      <div className="relative h-9 bg-slate-50 rounded-md overflow-hidden ring-1 ring-slate-100">
         <div
-          className="absolute inset-y-0 left-0 rounded transition-[width] duration-500"
-          style={{
-            width: `${Math.max(pct, 0.5)}%`,
-            background:
-              "linear-gradient(90deg, var(--sakura-rose-2), var(--sakura-cocoa))",
-          }}
+          className={`absolute inset-y-0 left-0 ${barColor} transition-[width] duration-500`}
+          style={{ width: `${Math.max(pct, 0.5)}%` }}
         />
-        <span className="absolute inset-0 flex items-center px-2 text-xs font-semibold text-white mix-blend-difference">
-          {count} ({pct.toFixed(0)}%)
-        </span>
+        <div className="absolute inset-0 flex items-center justify-between px-3">
+          <span
+            className={`text-sm font-semibold tabular-nums ${
+              pct >= 30 ? "text-white" : "text-slate-700"
+            }`}
+          >
+            {count}
+          </span>
+          <span
+            className={`text-xs tabular-nums ${
+              pct >= 30 ? "text-white/80" : "text-slate-500"
+            }`}
+          >
+            {pct.toFixed(0)}%
+          </span>
+        </div>
       </div>
       <span
-        className={`text-xs font-semibold w-16 text-right ${
+        className={`text-xs font-medium text-right tabular-nums ${
           dropoff === null
             ? "text-slate-300"
             : dropoff > 30
-              ? "text-red-600"
+              ? "text-rose-600"
               : dropoff > 10
                 ? "text-amber-600"
                 : "text-slate-400"

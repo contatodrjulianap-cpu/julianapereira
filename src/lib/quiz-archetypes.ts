@@ -209,9 +209,9 @@ export function whatsappMessageFor(
   const nome = firstName.trim() || "tudo bem";
   switch (archetype) {
     case "PRONTA":
-      return `Oi! Sou a/o ${nome}, fiz o quiz da Dra. Juliana e o resultado foi *Sorriso Pronto pra Avaliação*. Faz tempo que esse é meu sonho — quero marcar a avaliação ainda essa semana. Que horários têm?`;
+      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas e quero marcar uma avaliação com a equipe da Dra. Juliana ainda essa semana. Que horários têm?`;
     case "ESPERANCOSA":
-      return `Oi! Sou a/o ${nome}, fiz o quiz da Dra. Juliana e o resultado foi *Sorriso em Cuidado*. Tenho interesse em fazer mas queria entender como funciona a avaliação e as opções de parcelamento. Pode me explicar?`;
+      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas do quiz da Dra. Juliana. Tenho interesse em fazer mas queria entender como funciona a avaliação e as opções de parcelamento antes. Pode me explicar?`;
     case "CETICA":
       return `Oi! Sou a/o ${nome}, fiz o quiz da Dra. Juliana e quero conversar sobre minhas dúvidas antes de qualquer decisão.`;
   }
@@ -234,10 +234,10 @@ export const INSTAGRAM_URL = "https://www.instagram.com/drajuliana.pereira/";
 
 export const RESULT_COPY: Record<Archetype, ResultCopy> = {
   PRONTA: {
-    badge: "Sorriso Pronto pra Avaliação",
+    badge: "Pronta pra avaliação",
     title: "Você está no momento certo.",
     description:
-      "Pelo que você respondeu, sua decisão já está tomada. O próximo passo é alinhar agenda — a equipe da Ju vai te receber pra montar o plano específico do seu caso.",
+      "Pelo que você respondeu, tá pronta pra avaliação. A equipe te chama no WhatsApp pra alinhar a agenda.",
     tone: "rose",
     ctaPrimary: {
       label: "Falar com a equipe da Ju agora →",
@@ -245,10 +245,10 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
     },
   },
   ESPERANCOSA: {
-    badge: "Sorriso em Cuidado",
+    badge: "Vale uma avaliação",
     title: "Tem caminho — começa por uma avaliação.",
     description:
-      "Você tem o desejo claro mas precisa entender investimento e como funciona pro seu caso. Faz sentido — o plano só fica certo depois de uma avaliação personalizada (não é tabela). Vamos conversar.",
+      "Você tem o desejo claro, mas ainda quer entender investimento e como funciona pro seu caso. A equipe te chama no WhatsApp pra tirar dúvida antes de qualquer agendamento — sem pressão pra fechar.",
     tone: "cream",
     ctaPrimary: {
       label: "Quero entender o caminho →",

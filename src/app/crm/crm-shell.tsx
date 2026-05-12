@@ -18,17 +18,19 @@ export function CrmShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <header className="bg-white border-b border-slate-200">
+    <div className="min-h-screen flex flex-col bg-slate-50/60">
+      <header className="bg-white border-b border-slate-200/70 sticky top-0 z-10">
         <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-8">
             <div>
-              <h1 className="text-base font-bold tracking-tight">CRM Sakura</h1>
-              <p className="text-xs text-slate-500 leading-none">
+              <h1 className="text-[15px] font-semibold tracking-tight text-slate-900">
+                CRM Sakura
+              </h1>
+              <p className="text-[11px] text-slate-500 leading-none mt-0.5">
                 Dra. Juliana Pereira
               </p>
             </div>
-            <nav className="flex gap-1">
+            <nav className="flex gap-0.5">
               <TabLink href="/crm" active={active === "inbox"}>
                 💬 Conversas
               </TabLink>
@@ -80,10 +82,10 @@ function TabLink({
   return (
     <Link
       href={href}
-      className={`px-3 py-1.5 text-sm rounded-md transition ${
+      className={`px-3 py-1.5 text-[13px] font-medium rounded-md transition ${
         active
-          ? "bg-slate-900 text-white"
-          : "text-slate-600 hover:bg-slate-100"
+          ? "bg-slate-900 text-white shadow-sm"
+          : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
       }`}
     >
       {children}

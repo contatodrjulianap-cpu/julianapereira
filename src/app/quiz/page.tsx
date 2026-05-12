@@ -2,9 +2,9 @@ import { QuizFlow } from "./quiz-flow";
 import { getQuizConfig } from "@/lib/quiz-config";
 
 export const metadata = {
-  title: "Diagnóstico do Sorriso | Dra. Juliana Pereira",
+  title: "Avaliação com a equipe da Dra. Juliana Pereira",
   description:
-    "Em 8 perguntas, descubra qual caminho faz sentido pro seu sorriso. Diagnóstico personalizado da Dra. Juliana Pereira.",
+    "Responda 8 perguntas e a equipe da Dra. Juliana entra em contato pra agendar uma avaliação.",
 };
 
 export const dynamic = "force-dynamic";

@@ -450,13 +450,13 @@ function LeadScreen({
           fontWeight: 500,
         }}
       >
-        Onde a Ju te entrega seu plano personalizado?
+        Onde a equipe te chama?
       </h2>
       <p
         className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-cormorant)]"
         style={{ color: "var(--sakura-cocoa-3)" }}
       >
-        Sem spam — só seu plano e atualizações sobre o tratamento.
+        Avaliação sem compromisso. A equipe responde no WhatsApp em horário comercial.
       </p>
 
       <div className="flex flex-col gap-4 mb-5">
@@ -520,7 +520,7 @@ function LoadingScreen() {
         className="text-[10px] uppercase tracking-[2px] font-semibold font-mono mb-3"
         style={{ color: "var(--sakura-rose-2)" }}
       >
-        Diagnosticando seu sorriso
+        Organizando pra equipe
       </p>
       <h2
         className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-8"
@@ -530,12 +530,12 @@ function LoadingScreen() {
           fontWeight: 500,
         }}
       >
-        Lendo suas respostas com o cuidado que elas merecem.
+        Direcionando suas respostas pro time certo.
       </h2>
       <div className="flex flex-col gap-3">
-        <LoadingPill delay={0}>Cruzando seu perfil com casos similares</LoadingPill>
-        <LoadingPill delay={0.4}>Montando seu caminho personalizado</LoadingPill>
-        <LoadingPill delay={0.8}>Preparando a primeira mensagem da equipe</LoadingPill>
+        <LoadingPill delay={0}>Lendo o que você respondeu</LoadingPill>
+        <LoadingPill delay={0.4}>Encaixando no protocolo da clínica</LoadingPill>
+        <LoadingPill delay={0.8}>Liberando o WhatsApp da equipe</LoadingPill>
       </div>
     </FadeUp>
   );
