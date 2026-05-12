@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CrmShell } from "../crm-shell";
-import { getIntegrationConfig } from "@/lib/integration-config";
+import { getIntegrationConfig } from "@/lib/integration-config-server";
 import { IntegrationsView } from "./integrations-view";
 
 export const dynamic = "force-dynamic";

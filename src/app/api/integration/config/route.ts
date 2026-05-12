@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import {
-  IntegrationConfigSchema,
-  getIntegrationConfig,
-} from "@/lib/integration-config";
+import { IntegrationConfigSchema } from "@/lib/integration-config";
+import { getIntegrationConfig } from "@/lib/integration-config-server";
 import { logEvent } from "@/lib/event-log";
 
 export async function GET() {

@@ -4,10 +4,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { sendText } from "@/lib/zapi";
 import { sendCapiEvent } from "@/lib/facebook";
 import { logEvent } from "@/lib/event-log";
-import {
-  getIntegrationConfig,
-  renderGreeting,
-} from "@/lib/integration-config";
+import { renderGreeting } from "@/lib/integration-config";
+import { getIntegrationConfig } from "@/lib/integration-config-server";
 
 const UtmSchema = z
   .object({
@@ -127,7 +125,9 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Facebook Conversions API — evento Lead (todos os arquétipos disparam)
+  // Facebook Conversions API — evento Lead.
+  // Filtro por arquétipo: se fbCfg.archetypes definido, só dispara pros listados.
+  // undefined = todos disparam (back-compat). Default em prod: ["PRONTA","ESPERANCOSA"].
   const fbp = req.cookies.get("_fbp")?.value;
   const fbc = req.cookies.get("_fbc")?.value;
   const ip =
@@ -137,7 +137,9 @@ export async function POST(req: NextRequest) {
   const ua = req.headers.get("user-agent") ?? undefined;
 
   const fbCfg = integration.facebook.quiz_submit;
-  if (fbCfg.enabled) {
+  const fbArchetypeAllowed =
+    !fbCfg.archetypes || fbCfg.archetypes.includes(archetype);
+  if (fbCfg.enabled && fbArchetypeAllowed) {
     after(async () => {
       try {
         await sendCapiEvent(

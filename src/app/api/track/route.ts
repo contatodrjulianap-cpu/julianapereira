@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, after } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { sendCapiEvent } from "@/lib/facebook";
-import { getIntegrationConfig } from "@/lib/integration-config";
+import { getIntegrationConfig } from "@/lib/integration-config-server";
 
 // Body permissivo — aceita campos extras (utm_*, etc) e propaga pro payload.
 const Body = z
@@ -90,7 +90,19 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      if (type === "quiz_wa_click" && fb.wa_click.enabled) {
+      // wa_click: filtra por arquétipo se config definir lista.
+      // Default em prod: ["PRONTA","ESPERANCOSA"]. CETICA já cai no botão Instagram,
+      // mas o filtro fica defensivo caso alguém ative WhatsApp pra CETICA no builder.
+      const waArchetype = parsed.data.archetype as
+        | "PRONTA"
+        | "ESPERANCOSA"
+        | "CETICA"
+        | undefined;
+      const waArchetypeAllowed =
+        !fb.wa_click.archetypes ||
+        !waArchetype ||
+        fb.wa_click.archetypes.includes(waArchetype);
+      if (type === "quiz_wa_click" && fb.wa_click.enabled && waArchetypeAllowed) {
         await sendCapiEvent(
           {
             event_name: fb.wa_click.event_name,

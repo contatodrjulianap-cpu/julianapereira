@@ -1,15 +1,21 @@
+// Schema + types + render — puro, client-safe (sem next/headers).
+// Server-side loader fica em integration-config-server.ts.
 import { z } from "zod";
-import { createServiceClient } from "@/lib/supabase/server";
 
 const WhatsappGreetingSchema = z.object({
   enabled: z.boolean(),
   message: z.string().min(1),
 });
 
+const ArchetypeSchema = z.enum(["PRONTA", "ESPERANCOSA", "CETICA"]);
+
 const FbEventSchema = z.object({
   enabled: z.boolean(),
   event_name: z.string().min(1),
   content_name: z.string().optional(),
+  // Filtro opcional por arquétipo. undefined = todos disparam (back-compat).
+  // Aplica em quiz_submit e wa_click; pageview ignora (não tem archetype ainda).
+  archetypes: z.array(ArchetypeSchema).optional(),
 });
 
 export const IntegrationConfigSchema = z.object({
@@ -59,42 +65,16 @@ export const DEFAULT_INTEGRATION_CONFIG: IntegrationConfig = {
       enabled: true,
       event_name: "Lead",
       content_name: "quiz_submission",
+      archetypes: ["PRONTA", "ESPERANCOSA"],
     },
     wa_click: {
       enabled: true,
       event_name: "AddToCart",
       content_name: "wa_click",
+      archetypes: ["PRONTA", "ESPERANCOSA"],
     },
   },
 };
-
-export async function getIntegrationConfig(): Promise<IntegrationConfig> {
-  try {
-    const supabase = createServiceClient();
-    const { data, error } = await supabase
-      .from("integration_config")
-      .select("config")
-      .eq("id", "current")
-      .maybeSingle();
-
-    if (error) {
-      console.error("getIntegrationConfig db error", error);
-      return DEFAULT_INTEGRATION_CONFIG;
-    }
-    if (!data?.config || Object.keys(data.config as object).length === 0) {
-      return DEFAULT_INTEGRATION_CONFIG;
-    }
-    const parsed = IntegrationConfigSchema.safeParse(data.config);
-    if (!parsed.success) {
-      console.error("integration_config invalid, fallback", parsed.error.issues);
-      return DEFAULT_INTEGRATION_CONFIG;
-    }
-    return parsed.data;
-  } catch (e) {
-    console.error("getIntegrationConfig threw", e);
-    return DEFAULT_INTEGRATION_CONFIG;
-  }
-}
 
 export function renderGreeting(template: string, name: string): string {
   return template.replace(/\{name\}/g, name.split(" ")[0] || "tudo bem");

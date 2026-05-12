@@ -245,14 +245,14 @@ function CoverScreen({
   onStart: () => void;
 }) {
   const c = cover ?? {
-    badge: "Diagnóstico do Sorriso · 3 minutos",
-    headline: "Descubra qual sorriso",
-    headline_highlight: "combina com você",
+    badge: "8 perguntas · 3 minutos",
+    headline: "Responde 8 perguntas,",
+    headline_highlight: "ganha uma avaliação",
     subtitle1:
-      "Não é sobre dentes. É sobre se reconhecer no espelho e gostar do que vê.",
+      "Direto e sem rodeio.",
     subtitle2:
-      "Em 8 perguntas curtas a Dra. Juliana entende seu caso e monta um caminho personalizado pro seu sorriso. Sem pressão, sem venda.",
-    cta_label: "Iniciar diagnóstico →",
+      "A equipe da Dra. Juliana lê suas respostas, vê se faz sentido pro nosso protocolo e te chama no WhatsApp pra agendar a avaliação.",
+    cta_label: "Começar →",
     legal: "Suas respostas são tratadas com sigilo (LGPD).",
   };
   return (
@@ -329,9 +329,9 @@ function CommitmentScreen({
   const c = commitment ?? {
     pre_title: "Antes de começar:",
     body:
-      "Pra Ju te indicar o caminho certo, ela precisa ler suas respostas com cuidado. O resultado depende da sua honestidade — não tem resposta errada.",
-    question: "Você se compromete a responder com sinceridade?",
-    yes_label: "Sim, me comprometo",
+      "Quanto mais honesta a resposta, melhor a equipe consegue te receber. Não tem resposta certa nem errada — só direciona o atendimento.",
+    question: "Topa responder com sinceridade?",
+    yes_label: "Topo, vamos",
     no_label: "Ainda não tenho certeza",
   };
   return (

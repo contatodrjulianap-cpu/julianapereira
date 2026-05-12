@@ -13,6 +13,13 @@ const ARCH_LABEL: Record<Archetype, string> = {
   CETICA: "📍 Cética",
 };
 
+function fmtArchetypes(list: Archetype[] | undefined): string {
+  if (!list) return "todos arquétipos";
+  if (list.length === 0) return "⚠️ nenhum arquétipo";
+  if (list.length === ARCH_LIST.length) return "todos arquétipos";
+  return list.map((a) => ARCH_LABEL[a]).join(" + ");
+}
+
 const ARCH_HINT: Record<Archetype, string> = {
   PRONTA:
     "Lead quente — decisão tomada. Mensagem de boas-vindas + alinhar agenda.",
@@ -28,18 +35,21 @@ const FB_TRIGGERS = [
     label: "Pageview do quiz",
     desc: "Dispara quando alguém abre /quiz pela primeira vez na sessão.",
     suggested: "PageView",
+    archetypeFilter: false,
   },
   {
     key: "quiz_submit" as const,
     label: "Quiz submetido (lead criado)",
     desc: "Dispara quando user finaliza as 8 perguntas + entrega contato.",
     suggested: "Lead",
+    archetypeFilter: true,
   },
   {
     key: "wa_click" as const,
     label: "Click no WhatsApp",
     desc: "Dispara quando lead clica no botão pra ir pro WhatsApp da Ju.",
     suggested: "AddToCart",
+    archetypeFilter: true,
   },
 ];
 
@@ -288,16 +298,44 @@ function FbEventCard({
   event,
   onChange,
 }: {
-  trigger: { key: string; label: string; desc: string; suggested: string };
-  event: { enabled: boolean; event_name: string; content_name?: string };
+  trigger: {
+    key: string;
+    label: string;
+    desc: string;
+    suggested: string;
+    archetypeFilter: boolean;
+  };
+  event: {
+    enabled: boolean;
+    event_name: string;
+    content_name?: string;
+    archetypes?: Archetype[];
+  };
   onChange: (
     patch: Partial<{
       enabled: boolean;
       event_name: string;
       content_name: string;
+      archetypes: Archetype[] | undefined;
     }>,
   ) => void;
 }) {
+  // undefined = todos disparam (back-compat). Lista = só os listados disparam.
+  const allowAll = event.archetypes === undefined;
+  const allowed = new Set(event.archetypes ?? ARCH_LIST);
+
+  function toggleArchetype(a: Archetype) {
+    if (allowAll) {
+      // Sai do modo "todos" pra lista explícita sem o que clicou.
+      onChange({ archetypes: ARCH_LIST.filter((x) => x !== a) });
+      return;
+    }
+    const next = new Set(allowed);
+    if (next.has(a)) next.delete(a);
+    else next.add(a);
+    onChange({ archetypes: Array.from(next) });
+  }
+
   return (
     <div className="bg-white border border-slate-200 rounded-md p-4">
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -342,6 +380,53 @@ function FbEventCard({
           />
         </label>
       </div>
+
+      {trigger.archetypeFilter && (
+        <div className="mt-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+              Disparar para arquétipos
+            </span>
+            <button
+              type="button"
+              onClick={() =>
+                onChange({ archetypes: allowAll ? [...ARCH_LIST] : undefined })
+              }
+              disabled={!event.enabled}
+              className="text-[11px] text-slate-500 hover:text-slate-900 underline disabled:opacity-50"
+            >
+              {allowAll ? "definir lista" : "voltar a todos"}
+            </button>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {ARCH_LIST.map((a) => {
+              const on = allowAll || allowed.has(a);
+              return (
+                <button
+                  key={a}
+                  type="button"
+                  onClick={() => toggleArchetype(a)}
+                  disabled={!event.enabled}
+                  className={`px-2.5 py-1 rounded-full text-[11px] border transition ${
+                    on
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-800"
+                      : "bg-slate-50 border-slate-200 text-slate-400 line-through"
+                  } disabled:opacity-50`}
+                >
+                  {ARCH_LABEL[a]}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-slate-400 mt-2">
+            {allowAll
+              ? "Sem filtro — todos os arquétipos disparam o evento."
+              : allowed.size === 0
+                ? "⚠️ Lista vazia — nenhum arquétipo dispara."
+                : `Só ${Array.from(allowed).join(" + ")} disparam.`}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
@@ -400,14 +485,14 @@ function DisparosAtuaisTable({ config }: { config: IntegrationConfig }) {
     },
     {
       icon: "📘",
-      when: "Lead finaliza quiz",
+      when: `Lead finaliza quiz · ${fmtArchetypes(config.facebook.quiz_submit.archetypes)}`,
       what: `FB CAPI → ${config.facebook.quiz_submit.event_name}`,
       status: config.facebook.quiz_submit.enabled ? "ativo" : "desligado",
       delay: "imediato",
     },
     {
       icon: "📘",
-      when: "Lead clica WhatsApp na tela de resultado",
+      when: `Lead clica WhatsApp na tela de resultado · ${fmtArchetypes(config.facebook.wa_click.archetypes)}`,
       what: `FB CAPI → ${config.facebook.wa_click.event_name}`,
       status: config.facebook.wa_click.enabled ? "ativo" : "desligado",
       delay: "imediato",
