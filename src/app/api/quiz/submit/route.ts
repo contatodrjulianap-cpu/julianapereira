@@ -28,6 +28,7 @@ const Body = z.object({
   scores: z.record(z.string(), z.number()),
   knockout: z.boolean().default(false),
   answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
+  selfie_path: z.string().nullable().optional(),
   utm: UtmSchema,
 });
 
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest) {
     scores,
     knockout,
     answers,
+    selfie_path,
     utm,
   } = parsed.data;
 
@@ -70,6 +72,7 @@ export async function POST(req: NextRequest) {
         case_type: case_type ?? null,
         archetype_scores: scores,
         quiz_answers: answers,
+        ...(selfie_path ? { selfie_url: selfie_path } : {}),
         tags: [
           `arch:${archetype}`,
           `geo:${geo}`,

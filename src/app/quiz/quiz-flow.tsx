@@ -14,6 +14,7 @@ type Step =
   | { kind: "cover" }
   | { kind: "commitment" }
   | { kind: "question"; index: number }
+  | { kind: "selfie" }
   | { kind: "lead" }
   | { kind: "loading" }
   | { kind: "result"; result: ScoreResult; leadId: string };
@@ -24,6 +25,7 @@ function stepNameOf(s: Step): string | null {
   if (s.kind === "cover") return "cover";
   if (s.kind === "commitment") return "commitment";
   if (s.kind === "question") return `q${s.index + 1}`;
+  if (s.kind === "selfie") return "selfie";
   if (s.kind === "lead") return "lead";
   if (s.kind === "loading") return "loading";
   if (s.kind === "result") return `result_${s.result.archetype}`;
@@ -51,12 +53,15 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [selfiePath, setSelfiePath] = useState<string | null>(null);
 
   const progress = useMemo(() => {
+    const total = TOTAL_VISUAL_STEPS + 1; // + selfie step
     if (step.kind === "cover") return 0;
-    if (step.kind === "commitment") return 1 / TOTAL_VISUAL_STEPS;
-    if (step.kind === "question") return (2 + step.index) / TOTAL_VISUAL_STEPS;
-    if (step.kind === "lead") return (1 + QUESTIONS.length + 1) / TOTAL_VISUAL_STEPS;
+    if (step.kind === "commitment") return 1 / total;
+    if (step.kind === "question") return (2 + step.index) / total;
+    if (step.kind === "selfie") return (2 + QUESTIONS.length) / total;
+    if (step.kind === "lead") return (3 + QUESTIONS.length) / total;
     if (step.kind === "loading" || step.kind === "result") return 1;
     return 0;
   }, [step]);
@@ -82,7 +87,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
     if (idx < QUESTIONS.length - 1) {
       go({ kind: "question", index: idx + 1 });
     } else {
-      go({ kind: "lead" });
+      go({ kind: "selfie" });
     }
   }
 
@@ -125,6 +130,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
           scores: result.scores,
           knockout: result.knockout,
           answers,
+          selfie_path: selfiePath,
           utm,
         }),
       });
@@ -174,6 +180,17 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
             onAnswer={(value) => answerQuestion(QUESTIONS[step.index].key, value)}
             onToggle={(value) => toggleMultiAnswer(QUESTIONS[step.index].key, value)}
             onContinue={() => advanceFrom(QUESTIONS[step.index].key)}
+          />
+        )}
+        {step.kind === "selfie" && (
+          <SelfieScreen
+            selfiePath={selfiePath}
+            onUploaded={(path) => setSelfiePath(path)}
+            onContinue={() => go({ kind: "lead" })}
+            onSkip={() => {
+              setSelfiePath(null);
+              go({ kind: "lead" });
+            }}
           />
         )}
         {step.kind === "lead" && (
@@ -552,8 +569,9 @@ function LeadScreen({
           className="mt-[3px] w-4 h-4 accent-[var(--sakura-cocoa)]"
         />
         <span style={{ color: "var(--sakura-cocoa-2)" }}>
-          Aceito receber contato sobre meu plano. Suas respostas são tratadas com
-          sigilo (LGPD) e usadas apenas para personalizar seu atendimento.
+          Aceito receber contato sobre meu plano. Minhas respostas e a foto
+          enviada são tratadas com sigilo (LGPD) e usadas apenas pra avaliação
+          clínica e orçamento pela Dra. Juliana.
         </span>
       </label>
 
@@ -569,6 +587,132 @@ function LeadScreen({
       <PrimaryButton onClick={onSubmit} disabled={!valid || submitting}>
         {submitting ? "Enviando..." : "Ver meu diagnóstico →"}
       </PrimaryButton>
+    </FadeUp>
+  );
+}
+
+function SelfieScreen({
+  selfiePath,
+  onUploaded,
+  onContinue,
+  onSkip,
+}: {
+  selfiePath: string | null;
+  onUploaded: (path: string) => void;
+  onContinue: () => void;
+  onSkip: () => void;
+}) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleFile(file: File) {
+    setError(null);
+    setPreview(URL.createObjectURL(file));
+    setUploading(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/quiz/upload-selfie", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erro ao enviar");
+      onUploaded(data.path);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Erro inesperado");
+      setPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <FadeUp className="flex-1 flex flex-col justify-center">
+      <p
+        className="text-[10px] uppercase tracking-[2px] font-semibold font-mono mb-3"
+        style={{ color: "var(--sakura-rose-2)" }}
+      >
+        Foto opcional
+      </p>
+      <h2
+        className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-3"
+        style={{
+          fontSize: "clamp(26px, 5.4vw, 34px)",
+          color: "var(--sakura-cocoa)",
+          fontWeight: 500,
+        }}
+      >
+        Quer mandar uma foto do seu sorriso?
+      </h2>
+      <p
+        className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-cormorant)]"
+        style={{ color: "var(--sakura-cocoa-3)" }}
+      >
+        A Dra. Juliana usa pra preparar sua avaliação e o orçamento antes do
+        atendimento. Você pode pular essa etapa.
+      </p>
+
+      {preview && (
+        <div
+          className="aspect-square mb-5 overflow-hidden"
+          style={{ border: "1px solid var(--sakura-hairline)" }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt="Pré-visualização do sorriso"
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+
+      <label
+        className="block text-center font-semibold py-4 px-6 cursor-pointer transition active:scale-[0.98] mb-3"
+        style={{
+          background: "var(--sakura-cream-2)",
+          border: "1px solid var(--sakura-hairline)",
+          color: "var(--sakura-cocoa)",
+          fontSize: "15px",
+          letterSpacing: "0.5px",
+          opacity: uploading ? 0.6 : 1,
+          pointerEvents: uploading ? "none" : "auto",
+        }}
+      >
+        {uploading
+          ? "Enviando..."
+          : preview
+            ? "📸 Trocar foto"
+            : "📸 Tirar / escolher foto"}
+        <input
+          type="file"
+          accept="image/*"
+          capture="user"
+          className="hidden"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) void handleFile(f);
+          }}
+        />
+      </label>
+
+      {error && (
+        <p className="text-sm mb-3" style={{ color: "var(--sakura-rose-2)" }}>
+          {error}
+        </p>
+      )}
+
+      <PrimaryButton onClick={onContinue} disabled={uploading || !selfiePath}>
+        Continuar →
+      </PrimaryButton>
+      <button
+        onClick={onSkip}
+        className="mt-3 text-sm underline transition hover:opacity-70"
+        style={{ color: "var(--sakura-cocoa-3)" }}
+      >
+        Pular essa etapa
+      </button>
     </FadeUp>
   );
 }
