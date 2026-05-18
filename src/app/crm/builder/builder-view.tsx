@@ -173,14 +173,6 @@ export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
           Configuração global
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label="Número WhatsApp (com DDI 55)">
-            <input
-              value={config.whatsapp_number}
-              onChange={(e) => update({ whatsapp_number: e.target.value })}
-              placeholder="5521995040731"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md font-mono"
-            />
-          </Field>
           <Field label="URL Instagram">
             <input
               value={config.instagram_url}

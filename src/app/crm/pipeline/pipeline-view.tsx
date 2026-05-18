@@ -15,6 +15,7 @@ import {
 } from "../lead-modal";
 
 export type PipelineLead = LeadFull;
+export type CrmUser = { id: string; display_name: string; role: string };
 
 const ARCH_OPTIONS = ["all", "PRONTA", "ESPERANCOSA", "CETICA"] as const;
 const STATUS_FILTER_OPTIONS = ["all", ...STATUS_OPTIONS] as const;
@@ -23,7 +24,23 @@ const STATUS_FILTER_OPTIONS = ["all", ...STATUS_OPTIONS] as const;
 // Componente principal
 // ============================================================
 
-export function PipelineView({ initialLeads }: { initialLeads: PipelineLead[] }) {
+export function PipelineView({
+  initialLeads,
+  users = [],
+  isAdmin = false,
+}: {
+  initialLeads: PipelineLead[];
+  users?: CrmUser[];
+  isAdmin?: boolean;
+}) {
+  const usersById = useMemo(() => {
+    const map: Record<string, CrmUser> = {};
+    for (const u of users) map[u.id] = u;
+    return map;
+  }, [users]);
+  // Atendentes filtráveis: apenas role='sales' (Ju/admin não atende, agrupa)
+  const salesUsers = useMemo(() => users.filter((u) => u.role === "sales"), [users]);
+  const [filterOwner, setFilterOwner] = useState<"all" | string>("all");
   const supabase = createClient();
   const [leads, setLeads] = useState<PipelineLead[]>(initialLeads);
   const [editing, setEditing] = useState<PipelineLead | null>(null);
@@ -68,6 +85,7 @@ export function PipelineView({ initialLeads }: { initialLeads: PipelineLead[] })
       .filter((l) => {
         if (filterArch !== "all" && l.archetype !== filterArch) return false;
         if (filterStatus !== "all" && (l.status ?? "new") !== filterStatus) return false;
+        if (filterOwner !== "all" && l.assigned_owner_id !== filterOwner) return false;
         if (search) {
           const t = search.toLowerCase();
           if (
@@ -84,7 +102,7 @@ export function PipelineView({ initialLeads }: { initialLeads: PipelineLead[] })
         if (ao !== bo) return ao - bo;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [leads, search, filterArch, filterStatus]);
+  }, [leads, search, filterArch, filterStatus, filterOwner]);
 
   // Métricas
   const stats = useMemo(() => {
@@ -182,6 +200,20 @@ export function PipelineView({ initialLeads }: { initialLeads: PipelineLead[] })
             </option>
           ))}
         </select>
+        {isAdmin && salesUsers.length > 0 && (
+          <select
+            value={filterOwner}
+            onChange={(e) => setFilterOwner(e.target.value)}
+            className="px-3 py-2 text-sm border border-slate-200 rounded-md outline-none"
+          >
+            <option value="all">Todas as atendentes</option>
+            {salesUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.display_name}
+              </option>
+            ))}
+          </select>
+        )}
       </section>
 
       {/* Tabela */}
@@ -248,7 +280,9 @@ export function PipelineView({ initialLeads }: { initialLeads: PipelineLead[] })
                     {fmtDateBR(l.next_contact_at)}
                   </td>
                   <td className="px-3 py-3 hidden lg:table-cell text-slate-600">
-                    {l.assigned_to ?? "—"}
+                    {l.assigned_owner_id
+                      ? (usersById[l.assigned_owner_id]?.display_name ?? "—")
+                      : (l.assigned_to ?? "—")}
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell text-slate-600">
                     {l.deal_value ? fmtBRL(Number(l.deal_value)) : "—"}

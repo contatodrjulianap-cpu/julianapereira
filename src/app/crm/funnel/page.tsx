@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { CrmShell } from "../crm-shell";
 import { FunnelView, type FunnelMetrics, type FunnelRange } from "./funnel-view";
+import {
+  AttendantPerformance,
+  type AttendantStats,
+} from "./attendant-performance";
 
 export const dynamic = "force-dynamic";
 
@@ -104,9 +108,53 @@ export default async function FunnelPage({
     by_step: [],
   };
 
+  // Breakdown por atendente (admin only) — query simples, sem RPC novo.
+  // Agrega leads atribuídos no período por owner_id.
+  const { data: ownerLeads } = await admin
+    .from("leads")
+    .select("assigned_owner_id, status, created_at")
+    .not("assigned_owner_id", "is", null)
+    .gte("created_at", range.start_at)
+    .lt("created_at", range.end_at);
+
+  const { data: salesUsers } = await admin
+    .from("crm_users")
+    .select("id, display_name, role")
+    .eq("role", "sales");
+
+  const statsMap = new Map<
+    string,
+    { total: number; contacted: number; won: number; lost: number }
+  >();
+  for (const l of ownerLeads ?? []) {
+    if (!l.assigned_owner_id) continue;
+    const cur =
+      statsMap.get(l.assigned_owner_id) ?? { total: 0, contacted: 0, won: 0, lost: 0 };
+    cur.total += 1;
+    if (l.status === "won") cur.won += 1;
+    else if (l.status === "lost") cur.lost += 1;
+    else if (["contacted", "qualified", "proposal"].includes(l.status ?? ""))
+      cur.contacted += 1;
+    statsMap.set(l.assigned_owner_id, cur);
+  }
+
+  const attendantStats: AttendantStats[] = (salesUsers ?? []).map((u) => {
+    const s = statsMap.get(u.id) ?? { total: 0, contacted: 0, won: 0, lost: 0 };
+    return {
+      ownerId: u.id,
+      displayName: u.display_name,
+      total: s.total,
+      contacted: s.contacted,
+      won: s.won,
+      lost: s.lost,
+      responseTimeAvgMs: null, // futuro: derivar de event_log/messages
+    };
+  });
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
       <FunnelView metrics={metrics} error={error?.message ?? null} range={range} />
+      <AttendantPerformance stats={attendantStats} rangeLabel={range.label} />
     </CrmShell>
   );
 }

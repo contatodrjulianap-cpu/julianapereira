@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendText } from "@/lib/zapi";
+import { resolveZapiCredsForLead } from "@/lib/wa-router";
 
 const Body = z.object({
   lead_id: z.string().uuid(),
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   const admin = createServiceClient();
   const { data: lead, error: leadErr } = await admin
     .from("leads")
-    .select("id, phone")
+    .select("id, phone, wa_number_id, assigned_owner_id")
     .eq("id", parsed.data.lead_id)
     .single();
 
@@ -36,9 +37,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "lead not found" }, { status: 404 });
   }
 
+  // Resolve credenciais da instância Z-API certa (atendente dona do lead).
+  // Se lead não tem wa_number_id (legado, pré-rotação), cai no env default.
+  const creds = await resolveZapiCredsForLead(lead.id);
+
   const zapiRes = await sendText(
     { phone: lead.phone, message: parsed.data.message },
-    { lead_id: lead.id },
+    {
+      lead_id: lead.id,
+      instance_id: creds?.instanceId,
+      token: creds?.token,
+    },
   );
 
   await admin.from("messages").insert({

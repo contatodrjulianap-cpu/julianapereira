@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { ZapiWebhookPayload } from "@/lib/zapi";
 import { logEvent } from "@/lib/event-log";
+import { ownerForInstance } from "@/lib/wa-router";
 
 export async function POST(req: NextRequest) {
   const start = Date.now();
@@ -54,6 +55,12 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient();
 
+  // Resolve owner pelo instance_id da Z-API (qual número/atendente recebeu).
+  // Se não achar (instância não cadastrada em wa_numbers), segue sem atribuir.
+  const owner = payload.instanceId
+    ? await ownerForInstance(payload.instanceId)
+    : null;
+
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
     .upsert(
@@ -67,6 +74,20 @@ export async function POST(req: NextRequest) {
     )
     .select()
     .single();
+
+  // Sticky attribution: só seta assigned_owner_id/wa_number_id se lead ainda
+  // não tem owner. Preserva atribuição vinda do quiz (claim_lead_for_wa) e
+  // de leads que já trocaram mensagem antes.
+  if (lead && owner && !lead.assigned_owner_id) {
+    await supabase
+      .from("leads")
+      .update({
+        assigned_owner_id: owner.ownerId,
+        assigned_at: new Date().toISOString(),
+        wa_number_id: owner.waNumberId,
+      })
+      .eq("id", lead.id);
+  }
 
   if (leadErr) {
     await logEvent({

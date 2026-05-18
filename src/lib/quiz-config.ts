@@ -3,7 +3,6 @@ import { createServiceClient } from "@/lib/supabase/server";
 import {
   QUESTIONS as HARDCODED_QUESTIONS,
   RESULT_COPY as HARDCODED_RESULTS,
-  WHATSAPP_NUMBER,
   INSTAGRAM_URL,
   type Archetype,
   type Question,
@@ -70,7 +69,9 @@ export const QuizConfigSchema = z.object({
     ESPERANCOSA: ResultCopySchema,
     CETICA: ResultCopySchema,
   }),
-  whatsapp_number: z.string().min(1),
+  // Legado: número era único, hoje vem de wa_numbers via /api/quiz/wa-link.
+  // Mantido opcional pra não quebrar parse de quiz_config antigos no DB.
+  whatsapp_number: z.string().optional(),
   instagram_url: z.string().url(),
 });
 
@@ -121,7 +122,6 @@ export const DEFAULT_CONFIG: QuizConfig = {
       tone: HARDCODED_RESULTS.CETICA.tone,
     },
   },
-  whatsapp_number: WHATSAPP_NUMBER,
   instagram_url: INSTAGRAM_URL,
 };
 

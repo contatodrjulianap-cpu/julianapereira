@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   scoreAnswers,
-  whatsappMessageFor,
   type Question,
   type ScoreResult,
 } from "@/lib/quiz-archetypes";
@@ -174,6 +173,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
           <ResultScreen
             result={step.result}
             firstName={lead.name}
+            leadPhone={lead.phone}
             leadId={step.leadId}
             config={config}
           />
@@ -544,11 +544,13 @@ function LoadingScreen() {
 function ResultScreen({
   result,
   firstName,
+  leadPhone,
   leadId,
   config,
 }: {
   result: ScoreResult;
   firstName: string;
+  leadPhone: string;
   leadId: string;
   config: QuizConfig;
 }) {
@@ -564,13 +566,37 @@ function ResultScreen({
 
   const t = toneStyles[tone];
 
-  // Build CTA href dinamicamente da config
-  const ctaHref =
-    result.archetype === "CETICA"
-      ? config.instagram_url
-      : `https://wa.me/${config.whatsapp_number}?text=${encodeURIComponent(
-          whatsappMessageFor(result.archetype, firstName),
-        )}`;
+  // CTA resolvido server-side: round-robin sticky entre as atendentes via
+  // /api/quiz/wa-link. Pre-fetch no mount pra deixar o link pronto antes
+  // do usuário clicar (sem perda de UX). CETICA sempre vai pro Instagram.
+  const [ctaHref, setCtaHref] = useState<string>(
+    result.archetype === "CETICA" ? config.instagram_url : "",
+  );
+  const [ctaLoading, setCtaLoading] = useState<boolean>(result.archetype !== "CETICA");
+
+  useEffect(() => {
+    if (result.archetype === "CETICA") return;
+    let alive = true;
+    const params = new URLSearchParams({
+      archetype: result.archetype,
+      phone: leadPhone,
+      fn: firstName,
+    });
+    fetch(`/api/quiz/wa-link?${params.toString()}`)
+      .then((r) => r.json())
+      .then((j: { url?: string }) => {
+        if (!alive) return;
+        setCtaHref(j.url ?? "");
+        setCtaLoading(false);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setCtaLoading(false);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [result.archetype, leadPhone, firstName]);
 
   return (
     <FadeUp className="flex-1 flex flex-col">
@@ -600,15 +626,20 @@ function ResultScreen({
       </p>
 
       <a
-        href={ctaHref}
+        href={ctaHref || "#"}
+        aria-disabled={ctaLoading || !ctaHref}
         target={result.archetype === "CETICA" ? "_blank" : "_self"}
         rel="noopener noreferrer"
-        onClick={() =>
+        onClick={(e) => {
+          if (ctaLoading || !ctaHref) {
+            e.preventDefault();
+            return;
+          }
           trackEvent(
             result.archetype === "CETICA" ? "quiz_instagram_click" : "quiz_wa_click",
             { archetype: result.archetype, geo: result.geo, lead_id: leadId },
-          )
-        }
+          );
+        }}
         className="block text-center font-semibold py-4 px-6 rounded-none mb-3 transition hover:opacity-90"
         style={{
           background:
@@ -618,9 +649,11 @@ function ResultScreen({
           color: "var(--sakura-cream)",
           fontSize: "16px",
           letterSpacing: "0.5px",
+          opacity: ctaLoading ? 0.6 : 1,
+          cursor: ctaLoading ? "wait" : "pointer",
         }}
       >
-        {copy.ctaLabel}
+        {ctaLoading ? "Preparando…" : copy.ctaLabel}
       </a>
 
       <p

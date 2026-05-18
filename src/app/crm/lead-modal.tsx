@@ -17,7 +17,9 @@ export type LeadFull = {
   tags: string[];
   notes: string | null;
   notes_log: NoteEntry[] | null;
-  assigned_to: string | null;
+  assigned_to: string | null;        // legacy: campo livre (Lucas/Bárbara/etc)
+  assigned_owner_id: string | null;  // novo: auth.users.id atribuído via rotação
+  wa_number_id: string | null;       // qual número WPP recebeu/atende o lead
   next_contact_at: string | null;
   deal_value: number | null;
   quiz_answers: Record<string, string> | null;

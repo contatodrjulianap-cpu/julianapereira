@@ -194,13 +194,9 @@ export function scoreAnswers(
 
 // ====================================================
 // Mensagens WhatsApp pré-preenchidas (link wa.me)
+// Número de destino é decidido pelo server (`/api/quiz/wa-link`) via
+// round-robin sticky entre as atendentes ativas. Ver `lib/wa-router.ts`.
 // ====================================================
-
-export const WHATSAPP_NUMBER = "5521995040731"; // trocar pelo número da Ju/Sakura quando for usar de verdade
-
-export function whatsappLink(message: string): string {
-  return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-}
 
 export function whatsappMessageFor(
   archetype: Archetype,
@@ -241,7 +237,8 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
     tone: "rose",
     ctaPrimary: {
       label: "Falar com a equipe da Ju agora →",
-      href: (firstName) => whatsappLink(whatsappMessageFor("PRONTA", firstName)),
+      // href resolvido em runtime pelo /api/quiz/wa-link (round-robin sticky entre as atendentes)
+      href: () => "",
     },
   },
   ESPERANCOSA: {
@@ -252,7 +249,7 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
     tone: "cream",
     ctaPrimary: {
       label: "Quero entender o caminho →",
-      href: (firstName) => whatsappLink(whatsappMessageFor("ESPERANCOSA", firstName)),
+      href: () => "",
     },
   },
   CETICA: {
