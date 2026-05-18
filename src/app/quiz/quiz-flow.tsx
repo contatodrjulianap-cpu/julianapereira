@@ -296,14 +296,16 @@ function CoverScreen({
           {c.subtitle2}
         </p>
         <div
-          className="aspect-[4/5] mb-6 flex items-center justify-center text-xs uppercase tracking-[2px]"
-          style={{
-            background: "var(--sakura-cream-2)",
-            color: "var(--sakura-cocoa-3)",
-            border: "1px solid var(--sakura-hairline)",
-          }}
+          className="aspect-[738/1000] mb-6 overflow-hidden"
+          style={{ border: "1px solid var(--sakura-hairline)" }}
         >
-          [foto Ju · placeholder]
+          <img
+            src="/quiz/ju-hero.jpg"
+            alt="Dra. Juliana Pereira"
+            width={738}
+            height={1000}
+            className="w-full h-full object-cover object-top"
+          />
         </div>
       </div>
       <PrimaryButton onClick={onStart}>{c.cta_label}</PrimaryButton>
