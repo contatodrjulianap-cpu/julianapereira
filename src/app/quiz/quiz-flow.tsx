@@ -245,13 +245,11 @@ function CoverScreen({
   onStart: () => void;
 }) {
   const c = cover ?? {
-    badge: "8 perguntas · 3 minutos",
-    headline: "Responde 8 perguntas,",
-    headline_highlight: "ganha uma avaliação",
+    badge: "Avaliação · 3 min",
+    headline: "Responda esse questionário rápido,",
+    headline_highlight: "para iniciar a sua avaliação",
     subtitle1:
-      "Direto e sem rodeio.",
-    subtitle2:
-      "A equipe da Dra. Juliana lê suas respostas, vê se faz sentido pro nosso protocolo e te chama no WhatsApp pra agendar a avaliação.",
+      "Ao final, preenchendo os requisitos você será direcionado para o WhatsApp, para agendar.",
     cta_label: "Começar →",
     legal: "Suas respostas são tratadas com sigilo (LGPD).",
   };
@@ -284,17 +282,19 @@ function CoverScreen({
           .
         </h1>
         <p
-          className="text-base leading-relaxed mb-2"
+          className={`text-base leading-relaxed ${c.subtitle2 ? "mb-2" : "mb-8"}`}
           style={{ color: "var(--sakura-cocoa-2)" }}
         >
           {c.subtitle1}
         </p>
-        <p
-          className="text-sm font-light leading-relaxed mb-8"
-          style={{ color: "var(--sakura-cocoa-3)" }}
-        >
-          {c.subtitle2}
-        </p>
+        {c.subtitle2 && (
+          <p
+            className="text-sm font-light leading-relaxed mb-8"
+            style={{ color: "var(--sakura-cocoa-3)" }}
+          >
+            {c.subtitle2}
+          </p>
+        )}
         <div
           className="aspect-[613/732] mb-6 overflow-hidden"
           style={{ border: "1px solid var(--sakura-hairline)" }}

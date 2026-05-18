@@ -47,7 +47,7 @@ const CoverSchema = z.object({
   headline: z.string().min(1),
   headline_highlight: z.string().min(1),
   subtitle1: z.string().min(1),
-  subtitle2: z.string().min(1),
+  subtitle2: z.string().optional(),
   cta_label: z.string().min(1),
   legal: z.string().min(1),
 });
@@ -81,11 +81,9 @@ export type QuizConfig = z.infer<typeof QuizConfigSchema>;
 export const DEFAULT_CONFIG: QuizConfig = {
   cover: {
     badge: "Avaliação · 3 min",
-    headline: "Sua avaliação começa",
-    headline_highlight: "com 8 perguntas",
+    headline: "Responda esse questionário rápido,",
+    headline_highlight: "para iniciar a sua avaliação",
     subtitle1:
-      "Pra Dra. Juliana entender seu caso antes de te receber.",
-    subtitle2:
       "Ao final, preenchendo os requisitos você será direcionado para o WhatsApp, para agendar.",
     cta_label: "Começar →",
     legal: "Suas respostas são tratadas com sigilo (LGPD).",
