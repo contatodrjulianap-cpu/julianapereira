@@ -296,15 +296,15 @@ function CoverScreen({
           {c.subtitle2}
         </p>
         <div
-          className="aspect-[738/1000] mb-6 overflow-hidden"
+          className="aspect-[1024/724] mb-6 overflow-hidden"
           style={{ border: "1px solid var(--sakura-hairline)" }}
         >
           <img
-            src="/quiz/ju-hero.jpg"
+            src="/quiz/ju-hero.png"
             alt="Dra. Juliana Pereira"
-            width={738}
-            height={1000}
-            className="w-full h-full object-cover object-top"
+            width={1024}
+            height={724}
+            className="w-full h-full object-cover"
           />
         </div>
       </div>
