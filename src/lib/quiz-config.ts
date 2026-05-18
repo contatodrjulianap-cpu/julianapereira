@@ -80,13 +80,13 @@ export type QuizConfig = z.infer<typeof QuizConfigSchema>;
 // Default a partir do hardcoded em quiz-archetypes.ts
 export const DEFAULT_CONFIG: QuizConfig = {
   cover: {
-    badge: "8 perguntas · 3 minutos",
-    headline: "Responde 8 perguntas,",
-    headline_highlight: "ganha uma avaliação",
+    badge: "Avaliação · 3 min",
+    headline: "Sua avaliação começa",
+    headline_highlight: "com 8 perguntas",
     subtitle1:
-      "Direto e sem rodeio.",
+      "Pra Dra. Juliana entender seu caso antes de te receber.",
     subtitle2:
-      "A equipe da Dra. Juliana lê suas respostas, vê se faz sentido pro nosso protocolo e te chama no WhatsApp pra agendar a avaliação.",
+      "Ao final, preenchendo os requisitos você será direcionado para o WhatsApp, para agendar.",
     cta_label: "Começar →",
     legal: "Suas respostas são tratadas com sigilo (LGPD).",
   },
