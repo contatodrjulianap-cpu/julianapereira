@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   scoreAnswers,
+  type AnswerValue,
   type Question,
   type ScoreResult,
 } from "@/lib/quiz-archetypes";
@@ -41,7 +42,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
     trackEvent("quiz_pageview");
     trackEvent("quiz_step_view", { step: "cover" });
   }, []);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [lead, setLead] = useState<Lead>({
     name: "",
     phone: "",
@@ -76,16 +77,29 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
     setStep(newHistory[newHistory.length - 1]);
   }
 
+  function advanceFrom(key: string) {
+    const idx = QUESTIONS.findIndex((q) => q.key === key);
+    if (idx < QUESTIONS.length - 1) {
+      go({ kind: "question", index: idx + 1 });
+    } else {
+      go({ kind: "lead" });
+    }
+  }
+
   function answerQuestion(key: string, value: string) {
     setAnswers((prev) => ({ ...prev, [key]: value }));
-    const idx = QUESTIONS.findIndex((q) => q.key === key);
-    setTimeout(() => {
-      if (idx < QUESTIONS.length - 1) {
-        go({ kind: "question", index: idx + 1 });
-      } else {
-        go({ kind: "lead" });
-      }
-    }, 240);
+    setTimeout(() => advanceFrom(key), 240);
+  }
+
+  function toggleMultiAnswer(key: string, value: string) {
+    setAnswers((prev) => {
+      const cur = prev[key];
+      const arr = Array.isArray(cur) ? cur : cur ? [cur] : [];
+      const next = arr.includes(value)
+        ? arr.filter((v) => v !== value)
+        : [...arr, value];
+      return { ...prev, [key]: next };
+    });
   }
 
   async function submitLead() {
@@ -156,7 +170,10 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
           <QuestionScreen
             key={QUESTIONS[step.index].key}
             question={QUESTIONS[step.index]}
+            currentAnswer={answers[QUESTIONS[step.index].key]}
             onAnswer={(value) => answerQuestion(QUESTIONS[step.index].key, value)}
+            onToggle={(value) => toggleMultiAnswer(QUESTIONS[step.index].key, value)}
+            onContinue={() => advanceFrom(QUESTIONS[step.index].key)}
           />
         )}
         {step.kind === "lead" && (
@@ -376,11 +393,24 @@ function CommitmentScreen({
 
 function QuestionScreen({
   question,
+  currentAnswer,
   onAnswer,
+  onToggle,
+  onContinue,
 }: {
   question: Question;
+  currentAnswer: AnswerValue | undefined;
   onAnswer: (value: string) => void;
+  onToggle: (value: string) => void;
+  onContinue: () => void;
 }) {
+  const isMulti = !!question.multi;
+  const selected = Array.isArray(currentAnswer)
+    ? currentAnswer
+    : currentAnswer
+      ? [currentAnswer]
+      : [];
+
   return (
     <FadeUp className="flex-1 flex flex-col justify-center">
       <p
@@ -408,13 +438,41 @@ function QuestionScreen({
         </p>
       )}
       <div className="flex flex-col gap-3">
-        {question.options.map((opt) => (
-          <OptionButton key={opt.value} onClick={() => onAnswer(opt.value)}>
-            {opt.emoji && <span className="text-xl mr-1">{opt.emoji}</span>}
-            <span className="flex-1">{opt.label}</span>
-          </OptionButton>
-        ))}
+        {question.options.map((opt) => {
+          const isSelected = selected.includes(opt.value);
+          return (
+            <OptionButton
+              key={opt.value}
+              onClick={() =>
+                isMulti ? onToggle(opt.value) : onAnswer(opt.value)
+              }
+              selected={isSelected}
+            >
+              {opt.emoji && <span className="text-xl mr-1">{opt.emoji}</span>}
+              <span className="flex-1">{opt.label}</span>
+              {isMulti && (
+                <span
+                  className="ml-2 w-5 h-5 flex items-center justify-center text-xs"
+                  style={{
+                    border: `1px solid ${isSelected ? "var(--sakura-rose-2)" : "var(--sakura-hairline)"}`,
+                    background: isSelected ? "var(--sakura-rose-2)" : "transparent",
+                    color: "var(--sakura-cream)",
+                  }}
+                >
+                  {isSelected ? "✓" : ""}
+                </span>
+              )}
+            </OptionButton>
+          );
+        })}
       </div>
+      {isMulti && (
+        <div className="mt-6">
+          <PrimaryButton onClick={onContinue} disabled={selected.length === 0}>
+            Continuar →
+          </PrimaryButton>
+        </div>
+      )}
     </FadeUp>
   );
 }
@@ -702,18 +760,20 @@ function OptionButton({
   children,
   onClick,
   dim,
+  selected,
 }: {
   children: React.ReactNode;
   onClick: () => void;
   dim?: boolean;
+  selected?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className="w-full text-left py-4 px-5 transition flex items-center gap-3 hover:opacity-95 active:scale-[0.99]"
       style={{
-        background: "var(--sakura-cream-2)",
-        border: "1px solid var(--sakura-hairline)",
+        background: selected ? "var(--sakura-cream-3)" : "var(--sakura-cream-2)",
+        border: `1px solid ${selected ? "var(--sakura-rose-2)" : "var(--sakura-hairline)"}`,
         color: dim ? "var(--sakura-cocoa-3)" : "var(--sakura-cocoa)",
         fontSize: "15px",
         fontWeight: 500,

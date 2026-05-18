@@ -31,6 +31,7 @@ export type Question = {
   title: string;
   subtitle?: string;
   options: QuizOption[];
+  multi?: boolean;
 };
 
 export const QUESTIONS: Question[] = [
@@ -38,7 +39,8 @@ export const QUESTIONS: Question[] = [
     key: "q1_caso",
     num: 1,
     title: "O que mais te incomoda quando você se vê no espelho hoje?",
-    subtitle: "Sem rodeio — o que te trava na hora de sorrir.",
+    subtitle: "Pode marcar mais de uma — sem rodeio, o que te trava na hora de sorrir.",
+    multi: true,
     options: [
       { value: "cor", label: "Cor — meus dentes parecem amarelados ou manchados", caseType: "clareamento+lentes", emoji: "🌕" },
       { value: "formato", label: "Formato — alguns dentes são tortos, curtos ou diferentes", caseType: "alinhamento", emoji: "🦷" },
@@ -138,7 +140,8 @@ export const QUESTIONS: Question[] = [
 // Score → Bucket
 // ====================================================
 
-export type Answers = Record<QuestionKey, string>;
+export type AnswerValue = string | string[];
+export type Answers = Record<QuestionKey, AnswerValue>;
 
 export type ScoreResult = {
   archetype: Archetype;
@@ -149,29 +152,34 @@ export type ScoreResult = {
 };
 
 export function scoreAnswers(
-  answers: Record<string, string>,
+  answers: Record<string, AnswerValue>,
   questions: Question[] = QUESTIONS,
 ): ScoreResult {
   const scores: Record<Archetype, number> = { PRONTA: 0, ESPERANCOSA: 0, CETICA: 0 };
   let geo: Geo = "SP";
-  let caseType: string | null = null;
+  const caseTypes: string[] = [];
   let knockout = false;
 
   for (const q of questions) {
     const ans = answers[q.key];
     if (!ans) continue;
-    const opt = q.options.find((o) => o.value === ans);
-    if (!opt) continue;
+    const selected = Array.isArray(ans) ? ans : [ans];
+    for (const value of selected) {
+      const opt = q.options.find((o) => o.value === value);
+      if (!opt) continue;
 
-    if (opt.weights) {
-      for (const [arch, w] of Object.entries(opt.weights)) {
-        scores[arch as Archetype] += w as number;
+      if (opt.weights) {
+        for (const [arch, w] of Object.entries(opt.weights)) {
+          scores[arch as Archetype] += w as number;
+        }
       }
+      if (opt.geo) geo = opt.geo;
+      if (opt.caseType && !caseTypes.includes(opt.caseType)) caseTypes.push(opt.caseType);
+      if (opt.knockout) knockout = true;
     }
-    if (opt.geo) geo = opt.geo;
-    if (opt.caseType) caseType = opt.caseType;
-    if (opt.knockout) knockout = true;
   }
+
+  const caseType = caseTypes.length > 0 ? caseTypes.join(", ") : null;
 
   // Knockout (Q7.5 = "preciso conversar antes") força CÉTICA → Instagram da Ju
   if (knockout) {

@@ -32,6 +32,7 @@ const QuestionSchema = z.object({
   title: z.string().min(1),
   subtitle: z.string().optional(),
   options: z.array(OptionSchema).min(1),
+  multi: z.boolean().optional(),
 });
 
 const ResultCopySchema = z.object({

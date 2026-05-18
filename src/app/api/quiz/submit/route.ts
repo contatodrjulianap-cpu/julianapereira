@@ -27,7 +27,7 @@ const Body = z.object({
   case_type: z.string().nullable().optional(),
   scores: z.record(z.string(), z.number()),
   knockout: z.boolean().default(false),
-  answers: z.record(z.string(), z.string()),
+  answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   utm: UtmSchema,
 });
 
