@@ -22,7 +22,8 @@ export type LeadFull = {
   wa_number_id: string | null;       // qual número WPP recebeu/atende o lead
   next_contact_at: string | null;
   deal_value: number | null;
-  quiz_answers: Record<string, string> | null;
+  quiz_answers: Record<string, string | string[]> | null;
+  selfie_url: string | null;
   archetype_scores: Record<Archetype, number> | null;
   utm_source: string | null;
   utm_medium: string | null;
@@ -221,15 +222,18 @@ export function LeadModal({
         className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-bold">{lead.name ?? "(sem nome)"}</h3>
-            <p className="text-sm text-slate-500">
-              {lead.phone}
-              {lead.instagram && ` · ${lead.instagram}`}
-              {lead.archetype && ` · ${ARCH_LABEL[lead.archetype]}`}
-              {lead.geo && ` · ${lead.geo}`}
-            </p>
+        <div className="flex items-start justify-between mb-4 gap-3">
+          <div className="flex items-start gap-3 min-w-0">
+            {lead.selfie_url && <SelfieThumb leadId={lead.id} />}
+            <div className="min-w-0">
+              <h3 className="text-lg font-bold">{lead.name ?? "(sem nome)"}</h3>
+              <p className="text-sm text-slate-500">
+                {lead.phone}
+                {lead.instagram && ` · ${lead.instagram}`}
+                {lead.archetype && ` · ${ARCH_LABEL[lead.archetype]}`}
+                {lead.geo && ` · ${lead.geo}`}
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -334,16 +338,25 @@ export function LeadModal({
               {QUESTIONS.map((q) => {
                 const ans = lead.quiz_answers?.[q.key];
                 if (!ans) return null;
-                const opt = q.options.find((o) => o.value === ans);
+                const selected = Array.isArray(ans) ? ans : [ans];
+                const opts = selected
+                  .map((v) => q.options.find((o) => o.value === v))
+                  .filter(Boolean) as { emoji?: string; label: string }[];
                 return (
                   <div key={q.key} className="text-[13px] leading-snug">
                     <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-400">
                       Q{q.num} · {q.title}
                     </p>
-                    <p className="text-slate-800 mt-0.5">
-                      {opt?.emoji && <span className="mr-1">{opt.emoji}</span>}
-                      {opt?.label ?? ans}
-                    </p>
+                    {opts.length > 0 ? (
+                      opts.map((opt, i) => (
+                        <p key={i} className="text-slate-800 mt-0.5">
+                          {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
+                          {opt.label}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-slate-800 mt-0.5">{selected.join(", ")}</p>
+                    )}
                   </div>
                 );
               })}
@@ -527,6 +540,58 @@ export function LeadModal({
         </div>
       </div>
     </div>
+  );
+}
+
+function SelfieThumb({ leadId }: { leadId: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/leads/${leadId}/selfie`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { url?: string } | null) => {
+        if (alive && j?.url) setUrl(j.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [leadId]);
+
+  if (!url) {
+    return (
+      <div className="w-14 h-14 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300 text-xs">
+        ...
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-14 h-14 rounded-md overflow-hidden border border-slate-200 shrink-0 hover:opacity-80 transition"
+        aria-label="Ver foto do sorriso"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="Sorriso" className="w-full h-full object-cover" />
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-6"
+          onClick={() => setOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt="Sorriso (ampliado)"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
+    </>
   );
 }
 
