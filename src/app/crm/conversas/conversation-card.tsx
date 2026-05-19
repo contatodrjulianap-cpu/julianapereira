@@ -64,7 +64,8 @@ async function patchLead(id: string, payload: Record<string, unknown>) {
   return res.json();
 }
 
-const REVEAL = 160; // px revelados em cada lado
+const REVEAL_LEFT = 160; // arrasto pra esquerda revela 2 ações
+const REVEAL_RIGHT = 220; // arrasto pra direita revela 3 ações
 const SNAP = 70; // threshold pra snap-open
 
 export function ConversationCard({
@@ -83,11 +84,18 @@ export function ConversationCard({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Ações esquerdas (revelam arrastando o card pra esquerda → x < 0)
-  const leftOpacity = useTransform(x, [-REVEAL, -10, 0], [1, 0.3, 0]);
+  const leftOpacity = useTransform(x, [-REVEAL_LEFT, -10, 0], [1, 0.3, 0]);
   const leftPointer = useTransform(x, (v) => (v < -10 ? "auto" : "none"));
   // Ações direitas (revelam arrastando pra direita → x > 0)
-  const rightOpacity = useTransform(x, [0, 10, REVEAL], [0, 0.3, 1]);
+  const rightOpacity = useTransform(x, [0, 10, REVEAL_RIGHT], [0, 0.3, 1]);
   const rightPointer = useTransform(x, (v) => (v > 10 ? "auto" : "none"));
+
+  // Modal pra "marcar dia" (date picker)
+  const [pickingDate, setPickingDate] = useState(false);
+  const today = new Date();
+  const tomorrow = new Date(today.getTime() + 86400_000);
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
+  const [pickerValue, setPickerValue] = useState(ymd(tomorrow));
 
   function close() {
     animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
@@ -122,7 +130,7 @@ export function ConversationCard({
       <motion.div
         className="absolute inset-y-0 right-0 flex items-stretch"
         style={{
-          width: REVEAL,
+          width: REVEAL_LEFT,
           opacity: leftOpacity,
           pointerEvents: leftPointer,
         }}
@@ -146,7 +154,7 @@ export function ConversationCard({
       <motion.div
         className="absolute inset-y-0 left-0 flex items-stretch"
         style={{
-          width: REVEAL,
+          width: REVEAL_RIGHT,
           opacity: rightOpacity,
           pointerEvents: rightPointer,
         }}
@@ -161,10 +169,20 @@ export function ConversationCard({
         <ActionButton
           color="#a855f7"
           icon="⏰"
-          label="Follow"
+          label="Amanhã"
           onClick={() => {
             const at = new Date(Date.now() + 24 * 3600 * 1000).toISOString();
             void applyAction({ follow_up_at: at });
+          }}
+        />
+        <ActionButton
+          color="#f59e0b"
+          icon="📅"
+          label="Marcar dia"
+          onClick={() => {
+            close();
+            setPickerValue(ymd(tomorrow));
+            setPickingDate(true);
           }}
         />
       </motion.div>
@@ -172,7 +190,7 @@ export function ConversationCard({
       {/* Card draggable */}
       <motion.div
         drag="x"
-        dragConstraints={{ left: -REVEAL, right: REVEAL }}
+        dragConstraints={{ left: -REVEAL_LEFT, right: REVEAL_RIGHT }}
         dragElastic={0.05}
         style={{ x, background: "white", position: "relative", zIndex: 1 }}
         onDragStart={() => {
@@ -182,8 +200,11 @@ export function ConversationCard({
         onDragEnd={(_, info) => {
           setTimeout(() => (dragging.current = false), 50);
           const v = info.offset.x;
-          if (v < -SNAP) animate(x, -REVEAL, { type: "spring", stiffness: 350, damping: 30 });
-          else if (v > SNAP) animate(x, REVEAL, { type: "spring", stiffness: 350, damping: 30 });
+          // Snap diferentes pra esquerda (-REVEAL_LEFT) e direita (+REVEAL_RIGHT)
+          if (v < -SNAP)
+            animate(x, -REVEAL_LEFT, { type: "spring", stiffness: 350, damping: 30 });
+          else if (v > SNAP)
+            animate(x, REVEAL_RIGHT, { type: "spring", stiffness: 350, damping: 30 });
           else close();
         }}
         onPointerDown={() => {
@@ -265,6 +286,53 @@ export function ConversationCard({
 
         <SourceBadge source={lead.source} />
       </motion.div>
+
+      {/* Modal pra escolher data de follow up */}
+      {pickingDate && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center px-4"
+          onClick={() => setPickingDate(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5"
+          >
+            <h3 className="text-base font-semibold text-slate-900 mb-1">
+              📅 Marcar dia de follow up
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Quando você quer ser lembrado desse lead?
+            </p>
+            <input
+              type="date"
+              value={pickerValue}
+              min={ymd(today)}
+              onChange={(e) => setPickerValue(e.target.value)}
+              autoFocus
+              className="w-full px-3 py-2.5 text-base bg-slate-50 border border-slate-200 rounded-lg outline-none"
+            />
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setPickingDate(false)}
+                className="flex-1 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  setPickingDate(false);
+                  // Salva como follow_up_at (meio-dia local pro fuso não pular dia)
+                  const at = new Date(`${pickerValue}T12:00:00`).toISOString();
+                  void applyAction({ follow_up_at: at });
+                }}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[var(--sakura-cocoa,#3b2d28)] rounded-lg"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </li>
   );
 }
