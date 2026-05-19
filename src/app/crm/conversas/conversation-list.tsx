@@ -130,11 +130,6 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
 
   async function handleSheetAction(a: LeadActionPayload) {
     if (!sheetLead) return;
-    if (a.kind === "open_details") {
-      setSheetLead(null);
-      router.push(`/crm/conversas/${sheetLead.id}`);
-      return;
-    }
     if (a.kind === "copy_phone") {
       try {
         await navigator.clipboard.writeText(sheetLead.phone);
@@ -157,7 +152,9 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
                     ? new Date(Date.now() + a.days * 86400_000).toISOString()
                     : null,
                 }
-              : null;
+              : a.kind === "next_contact"
+                ? { next_contact_at: a.date }
+                : null;
     if (!payload) return;
     try {
       const res = await fetch(`/api/leads/${sheetLead.id}`, {

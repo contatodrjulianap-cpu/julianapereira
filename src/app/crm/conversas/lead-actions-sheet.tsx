@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { BottomSheet } from "./bottom-sheet";
 import { SourceBadge } from "./source-icons";
 
@@ -26,8 +27,8 @@ export type LeadActionPayload =
   | { kind: "source"; value: string }
   | { kind: "pin"; value: boolean }
   | { kind: "follow_up"; days: number | null }
-  | { kind: "copy_phone" }
-  | { kind: "open_details" };
+  | { kind: "next_contact"; date: string | null }
+  | { kind: "copy_phone" };
 
 export function LeadActionsSheet({
   open,
@@ -93,15 +94,13 @@ export function LeadActionsSheet({
             label="Lembrar amanhã"
             onClick={() => onAction({ kind: "follow_up", days: 1 })}
           />
+          <NextContactAction
+            onPick={(date) => onAction({ kind: "next_contact", date })}
+          />
           <QuickAction
             emoji="📋"
             label="Copiar telefone"
             onClick={() => onAction({ kind: "copy_phone" })}
-          />
-          <QuickAction
-            emoji="🔍"
-            label="Detalhes"
-            onClick={() => onAction({ kind: "open_details" })}
           />
         </div>
       </Section>
@@ -174,6 +173,45 @@ function QuickAction({
       <span className="text-[10px] font-semibold text-slate-700 leading-tight text-center">
         {label}
       </span>
+    </button>
+  );
+}
+
+function NextContactAction({ onPick }: { onPick: (date: string) => void }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function open() {
+    const el = inputRef.current;
+    if (!el) return;
+    // showPicker() em iOS/Android Chrome funciona; fallback p/ focus + click
+    type WithShowPicker = HTMLInputElement & { showPicker?: () => void };
+    const withPicker = el as WithShowPicker;
+    if (typeof withPicker.showPicker === "function") {
+      withPicker.showPicker();
+    } else {
+      el.focus();
+      el.click();
+    }
+  }
+
+  return (
+    <button
+      onClick={open}
+      className="relative flex flex-col items-center gap-1 py-2.5 rounded-lg active:bg-slate-100"
+    >
+      <span className="text-2xl">📅</span>
+      <span className="text-[10px] font-semibold text-slate-700 leading-tight text-center">
+        Próximo contato
+      </span>
+      <input
+        ref={inputRef}
+        type="date"
+        className="absolute opacity-0 pointer-events-none inset-0"
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v) onPick(v);
+        }}
+      />
     </button>
   );
 }

@@ -135,14 +135,12 @@ export function ConversationThread({
   }, [draft]);
 
   async function handleSheetAction(a: LeadActionPayload) {
-    if (a.kind === "open_details" || a.kind === "copy_phone") {
+    if (a.kind === "copy_phone") {
       setActionsSheetOpen(false);
-      if (a.kind === "copy_phone") {
-        try {
-          await navigator.clipboard.writeText(currentLead.phone);
-        } catch {
-          /* noop */
-        }
+      try {
+        await navigator.clipboard.writeText(currentLead.phone);
+      } catch {
+        /* noop */
       }
       return;
     }
@@ -159,7 +157,9 @@ export function ConversationThread({
                     ? new Date(Date.now() + a.days * 86400_000).toISOString()
                     : null,
                 }
-              : null;
+              : a.kind === "next_contact"
+                ? { next_contact_at: a.date }
+                : null;
     if (!payload) {
       setActionsSheetOpen(false);
       return;
