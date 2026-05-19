@@ -267,14 +267,19 @@ export function LeadModal({
     lead.quiz_answers && Object.keys(lead.quiz_answers).length > 0;
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-stretch md:items-start justify-center overflow-y-auto overscroll-contain md:py-10"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50">
+      {/* Backdrop (click fecha) */}
       <div
-        className="bg-[#f0f2f5] md:rounded-2xl max-w-2xl w-full md:min-h-0 shadow-2xl flex flex-col pb-[max(env(safe-area-inset-bottom),16px)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+        onClick={onClose}
+        className="absolute inset-0 bg-black/50"
+        aria-hidden
+      />
+      {/* Wrapper scrollavel — único scroll, ocupa tela toda no mobile */}
+      <div className="absolute inset-0 overflow-y-auto overscroll-contain">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className="relative bg-[#f0f2f5] md:rounded-2xl max-w-2xl w-full md:mx-auto md:my-10 shadow-2xl flex flex-col pb-[max(env(safe-area-inset-bottom),24px)] min-h-screen md:min-h-0"
+        >
         {/* Top bar */}
         <div className="bg-[var(--sakura-cocoa,#3b2d28)] text-white px-3 py-3 flex items-center gap-3 shrink-0">
           <button
@@ -394,29 +399,27 @@ export function LeadModal({
                   className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
                 />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Próximo contato">
-                  <input
-                    type="date"
-                    value={form.next_contact_at}
-                    onChange={(e) =>
-                      setForm({ ...form, next_contact_at: e.target.value })
-                    }
-                    className="w-full px-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none min-w-0"
-                  />
-                </Field>
-                <Field label="Valor venda (R$)">
-                  <input
-                    type="number"
-                    value={form.deal_value}
-                    onChange={(e) =>
-                      setForm({ ...form, deal_value: e.target.value })
-                    }
-                    placeholder="—"
-                    className="w-full px-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none min-w-0"
-                  />
-                </Field>
-              </div>
+              <Field label="Próximo contato">
+                <input
+                  type="date"
+                  value={form.next_contact_at}
+                  onChange={(e) =>
+                    setForm({ ...form, next_contact_at: e.target.value })
+                  }
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
+              <Field label="Valor da venda (R$)">
+                <input
+                  type="number"
+                  value={form.deal_value}
+                  onChange={(e) =>
+                    setForm({ ...form, deal_value: e.target.value })
+                  }
+                  placeholder="—"
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
             </div>
             <button
               onClick={handleSave}
@@ -635,6 +638,7 @@ export function LeadModal({
 
           {error && <p className="text-xs text-red-600 px-2">{error}</p>}
         </div>
+      </div>
       </div>
     </div>
   );
