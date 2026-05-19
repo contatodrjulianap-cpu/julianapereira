@@ -1,17 +1,17 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { CrmShell } from "../crm-shell";
 import { ConversationList } from "./conversation-list";
 import type { LeadFull } from "../lead-modal";
+import type { LastMessage } from "./page";
 
 export const dynamic = "force-dynamic";
 
-export type LastMessage = {
-  direction: "inbound" | "outbound";
-  text: string;
-  created_at: string;
-};
-
-export default async function ConversasPage() {
+export default async function ConversasLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -73,21 +73,17 @@ export default async function ConversasPage() {
   }));
 
   return (
-    <>
-      {/* Mobile: lista cheia. Layout do desktop já mostra a lista na sidebar. */}
-      <div className="flex-1 md:hidden flex flex-col min-h-0">
-        <ConversationList initialLeads={leadsWithExtras} />
+    <CrmShell active="conversas" userEmail={user.email ?? ""}>
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar lateral — só em desktop, estilo WhatsApp Web */}
+        <aside className="hidden md:flex md:flex-col md:w-[380px] md:shrink-0 border-r border-slate-200 bg-white overflow-hidden">
+          <ConversationList initialLeads={leadsWithExtras} />
+        </aside>
+        {/* Outlet: thread em desktop, ou lista cheia/thread em mobile */}
+        <main className="flex-1 flex flex-col min-h-0 relative">
+          {children}
+        </main>
       </div>
-      {/* Desktop: empty state (sidebar à esquerda já tem a lista) */}
-      <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-slate-50 text-center px-8">
-        <span className="text-6xl mb-4">💬</span>
-        <h2 className="text-lg font-semibold text-slate-900 mb-1">
-          Selecione uma conversa
-        </h2>
-        <p className="text-sm text-slate-500 max-w-sm">
-          Escolha um lead à esquerda pra abrir o histórico de mensagens.
-        </p>
-      </div>
-    </>
+    </CrmShell>
   );
 }

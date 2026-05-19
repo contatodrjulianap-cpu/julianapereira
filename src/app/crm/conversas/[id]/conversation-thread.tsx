@@ -210,12 +210,12 @@ export function ConversationThread({
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#efeae2]">
+    <div className="fixed inset-0 flex flex-col bg-[#efeae2] md:relative md:inset-auto md:h-full md:w-full">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-3 sticky top-0 z-10">
         <Link
           href="/crm/conversas"
-          className="text-slate-600 px-1 py-1 active:opacity-60"
+          className="md:hidden text-slate-600 px-1 py-1 active:opacity-60"
           aria-label="Voltar"
         >
           <svg
