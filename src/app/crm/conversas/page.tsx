@@ -75,7 +75,7 @@ export default async function ConversasPage() {
   return (
     <>
       {/* Mobile: lista cheia. Layout do desktop já mostra a lista na sidebar. */}
-      <div className="flex-1 md:hidden flex flex-col min-h-0">
+      <div className="flex-1 md:hidden flex flex-col min-h-0 min-w-0">
         <ConversationList initialLeads={leadsWithExtras} />
       </div>
       {/* Desktop: empty state (sidebar à esquerda já tem a lista) */}

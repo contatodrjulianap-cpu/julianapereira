@@ -74,13 +74,13 @@ export default async function ConversasLayout({
 
   return (
     <CrmShell active="conversas" userEmail={user.email ?? ""}>
-      <div className="flex flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0 min-w-0">
         {/* Sidebar lateral — só em desktop, estilo WhatsApp Web */}
-        <aside className="hidden md:flex md:flex-col md:w-[380px] md:shrink-0 border-r border-slate-200 bg-white overflow-hidden">
+        <aside className="hidden md:flex md:flex-col md:w-[380px] md:shrink-0 md:min-w-0 border-r border-slate-200 bg-white overflow-hidden">
           <ConversationList initialLeads={leadsWithExtras} />
         </aside>
         {/* Outlet: thread em desktop, ou lista cheia/thread em mobile */}
-        <main className="flex-1 flex flex-col min-h-0 relative">
+        <main className="flex-1 flex flex-col min-h-0 min-w-0 relative">
           {children}
         </main>
       </div>
