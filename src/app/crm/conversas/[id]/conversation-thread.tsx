@@ -14,6 +14,10 @@ import {
 } from "../lead-actions-sheet";
 import { BottomSheet } from "../bottom-sheet";
 import { ContactSheet } from "./contact-sheet";
+import {
+  MessageActionsSheet,
+  type MessageActionPayload,
+} from "./message-actions-sheet";
 
 // TODO: configurar via integration_config (admin edita em Você → Integrações).
 const CLINIC_ADDRESS_MESSAGE = `📍 Clínica Sakura
@@ -28,6 +32,7 @@ type Message = {
   media_url: string | null;
   media_type: string | null;
   media_signed_url?: string | null;
+  zapi_message_id?: string | null;
   created_at: string;
 };
 
@@ -59,6 +64,8 @@ export function ConversationThread({
   const [contactSheetOpen, setContactSheetOpen] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [msgActionFor, setMsgActionFor] = useState<Message | null>(null);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
 
   const firstName = firstNameOf(currentLead.name);
 
@@ -202,13 +209,61 @@ export function ConversationThread({
     const res = await fetch("/api/zapi/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lead_id: lead.id, message: draft }),
+      body: JSON.stringify({
+        lead_id: lead.id,
+        message: draft,
+        reply_to_message_id: replyTo?.zapi_message_id ?? null,
+      }),
     });
     setSending(false);
-    if (res.ok) setDraft("");
-    else {
+    if (res.ok) {
+      setDraft("");
+      setReplyTo(null);
+    } else {
       const data = await res.json().catch(() => ({}));
       alert(`Erro: ${data.error ?? "envio falhou"}`);
+    }
+  }
+
+  async function handleMsgAction(a: MessageActionPayload) {
+    if (!msgActionFor) return;
+    const m = msgActionFor;
+    setMsgActionFor(null);
+
+    if (a.kind === "reply") {
+      setReplyTo(m);
+      setTimeout(() => inputRef.current?.focus(), 80);
+      return;
+    }
+    if (a.kind === "copy" && m.text) {
+      try {
+        await navigator.clipboard.writeText(m.text);
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+    if (a.kind === "save_template" && m.text) {
+      setSaveModalText(m.text);
+      return;
+    }
+    if (a.kind === "set_selfie") {
+      try {
+        const res = await fetch(
+          `/api/leads/${lead.id}/set-selfie-from-message`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message_id: m.id }),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error ?? "erro");
+        if (data.lead) setCurrentLead(data.lead as LeadFull);
+        alert("Foto de perfil atualizada.");
+      } catch (e) {
+        alert(e instanceof Error ? e.message : "erro");
+      }
     }
   }
 
@@ -293,28 +348,24 @@ export function ConversationThread({
                 </p>
               )}
               <div
-                className={`max-w-[78%] px-3 py-2 rounded-lg text-[14px] shadow-sm select-none ${
+                className={`max-w-[78%] px-3 py-2 rounded-lg text-[14px] shadow-sm select-none cursor-pointer ${
                   m.direction === "outbound"
                     ? "ml-auto bg-[#d9fdd3] text-slate-800"
                     : "mr-auto bg-white text-slate-800"
-                } ${m.text && m.direction === "outbound" ? "cursor-pointer" : ""}`}
-                onPointerDown={
-                  m.direction === "outbound" && m.text
-                    ? () => {
-                        if (longPressTimer.current)
-                          clearTimeout(longPressTimer.current);
-                        longPressTimer.current = setTimeout(() => {
-                          if (
-                            typeof navigator !== "undefined" &&
-                            navigator.vibrate
-                          ) {
-                            navigator.vibrate(20);
-                          }
-                          setSaveModalText(m.text!);
-                        }, 500);
-                      }
-                    : undefined
-                }
+                }`}
+                onPointerDown={() => {
+                  if (longPressTimer.current)
+                    clearTimeout(longPressTimer.current);
+                  longPressTimer.current = setTimeout(() => {
+                    if (
+                      typeof navigator !== "undefined" &&
+                      navigator.vibrate
+                    ) {
+                      navigator.vibrate(20);
+                    }
+                    setMsgActionFor(m);
+                  }, 500);
+                }}
                 onPointerUp={() => {
                   if (longPressTimer.current)
                     clearTimeout(longPressTimer.current);
@@ -323,11 +374,7 @@ export function ConversationThread({
                   if (longPressTimer.current)
                     clearTimeout(longPressTimer.current);
                 }}
-                title={
-                  m.direction === "outbound" && m.text
-                    ? "Segure pra salvar como resposta rápida"
-                    : undefined
-                }
+                title="Segure pra abrir opções (responder, copiar...)"
               >
                 {m.media_type === "image" && m.media_signed_url && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -356,6 +403,33 @@ export function ConversationThread({
         })}
         <div ref={scrollEnd} />
       </div>
+
+      {/* Reply preview */}
+      {replyTo && (
+        <div className="bg-white border-t border-slate-200 px-3 py-2 flex items-start gap-2">
+          <div
+            className="flex-1 min-w-0 border-l-4 pl-2"
+            style={{ borderColor: "var(--sakura-rose-2, #a06a56)" }}
+          >
+            <p className="text-[10px] font-semibold text-[var(--sakura-rose-2,#a06a56)] uppercase tracking-wider">
+              {replyTo.direction === "outbound" ? "Você" : "Lead"}
+            </p>
+            <p className="text-xs text-slate-600 truncate">
+              {replyTo.text ??
+                (replyTo.media_type === "image"
+                  ? "📷 Imagem"
+                  : "📄 Mídia")}
+            </p>
+          </div>
+          <button
+            onClick={() => setReplyTo(null)}
+            className="text-slate-400 active:opacity-60 p-1"
+            aria-label="Cancelar resposta"
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       {/* Input */}
       <div className="bg-white border-t border-slate-200 px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)] flex items-end gap-1.5">
@@ -489,6 +563,13 @@ export function ConversationThread({
         leadId={lead.id}
         onClose={() => setContactSheetOpen(false)}
         onSent={() => setContactSheetOpen(false)}
+      />
+
+      <MessageActionsSheet
+        open={!!msgActionFor}
+        msg={msgActionFor}
+        onAction={handleMsgAction}
+        onClose={() => setMsgActionFor(null)}
       />
 
       {reportOpen && (

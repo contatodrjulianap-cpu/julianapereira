@@ -297,7 +297,16 @@ export function LeadModal({
           </h2>
           <p className="text-sm text-slate-500 mt-1">{lead.phone}</p>
           {lead.instagram && (
-            <p className="text-xs text-slate-400 mt-0.5">{lead.instagram}</p>
+            <a
+              href={`https://instagram.com/${lead.instagram.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-rose-500 mt-0.5 inline-block hover:underline"
+            >
+              {lead.instagram.startsWith("@")
+                ? lead.instagram
+                : `@${lead.instagram}`}
+            </a>
           )}
 
           <div className="flex items-center justify-center gap-1.5 mt-3 flex-wrap">
@@ -849,58 +858,6 @@ function TagsEditor({
         </button>
       </div>
     </div>
-  );
-}
-
-function SelfieThumb({ leadId }: { leadId: string }) {
-  const [url, setUrl] = useState<string | null>(null);
-  const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    let alive = true;
-    fetch(`/api/leads/${leadId}/selfie`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { url?: string } | null) => {
-        if (alive && j?.url) setUrl(j.url);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [leadId]);
-
-  if (!url) {
-    return (
-      <div className="w-14 h-14 rounded-md bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-300 text-xs">
-        ...
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="w-14 h-14 rounded-md overflow-hidden border border-slate-200 shrink-0 hover:opacity-80 transition"
-        aria-label="Ver foto do sorriso"
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={url} alt="Sorriso" className="w-full h-full object-cover" />
-      </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-6"
-          onClick={() => setOpen(false)}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={url}
-            alt="Sorriso (ampliado)"
-            className="max-w-full max-h-full object-contain"
-          />
-        </div>
-      )}
-    </>
   );
 }
 

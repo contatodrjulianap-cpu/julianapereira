@@ -27,6 +27,7 @@ export type SendTextInput = {
   phone: string;
   message: string;
   delayMessage?: number;
+  messageId?: string; // referência (reply/quote)
 };
 
 export type SendTextMeta = {

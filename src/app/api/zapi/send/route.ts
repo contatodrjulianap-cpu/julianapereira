@@ -7,6 +7,7 @@ import { resolveZapiCredsForLead } from "@/lib/wa-router";
 const Body = z.object({
   lead_id: z.string().uuid(),
   message: z.string().min(1).max(4000),
+  reply_to_message_id: z.string().nullable().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -42,7 +43,13 @@ export async function POST(req: NextRequest) {
   const creds = await resolveZapiCredsForLead(lead.id);
 
   const zapiRes = await sendText(
-    { phone: lead.phone, message: parsed.data.message },
+    {
+      phone: lead.phone,
+      message: parsed.data.message,
+      ...(parsed.data.reply_to_message_id
+        ? { messageId: parsed.data.reply_to_message_id }
+        : {}),
+    },
     {
       lead_id: lead.id,
       instance_id: creds?.instanceId,
