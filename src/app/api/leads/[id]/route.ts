@@ -8,6 +8,9 @@ const PatchBody = z.object({
   assigned_to: z.string().nullable().optional(),
   next_contact_at: z.string().nullable().optional(), // ISO date 'YYYY-MM-DD'
   deal_value: z.number().nullable().optional(),
+  pinned: z.boolean().optional(),
+  follow_up_at: z.string().nullable().optional(),
+  source: z.string().nullable().optional(),
 });
 
 export async function PATCH(

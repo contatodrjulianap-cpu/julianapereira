@@ -1,0 +1,93 @@
+"use client";
+
+import type { LeadFull } from "../lead-modal";
+
+export type Bucket = "todos" | "novos" | "em_contato" | "avaliacao" | "fechados" | "perdidos";
+
+const BUCKETS: Array<{ key: Bucket; label: string; emoji: string }> = [
+  { key: "todos", label: "Todos", emoji: "💬" },
+  { key: "novos", label: "Novos", emoji: "🆕" },
+  { key: "em_contato", label: "Em contato", emoji: "🤝" },
+  { key: "avaliacao", label: "Avaliação", emoji: "💰" },
+  { key: "fechados", label: "Fechados", emoji: "✅" },
+  { key: "perdidos", label: "Perdidos", emoji: "❌" },
+];
+
+// Map status do lead → bucket do pipeline.
+export function bucketOf(status: string | null): Exclude<Bucket, "todos"> {
+  switch (status) {
+    case "new":
+      return "novos";
+    case "contacted":
+    case "qualified":
+      return "em_contato";
+    case "proposal":
+      return "avaliacao";
+    case "won":
+      return "fechados";
+    case "lost":
+      return "perdidos";
+    default:
+      return "novos";
+  }
+}
+
+export function PipelineBar({
+  active,
+  onChange,
+  counts,
+}: {
+  active: Bucket;
+  onChange: (b: Bucket) => void;
+  counts: Record<Bucket, number>;
+}) {
+  return (
+    <div className="bg-white border-b border-slate-100 overflow-x-auto">
+      <div className="flex gap-2 px-3 py-2 min-w-max">
+        {BUCKETS.map((b) => {
+          const isActive = active === b.key;
+          const count = counts[b.key] ?? 0;
+          return (
+            <button
+              key={b.key}
+              onClick={() => onChange(b.key)}
+              className="flex flex-col items-center justify-center px-3 py-1.5 rounded-full transition shrink-0"
+              style={{
+                background: isActive ? "var(--sakura-cocoa)" : "rgb(241 245 249)",
+                color: isActive ? "var(--sakura-cream)" : "rgb(51 65 85)",
+              }}
+            >
+              <span className="text-[11px] font-semibold flex items-center gap-1.5 whitespace-nowrap">
+                <span className="text-[14px]">{b.emoji}</span>
+                {b.label}
+                <span
+                  className="ml-0.5 px-1.5 py-0.5 rounded-full text-[10px]"
+                  style={{
+                    background: isActive
+                      ? "rgba(255,255,255,0.18)"
+                      : "rgb(226 232 240)",
+                  }}
+                >
+                  {count}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function countByBucket(leads: LeadFull[]): Record<Bucket, number> {
+  const counts: Record<Bucket, number> = {
+    todos: leads.length,
+    novos: 0,
+    em_contato: 0,
+    avaliacao: 0,
+    fechados: 0,
+    perdidos: 0,
+  };
+  for (const l of leads) counts[bucketOf(l.status)]++;
+  return counts;
+}

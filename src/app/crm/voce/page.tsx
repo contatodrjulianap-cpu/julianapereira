@@ -12,6 +12,12 @@ const SECTIONS: Array<{
   description: string;
 }> = [
   {
+    href: "/crm/voce/guia",
+    icon: "📖",
+    label: "Guia de ícones",
+    description: "O que cada emoji, logo de canal e gesto significa",
+  },
+  {
     href: "/crm/pipeline",
     icon: "📊",
     label: "Pipeline",
