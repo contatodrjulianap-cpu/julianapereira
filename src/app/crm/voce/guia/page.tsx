@@ -22,6 +22,16 @@ const TEMPERATURE = [
     label: "Frio",
     desc: "Sem msg há mais de 24h. Provavelmente esfriou. Reengajar com cuidado.",
   },
+  {
+    emoji: "✅",
+    label: "Comprou",
+    desc: "Lead com status Fechado. Substitui a temperatura — venda já foi.",
+  },
+  {
+    emoji: "❌",
+    label: "Perdido",
+    desc: "Lead com status Perdido. Substitui a temperatura — não fechou.",
+  },
 ];
 
 const SOURCES = [

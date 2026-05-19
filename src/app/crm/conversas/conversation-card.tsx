@@ -21,6 +21,14 @@ function temperatureOf(lead: LeadCard): "🔥" | "☀️" | "❄️" | null {
   return "❄️";
 }
 
+// Status final (won/lost) substitui a temperatura — pra lead fechado
+// ou perdido, o tempo desde última msg não é mais relevante.
+function statusEmojiOf(status: string | null): "✅" | "❌" | null {
+  if (status === "won") return "✅";
+  if (status === "lost") return "❌";
+  return null;
+}
+
 function relativeTime(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const m = Math.floor(ms / 60_000);
@@ -99,7 +107,8 @@ export function ConversationCard({
     }
   }
 
-  const temp = temperatureOf(lead);
+  const statusEmoji = statusEmojiOf(lead.status);
+  const temp = statusEmoji ? null : temperatureOf(lead);
   const time = lead.last_message?.created_at ?? lead.last_message_at;
   const preview = lead.last_message?.text ?? "—";
   const isOutbound = lead.last_message?.direction === "outbound";
@@ -231,6 +240,9 @@ export function ConversationCard({
           <div className="flex items-baseline justify-between gap-2">
             <p className="font-semibold text-[15px] text-slate-900 truncate">
               {lead.name ?? lead.phone}
+              {statusEmoji && (
+                <span className="ml-1.5 text-[13px]">{statusEmoji}</span>
+              )}
               {temp && <span className="ml-1.5 text-[13px]">{temp}</span>}
             </p>
             <span className="text-[11px] text-slate-400 shrink-0">
