@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useMotionValue, animate } from "framer-motion";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { LeadFull } from "../lead-modal";
 import type { LastMessage } from "./page";
 import { SourceBadge } from "./source-icons";
@@ -74,6 +74,13 @@ export function ConversationCard({
   const dragging = useRef(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Ações esquerdas (revelam arrastando o card pra esquerda → x < 0)
+  const leftOpacity = useTransform(x, [-REVEAL, -10, 0], [1, 0.3, 0]);
+  const leftPointer = useTransform(x, (v) => (v < -10 ? "auto" : "none"));
+  // Ações direitas (revelam arrastando pra direita → x > 0)
+  const rightOpacity = useTransform(x, [0, 10, REVEAL], [0, 0.3, 1]);
+  const rightPointer = useTransform(x, (v) => (v > 10 ? "auto" : "none"));
+
   function close() {
     animate(x, 0, { type: "spring", stiffness: 400, damping: 30 });
   }
@@ -98,11 +105,15 @@ export function ConversationCard({
   const isOutbound = lead.last_message?.direction === "outbound";
 
   return (
-    <li className="relative bg-white border-b border-slate-100 overflow-hidden">
-      {/* Ações abaixo: lado esquerdo (revelado quando arrasta pra esquerda) */}
-      <div
+    <li className="relative bg-white border-b border-slate-100 overflow-hidden isolate">
+      {/* Ações reveladas ao arrastar pra ESQUERDA (alinhadas à direita) */}
+      <motion.div
         className="absolute inset-y-0 right-0 flex items-stretch"
-        style={{ width: REVEAL }}
+        style={{
+          width: REVEAL,
+          opacity: leftOpacity,
+          pointerEvents: leftPointer,
+        }}
         aria-hidden
       >
         <ActionButton
@@ -117,12 +128,16 @@ export function ConversationCard({
           label="Perdido"
           onClick={() => applyAction({ status: "lost" })}
         />
-      </div>
+      </motion.div>
 
-      {/* Ações abaixo: lado direito (revelado quando arrasta pra direita) */}
-      <div
+      {/* Ações reveladas ao arrastar pra DIREITA (alinhadas à esquerda) */}
+      <motion.div
         className="absolute inset-y-0 left-0 flex items-stretch"
-        style={{ width: REVEAL }}
+        style={{
+          width: REVEAL,
+          opacity: rightOpacity,
+          pointerEvents: rightPointer,
+        }}
         aria-hidden
       >
         <ActionButton
@@ -140,14 +155,14 @@ export function ConversationCard({
             void applyAction({ follow_up_at: at });
           }}
         />
-      </div>
+      </motion.div>
 
       {/* Card draggable */}
       <motion.div
         drag="x"
         dragConstraints={{ left: -REVEAL, right: REVEAL }}
         dragElastic={0.05}
-        style={{ x, background: "white" }}
+        style={{ x, background: "white", position: "relative", zIndex: 1 }}
         onDragStart={() => {
           dragging.current = true;
           if (longPressTimer.current) clearTimeout(longPressTimer.current);
