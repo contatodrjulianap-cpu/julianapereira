@@ -153,7 +153,11 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
                     : null,
                 }
               : a.kind === "next_contact"
-                ? { next_contact_at: a.date }
+                ? {
+                    follow_up_at: a.date
+                      ? new Date(`${a.date}T12:00:00`).toISOString()
+                      : null,
+                  }
                 : null;
     if (!payload) return;
     try {
