@@ -11,6 +11,7 @@ const PatchBody = z.object({
   pinned: z.boolean().optional(),
   follow_up_at: z.string().nullable().optional(),
   source: z.string().nullable().optional(),
+  tags: z.array(z.string().min(1).max(40)).optional(),
 });
 
 export async function PATCH(

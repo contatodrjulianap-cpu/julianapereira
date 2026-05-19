@@ -110,7 +110,9 @@ export function ConversationCard({
   const statusEmoji = statusEmojiOf(lead.status);
   const hasFollowUp = !!lead.follow_up_at && !statusEmoji; // não mostra ⏰ pra won/lost
   const temp = statusEmoji || hasFollowUp ? null : temperatureOf(lead);
-  const time = lead.last_message?.created_at ?? lead.last_message_at;
+  // Tempo: last_message_at reflete qualquer interação (quiz, msg, etc).
+  // Cai pra created_at da última msg da tabela messages se não houver.
+  const time = lead.last_message_at ?? lead.last_message?.created_at;
   const preview = lead.last_message?.text ?? "—";
   const isOutbound = lead.last_message?.direction === "outbound";
 
