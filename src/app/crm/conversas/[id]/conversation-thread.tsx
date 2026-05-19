@@ -197,28 +197,30 @@ export function ConversationThread({
 
       {/* Input */}
       <div className="bg-white border-t border-slate-200 px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)] flex items-end gap-1.5">
-        <button
-          onClick={() => setQuickOpen(true)}
-          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-amber-500 active:bg-amber-50 transition"
-          aria-label="Respostas rápidas"
-          title="Respostas rápidas"
-        >
-          <span className="text-[22px] leading-none">⚡</span>
-        </button>
-        <textarea
-          ref={inputRef}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              send();
-            }
-          }}
-          placeholder="Mensagem"
-          rows={1}
-          className="flex-1 px-3 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none max-h-32"
-        />
+        <div className="flex-1 relative">
+          <textarea
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                send();
+              }
+            }}
+            placeholder="Mensagem"
+            rows={1}
+            className="w-full pl-3 pr-11 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none max-h-32"
+          />
+          <button
+            onClick={() => setQuickOpen(true)}
+            className="absolute right-1 bottom-1 w-9 h-9 rounded-full flex items-center justify-center text-amber-500 active:bg-amber-100 transition"
+            aria-label="Respostas rápidas"
+            title="Respostas rápidas"
+          >
+            <span className="text-[20px] leading-none">⚡</span>
+          </button>
+        </div>
         <button
           onClick={send}
           disabled={sending || !draft.trim()}
