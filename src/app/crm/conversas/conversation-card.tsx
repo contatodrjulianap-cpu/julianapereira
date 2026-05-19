@@ -46,6 +46,14 @@ function relativeTime(iso: string): string {
 
 function formatFollowUpShort(iso: string): string {
   const d = new Date(iso);
+  const now = new Date();
+  // Compara Y-M-D em horário local (ignora fuso)
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diff = Math.round((target.getTime() - today.getTime()) / 86400_000);
+  if (diff === 0) return "hoje";
+  if (diff === 1) return "amanhã";
+  if (diff === -1) return "ontem";
   const dd = d.getDate().toString().padStart(2, "0");
   const mm = (d.getMonth() + 1).toString().padStart(2, "0");
   return `${dd}/${mm}`;
