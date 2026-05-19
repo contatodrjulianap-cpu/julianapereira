@@ -268,11 +268,11 @@ export function LeadModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex items-stretch md:items-start justify-center overflow-y-auto md:py-10"
+      className="fixed inset-0 z-50 bg-black/50 flex items-stretch md:items-start justify-center overflow-y-auto overscroll-contain md:py-10"
       onClick={onClose}
     >
       <div
-        className="bg-[#f0f2f5] md:rounded-2xl max-w-2xl w-full min-h-full md:min-h-0 shadow-2xl overflow-hidden flex flex-col pb-[max(env(safe-area-inset-bottom),16px)]"
+        className="bg-[#f0f2f5] md:rounded-2xl max-w-2xl w-full md:min-h-0 shadow-2xl flex flex-col pb-[max(env(safe-area-inset-bottom),16px)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top bar */}
@@ -478,8 +478,8 @@ export function LeadModal({
               </button>
             </div>
             {notes.length > 0 && (
-              <ul className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-                {[...notes].reverse().map((n, i) => (
+              <ul className="mt-3 space-y-2">
+                {[...notes].reverse().slice(0, 20).map((n, i) => (
                   <li
                     key={i}
                     className="bg-slate-50 border-l-2 border-emerald-500 px-3 py-2 rounded text-sm"
@@ -562,8 +562,8 @@ export function LeadModal({
                 Sem eventos ainda.
               </p>
             ) : (
-              <ul className="max-h-72 overflow-y-auto divide-y divide-slate-100 -mx-4">
-                {history.map((h) => (
+              <ul className="divide-y divide-slate-100 -mx-4">
+                {history.slice(0, 30).map((h) => (
                   <li
                     key={h.id}
                     className={`px-4 py-2 flex items-start gap-2 ${
