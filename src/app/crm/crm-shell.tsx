@@ -26,8 +26,10 @@ export function CrmShell({
 }) {
   return (
     <div
-      className={`flex flex-col bg-slate-50/60 pb-14 md:pb-0 overflow-x-hidden ${
-        fullViewport ? "h-dvh md:h-dvh" : "min-h-screen"
+      className={`flex flex-col bg-slate-50/60 pb-14 md:pb-0 ${
+        fullViewport
+          ? "h-dvh md:h-dvh overflow-hidden"
+          : "min-h-screen overflow-x-hidden"
       }`}
     >
       <header className="hidden md:block bg-white border-b border-slate-200/70 sticky top-0 z-10">
@@ -76,7 +78,7 @@ export function CrmShell({
           </form>
         </div>
       </header>
-      <div className="flex-1 flex flex-col">{children}</div>
+      <div className="flex-1 flex flex-col min-h-0">{children}</div>
       <CrmBottomNav />
     </div>
   );
