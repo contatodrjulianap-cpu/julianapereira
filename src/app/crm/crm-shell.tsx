@@ -17,13 +17,19 @@ export function CrmShell({
   active,
   userEmail,
   children,
+  fullViewport = false,
 }: {
   active: CrmTab;
   userEmail: string;
   children: React.ReactNode;
+  fullViewport?: boolean;
 }) {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50/60 pb-14 md:pb-0 overflow-x-hidden">
+    <div
+      className={`flex flex-col bg-slate-50/60 pb-14 md:pb-0 overflow-x-hidden ${
+        fullViewport ? "h-dvh md:h-dvh" : "min-h-screen"
+      }`}
+    >
       <header className="hidden md:block bg-white border-b border-slate-200/70 sticky top-0 z-10">
         <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-8">
