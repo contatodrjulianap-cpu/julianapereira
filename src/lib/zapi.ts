@@ -82,6 +82,116 @@ export async function sendText(input: SendTextInput, meta?: SendTextMeta) {
   }
 }
 
+export type SendImageInput = {
+  phone: string;
+  image: string; // URL pública ou base64 data URL
+  caption?: string;
+};
+
+export async function sendImage(input: SendImageInput, meta?: SendTextMeta) {
+  const start = Date.now();
+  try {
+    const res = await fetch(
+      endpoint("/send-image", { instanceId: meta?.instance_id, token: meta?.token }),
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(input),
+      },
+    );
+    const responseJson = await res.json().catch(() => ({}));
+
+    await logEvent({
+      type: "zapi_send_image",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: res.ok ? "success" : "failed",
+      payload: { phone: input.phone, caption: input.caption, has_url: !!input.image },
+      response: responseJson,
+      error: res.ok ? undefined : `HTTP ${res.status}`,
+      duration_ms: Date.now() - start,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Z-API send-image failed: ${res.status} ${JSON.stringify(responseJson)}`);
+    }
+    return responseJson;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    await logEvent({
+      type: "zapi_send_image",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: "failed",
+      payload: { phone: input.phone },
+      error: msg,
+      duration_ms: Date.now() - start,
+    });
+    throw e;
+  }
+}
+
+export type SendDocumentInput = {
+  phone: string;
+  document: string; // URL pública ou base64
+  fileName?: string;
+  caption?: string;
+};
+
+export async function sendDocument(
+  input: SendDocumentInput,
+  extension: string,
+  meta?: SendTextMeta,
+) {
+  const start = Date.now();
+  try {
+    const res = await fetch(
+      endpoint(`/send-document/${extension}`, {
+        instanceId: meta?.instance_id,
+        token: meta?.token,
+      }),
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(input),
+      },
+    );
+    const responseJson = await res.json().catch(() => ({}));
+
+    await logEvent({
+      type: "zapi_send_document",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: res.ok ? "success" : "failed",
+      payload: { phone: input.phone, fileName: input.fileName, extension },
+      response: responseJson,
+      error: res.ok ? undefined : `HTTP ${res.status}`,
+      duration_ms: Date.now() - start,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Z-API send-document failed: ${res.status} ${JSON.stringify(responseJson)}`);
+    }
+    return responseJson;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    await logEvent({
+      type: "zapi_send_document",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: "failed",
+      payload: { phone: input.phone, fileName: input.fileName },
+      error: msg,
+      duration_ms: Date.now() - start,
+    });
+    throw e;
+  }
+}
+
 export type ZapiWebhookPayload = {
   type?: string;
   instanceId?: string;

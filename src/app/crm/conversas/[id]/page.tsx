@@ -24,11 +24,31 @@ export default async function ConversaPage({
     .maybeSingle();
   if (!lead) notFound();
 
-  const { data: messages } = await supabase
+  const { data: messagesRaw } = await supabase
     .from("messages")
-    .select("id, lead_id, direction, text, created_at")
+    .select("id, lead_id, direction, text, media_url, media_type, created_at")
     .eq("lead_id", id)
     .order("created_at", { ascending: true });
+  const messages = messagesRaw ?? [];
+
+  // Signed URLs em batch pras mensagens com mídia
+  const mediaPaths = messages
+    .filter((m): m is typeof m & { media_url: string } => !!m.media_url)
+    .map((m) => m.media_url);
+  const signedByPath: Record<string, string> = {};
+  if (mediaPaths.length > 0) {
+    const admin2 = createServiceClient();
+    const { data: signed } = await admin2.storage
+      .from("wa-media")
+      .createSignedUrls(mediaPaths, 60 * 60);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) signedByPath[s.path] = s.signedUrl;
+    }
+  }
+  const messagesWithMedia = messages.map((m) => ({
+    ...m,
+    media_signed_url: m.media_url ? (signedByPath[m.media_url] ?? null) : null,
+  }));
 
   let selfieSignedUrl: string | null = null;
   if (lead.selfie_url) {
@@ -42,7 +62,7 @@ export default async function ConversaPage({
   return (
     <ConversationThread
       lead={lead as LeadFull}
-      initialMessages={messages ?? []}
+      initialMessages={messagesWithMedia}
       selfieSignedUrl={selfieSignedUrl}
     />
   );

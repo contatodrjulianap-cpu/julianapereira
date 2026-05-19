@@ -12,6 +12,7 @@ import {
   LeadActionsSheet,
   type LeadActionPayload,
 } from "../lead-actions-sheet";
+import { BottomSheet } from "../bottom-sheet";
 
 // TODO: configurar via integration_config (admin edita em Você → Integrações).
 const CLINIC_ADDRESS_MESSAGE = `📍 Clínica Sakura
@@ -22,7 +23,10 @@ type Message = {
   id: string;
   lead_id: string;
   direction: "inbound" | "outbound";
-  text: string;
+  text: string | null;
+  media_url: string | null;
+  media_type: string | null;
+  media_signed_url?: string | null;
   created_at: string;
 };
 
@@ -47,7 +51,11 @@ export function ConversationThread({
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [saveModalText, setSaveModalText] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const cameraCaptureRef = useRef<HTMLInputElement>(null);
+  const galleryPickerRef = useRef<HTMLInputElement>(null);
+  const documentPickerRef = useRef<HTMLInputElement>(null);
+  const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const firstName = firstNameOf(currentLead.name);
 
@@ -55,10 +63,11 @@ export function ConversationThread({
     setAttachOpen(false);
     switch (kind) {
       case "camera":
-        cameraInputRef.current?.click();
+        // Pequeno delay pra animação do sheet anterior fechar antes do novo abrir
+        setTimeout(() => setCameraSheetOpen(true), 250);
         break;
       case "document":
-        alert("Envio de documento ainda em desenvolvimento.");
+        documentPickerRef.current?.click();
         break;
       case "contact":
         alert("Compartilhar contato ainda em desenvolvimento.");
@@ -78,6 +87,42 @@ export function ConversationThread({
         break;
     }
   }
+
+  async function uploadAndSendMedia(file: File) {
+    if (uploadingMedia) return;
+    setUploadingMedia(true);
+    try {
+      const form = new FormData();
+      form.append("lead_id", lead.id);
+      form.append("file", file);
+      if (draft.trim()) {
+        form.append("caption", draft.trim());
+      }
+      const res = await fetch("/api/zapi/send-media", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "envio falhou");
+      setDraft("");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "erro ao enviar mídia");
+    } finally {
+      setUploadingMedia(false);
+    }
+  }
+
+  // Auto-resize do textarea: até 6 linhas
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const lineHeight = 22;
+    const maxLines = 6;
+    const padding = 16;
+    const max = lineHeight * maxLines + padding;
+    el.style.height = Math.min(el.scrollHeight, max) + "px";
+  }, [draft]);
 
   async function handleSheetAction(a: LeadActionPayload) {
     if (a.kind === "open_details" || a.kind === "copy_phone") {
@@ -165,7 +210,7 @@ export function ConversationThread({
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-[#efeae2] md:relative md:bg-slate-50/60">
+    <div className="fixed inset-0 flex flex-col bg-[#efeae2]">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 px-3 py-2 flex items-center gap-3 sticky top-0 z-10">
         <Link
@@ -241,11 +286,11 @@ export function ConversationThread({
               <div
                 className={`max-w-[78%] px-3 py-2 rounded-lg text-[14px] shadow-sm select-none ${
                   m.direction === "outbound"
-                    ? "ml-auto bg-[#d9fdd3] text-slate-800 cursor-pointer"
+                    ? "ml-auto bg-[#d9fdd3] text-slate-800"
                     : "mr-auto bg-white text-slate-800"
-                }`}
+                } ${m.text && m.direction === "outbound" ? "cursor-pointer" : ""}`}
                 onPointerDown={
-                  m.direction === "outbound"
+                  m.direction === "outbound" && m.text
                     ? () => {
                         if (longPressTimer.current)
                           clearTimeout(longPressTimer.current);
@@ -256,7 +301,7 @@ export function ConversationThread({
                           ) {
                             navigator.vibrate(20);
                           }
-                          setSaveModalText(m.text);
+                          setSaveModalText(m.text!);
                         }, 500);
                       }
                     : undefined
@@ -270,12 +315,32 @@ export function ConversationThread({
                     clearTimeout(longPressTimer.current);
                 }}
                 title={
-                  m.direction === "outbound"
+                  m.direction === "outbound" && m.text
                     ? "Segure pra salvar como resposta rápida"
                     : undefined
                 }
               >
-                <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                {m.media_type === "image" && m.media_signed_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.media_signed_url}
+                    alt={m.text ?? "Imagem"}
+                    className="rounded-md max-w-full max-h-72 mb-1 object-cover"
+                  />
+                )}
+                {m.media_type === "image" && !m.media_signed_url && m.media_url && (
+                  <RemoteImage messageId={m.id} alt={m.text ?? "Imagem"} />
+                )}
+                {m.media_type === "document" && (
+                  <DocumentBubble
+                    messageId={m.id}
+                    signedUrl={m.media_signed_url ?? null}
+                    fileName={m.text ?? "Arquivo"}
+                  />
+                )}
+                {m.text && (
+                  <p className="whitespace-pre-wrap break-words">{m.text}</p>
+                )}
               </div>
             </div>
           );
@@ -309,7 +374,8 @@ export function ConversationThread({
             }}
             placeholder="Mensagem"
             rows={1}
-            className="w-full pl-3 pr-11 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none max-h-32"
+            className="w-full pl-3 pr-11 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none overflow-y-auto"
+            style={{ minHeight: 40 }}
           />
           <button
             onClick={() => setQuickOpen(true)}
@@ -376,18 +442,154 @@ export function ConversationThread({
         onClose={() => setActionsSheetOpen(false)}
       />
 
-      {/* Input invisível: dispara a câmera quando "Câmera" é tocado no sheet */}
+      {/* Sheet: escolher entre tirar foto ou pegar da galeria */}
+      <BottomSheet
+        open={cameraSheetOpen}
+        onClose={() => setCameraSheetOpen(false)}
+      >
+        <header className="px-5 pb-3">
+          <h3 className="text-base font-semibold text-slate-900">Foto</h3>
+          <p className="text-xs text-slate-500 mt-0.5">
+            De onde você quer mandar?
+          </p>
+        </header>
+        <div className="px-3 pb-3 space-y-2">
+          <button
+            onClick={() => {
+              setCameraSheetOpen(false);
+              setTimeout(() => cameraCaptureRef.current?.click(), 100);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-rose-50 rounded-xl active:bg-rose-100 transition"
+          >
+            <span className="text-2xl">📷</span>
+            <span className="text-[15px] font-semibold text-rose-700">
+              Tirar foto agora
+            </span>
+          </button>
+          <button
+            onClick={() => {
+              setCameraSheetOpen(false);
+              setTimeout(() => galleryPickerRef.current?.click(), 100);
+            }}
+            className="w-full flex items-center gap-3 px-4 py-3 bg-indigo-50 rounded-xl active:bg-indigo-100 transition"
+          >
+            <span className="text-2xl">🖼️</span>
+            <span className="text-[15px] font-semibold text-indigo-700">
+              Escolher dos arquivos
+            </span>
+          </button>
+        </div>
+      </BottomSheet>
+
+      {/* Indicador de upload em andamento */}
+      {uploadingMedia && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white text-xs px-4 py-2 rounded-full shadow-lg z-50">
+          Enviando mídia...
+        </div>
+      )}
+
+      {/* Inputs file invisíveis */}
       <input
-        ref={cameraInputRef}
+        ref={cameraCaptureRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
-        onChange={() => {
-          // Upload + envio via Z-API ainda não implementados.
-          alert("Captura recebida. Envio de mídia via Z-API entra na próxima sprint.");
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void uploadAndSendMedia(f);
+        }}
+      />
+      <input
+        ref={galleryPickerRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void uploadAndSendMedia(f);
+        }}
+      />
+      <input
+        ref={documentPickerRef}
+        type="file"
+        accept="application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void uploadAndSendMedia(f);
         }}
       />
     </div>
+  );
+}
+
+function RemoteImage({ messageId, alt }: { messageId: string; alt: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/messages/${messageId}/media-url`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { url?: string } | null) => {
+        if (alive && d?.url) setUrl(d.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [messageId]);
+  if (!url) {
+    return (
+      <div className="text-xs text-slate-400 py-3 px-2">📷 carregando...</div>
+    );
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={url}
+      alt={alt}
+      className="rounded-md max-w-full max-h-72 mb-1 object-cover"
+    />
+  );
+}
+
+function DocumentBubble({
+  messageId,
+  signedUrl,
+  fileName,
+}: {
+  messageId: string;
+  signedUrl: string | null;
+  fileName: string;
+}) {
+  const [url, setUrl] = useState<string | null>(signedUrl);
+  useEffect(() => {
+    if (url) return;
+    let alive = true;
+    fetch(`/api/messages/${messageId}/media-url`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { url?: string } | null) => {
+        if (alive && d?.url) setUrl(d.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [messageId, url]);
+  return (
+    <a
+      href={url ?? undefined}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-2 py-2 bg-white/40 rounded-md mb-1 active:opacity-70"
+    >
+      <span className="text-xl shrink-0">📄</span>
+      <span className="text-[13px] font-semibold text-slate-700 truncate">
+        {fileName}
+      </span>
+    </a>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { BottomSheet } from "../bottom-sheet";
 
 export type AttachmentAction =
   | "camera"
@@ -42,40 +42,14 @@ export function AttachmentSheet({
   onPick: (kind: AttachmentAction) => void;
 }) {
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/40 z-40"
-            aria-hidden
-          />
-          <motion.div
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            exit={{ y: "100%" }}
-            transition={{ type: "spring", stiffness: 350, damping: 32 }}
-            className="fixed bottom-0 inset-x-0 z-50 bg-white rounded-t-2xl shadow-xl pb-[max(env(safe-area-inset-bottom),12px)]"
-          >
-            <div className="flex justify-center py-2">
-              <span className="w-10 h-1 bg-slate-200 rounded-full" />
-            </div>
-
-            <Section title="Enviar">
-              <Grid items={ATTACHMENTS} onPick={onPick} />
-            </Section>
-
-            <Section title="Ações do lead">
-              <Grid items={ACTIONS} onPick={onPick} />
-            </Section>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <BottomSheet open={open} onClose={onClose}>
+      <Section title="Enviar">
+        <Grid items={ATTACHMENTS} onPick={onPick} />
+      </Section>
+      <Section title="Ações do lead">
+        <Grid items={ACTIONS} onPick={onPick} />
+      </Section>
+    </BottomSheet>
   );
 }
 
