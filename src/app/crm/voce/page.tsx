@@ -1,0 +1,93 @@
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { CrmShell } from "../crm-shell";
+
+export const dynamic = "force-dynamic";
+
+const SECTIONS: Array<{
+  href: string;
+  icon: string;
+  label: string;
+  description: string;
+}> = [
+  {
+    href: "/crm/pipeline",
+    icon: "📊",
+    label: "Pipeline",
+    description: "Lista completa de leads em formato tabela",
+  },
+  {
+    href: "/crm/funnel",
+    icon: "📈",
+    label: "Funil",
+    description: "Métricas e taxas de conversão por etapa",
+  },
+  {
+    href: "/crm/log",
+    icon: "🪵",
+    label: "Log",
+    description: "Histórico de eventos do sistema",
+  },
+  {
+    href: "/crm/builder",
+    icon: "🛠️",
+    label: "Construtor do quiz",
+    description: "Edita perguntas, copy e arquétipos do quiz",
+  },
+  {
+    href: "/crm/integrations",
+    icon: "🔌",
+    label: "Integrações",
+    description: "WhatsApp, Facebook, mensagens de boas-vindas",
+  },
+];
+
+export default async function VocePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/crm/login");
+
+  return (
+    <CrmShell active="voce" userEmail={user.email ?? ""}>
+      <div className="flex-1 max-w-md w-full mx-auto px-4 py-6">
+        <header className="mb-6">
+          <h1 className="text-xl font-semibold text-slate-900">Você</h1>
+          <p className="text-xs text-slate-500 mt-0.5">{user.email}</p>
+        </header>
+
+        <div className="space-y-2 mb-6">
+          {SECTIONS.map((s) => (
+            <Link
+              key={s.href}
+              href={s.href}
+              className="flex items-center gap-3 px-4 py-3 bg-white border border-slate-200 rounded-xl active:bg-slate-50 transition"
+            >
+              <span className="text-2xl">{s.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-slate-900">
+                  {s.label}
+                </p>
+                <p className="text-xs text-slate-500 leading-snug">
+                  {s.description}
+                </p>
+              </div>
+              <span className="text-slate-300">→</span>
+            </Link>
+          ))}
+        </div>
+
+        <form action="/api/auth/signout" method="POST">
+          <button
+            type="submit"
+            className="w-full py-3 text-sm text-slate-500 hover:text-slate-700 border border-slate-200 rounded-xl bg-white"
+          >
+            Sair
+          </button>
+        </form>
+      </div>
+    </CrmShell>
+  );
+}
