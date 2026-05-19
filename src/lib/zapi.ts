@@ -192,6 +192,57 @@ export async function sendDocument(
   }
 }
 
+export type SendContactInput = {
+  phone: string;
+  contactName: string;
+  contactPhone: string;
+};
+
+export async function sendContact(input: SendContactInput, meta?: SendTextMeta) {
+  const start = Date.now();
+  try {
+    const res = await fetch(
+      endpoint("/send-contact", { instanceId: meta?.instance_id, token: meta?.token }),
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(input),
+      },
+    );
+    const responseJson = await res.json().catch(() => ({}));
+
+    await logEvent({
+      type: "zapi_send_contact",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: res.ok ? "success" : "failed",
+      payload: input,
+      response: responseJson,
+      error: res.ok ? undefined : `HTTP ${res.status}`,
+      duration_ms: Date.now() - start,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Z-API send-contact failed: ${res.status} ${JSON.stringify(responseJson)}`);
+    }
+    return responseJson;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    await logEvent({
+      type: "zapi_send_contact",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: "failed",
+      payload: input,
+      error: msg,
+      duration_ms: Date.now() - start,
+    });
+    throw e;
+  }
+}
+
 export type ZapiWebhookPayload = {
   type?: string;
   instanceId?: string;

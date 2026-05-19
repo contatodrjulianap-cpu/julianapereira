@@ -13,6 +13,7 @@ import {
   type LeadActionPayload,
 } from "../lead-actions-sheet";
 import { BottomSheet } from "../bottom-sheet";
+import { ContactSheet } from "./contact-sheet";
 
 // TODO: configurar via integration_config (admin edita em Você → Integrações).
 const CLINIC_ADDRESS_MESSAGE = `📍 Clínica Sakura
@@ -55,6 +56,7 @@ export function ConversationThread({
   const galleryPickerRef = useRef<HTMLInputElement>(null);
   const documentPickerRef = useRef<HTMLInputElement>(null);
   const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
+  const [contactSheetOpen, setContactSheetOpen] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
 
   const firstName = firstNameOf(currentLead.name);
@@ -70,7 +72,7 @@ export function ConversationThread({
         documentPickerRef.current?.click();
         break;
       case "contact":
-        alert("Compartilhar contato ainda em desenvolvimento.");
+        setTimeout(() => setContactSheetOpen(true), 250);
         break;
       case "location":
         setDraft((cur) =>
@@ -474,6 +476,13 @@ export function ConversationThread({
           </button>
         </div>
       </BottomSheet>
+
+      <ContactSheet
+        open={contactSheetOpen}
+        leadId={lead.id}
+        onClose={() => setContactSheetOpen(false)}
+        onSent={() => setContactSheetOpen(false)}
+      />
 
       {/* Indicador de upload em andamento */}
       {uploadingMedia && (
