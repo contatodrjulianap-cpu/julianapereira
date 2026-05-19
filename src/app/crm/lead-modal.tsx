@@ -24,6 +24,7 @@ export type LeadFull = {
   deal_value: number | null;
   quiz_answers: Record<string, string | string[]> | null;
   selfie_url: string | null;
+  selfie_signed_url?: string | null;
   archetype_scores: Record<Archetype, number> | null;
   utm_source: string | null;
   utm_medium: string | null;

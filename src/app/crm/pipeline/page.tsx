@@ -37,10 +37,29 @@ export default async function PipelinePage() {
     supabase.from("crm_users").select("id, display_name, role"),
   ]);
 
+  // Signed URLs (1h) pra thumbs de selfie aparecerem direto na lista.
+  // Gera em batch — uma única chamada pro Storage.
+  const paths = (leads ?? [])
+    .filter((l): l is typeof l & { selfie_url: string } => !!l.selfie_url)
+    .map((l) => l.selfie_url);
+  const signedByPath: Record<string, string> = {};
+  if (paths.length > 0) {
+    const { data: signed } = await supabase.storage
+      .from("quiz-selfies")
+      .createSignedUrls(paths, 60 * 60);
+    for (const s of signed ?? []) {
+      if (s.path && s.signedUrl) signedByPath[s.path] = s.signedUrl;
+    }
+  }
+  const leadsWithSelfies = (leads ?? []).map((l) => ({
+    ...l,
+    selfie_signed_url: l.selfie_url ? (signedByPath[l.selfie_url] ?? null) : null,
+  }));
+
   return (
     <CrmShell active="pipeline" userEmail={user.email ?? ""}>
       <PipelineView
-        initialLeads={leads ?? []}
+        initialLeads={leadsWithSelfies}
         users={users ?? []}
         isAdmin={isAdmin}
       />

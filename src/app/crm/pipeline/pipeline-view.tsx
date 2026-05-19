@@ -249,7 +249,19 @@ export function PipelineView({
                   className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer"
                 >
                   <td className="px-3 py-3 font-medium text-slate-900">
-                    {l.name ?? "—"}
+                    <div className="flex items-center gap-2">
+                      {l.selfie_signed_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={l.selfie_signed_url}
+                          alt=""
+                          className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 shrink-0" />
+                      )}
+                      <span>{l.name ?? "—"}</span>
+                    </div>
                   </td>
                   <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
                     {fmtEntrada(l.created_at)}
