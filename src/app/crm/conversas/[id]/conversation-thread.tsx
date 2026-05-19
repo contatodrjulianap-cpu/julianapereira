@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { ARCH_LABEL, type LeadFull } from "../../lead-modal";
+import { ARCH_LABEL, LeadModal, type LeadFull } from "../../lead-modal";
 import { firstNameOf } from "@/lib/template-vars";
 import { QuickRepliesSheet } from "./quick-replies-sheet";
 import { SaveTemplateModal } from "./save-template-modal";
@@ -58,6 +58,7 @@ export function ConversationThread({
   const [cameraSheetOpen, setCameraSheetOpen] = useState(false);
   const [contactSheetOpen, setContactSheetOpen] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
 
   const firstName = firstNameOf(currentLead.name);
 
@@ -234,29 +235,35 @@ export function ConversationThread({
           </svg>
         </Link>
 
-        {selfieSignedUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={selfieSignedUrl}
-            alt=""
-            className="w-10 h-10 rounded-full object-cover bg-slate-200"
-          />
-        ) : (
-          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm font-semibold">
-            {(lead.name ?? "?").trim()[0]?.toUpperCase() ?? "?"}
-          </div>
-        )}
+        <button
+          onClick={() => setReportOpen(true)}
+          className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70"
+          title="Ver relatório completo do lead"
+        >
+          {selfieSignedUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={selfieSignedUrl}
+              alt=""
+              className="w-10 h-10 rounded-full object-cover bg-slate-200 shrink-0"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-sm font-semibold shrink-0">
+              {(currentLead.name ?? "?").trim()[0]?.toUpperCase() ?? "?"}
+            </div>
+          )}
 
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-[15px] text-slate-900 truncate leading-tight">
-            {lead.name ?? lead.phone}
-          </p>
-          <p className="text-[11px] text-slate-500 leading-tight truncate">
-            {lead.phone}
-            {lead.archetype && ` · ${ARCH_LABEL[lead.archetype]}`}
-            {lead.geo && ` · ${lead.geo}`}
-          </p>
-        </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-[15px] text-slate-900 truncate leading-tight">
+              {currentLead.name ?? currentLead.phone}
+            </p>
+            <p className="text-[11px] text-slate-500 leading-tight truncate">
+              {currentLead.phone}
+              {currentLead.archetype && ` · ${ARCH_LABEL[currentLead.archetype]}`}
+              {currentLead.geo && ` · ${currentLead.geo}`}
+            </p>
+          </div>
+        </button>
       </header>
 
       {/* Mensagens */}
@@ -483,6 +490,14 @@ export function ConversationThread({
         onClose={() => setContactSheetOpen(false)}
         onSent={() => setContactSheetOpen(false)}
       />
+
+      {reportOpen && (
+        <LeadModal
+          lead={currentLead}
+          onClose={() => setReportOpen(false)}
+          onSaved={(updated) => setCurrentLead(updated)}
+        />
+      )}
 
       {/* Indicador de upload em andamento */}
       {uploadingMedia && (

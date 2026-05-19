@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { QUESTIONS, type Archetype } from "@/lib/quiz-archetypes";
+import { SourceBadge } from "./conversas/source-icons";
 
 export type LeadFull = {
   id: string;
@@ -90,6 +91,14 @@ type HistoryItem = {
   emoji: string;
 };
 
+type MediaMsg = {
+  id: string;
+  direction: "inbound" | "outbound";
+  caption: string | null;
+  media_type: string;
+  created_at: string;
+};
+
 export function LeadModal({
   lead,
   onClose,
@@ -114,6 +123,7 @@ export function LeadModal({
   // ---- Histórico (events + messages) ----
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [mediaMessages, setMediaMessages] = useState<MediaMsg[]>([]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -129,12 +139,27 @@ export function LeadModal({
           .limit(100),
         supabase
           .from("messages")
-          .select("id, direction, text, created_at")
+          .select("id, direction, text, media_url, media_type, created_at")
           .eq("lead_id", lead.id)
           .order("created_at", { ascending: false })
           .limit(100),
       ]);
       if (!active) return;
+
+      // Mídia: filtra mensagens que têm anexo
+      const mediaList: MediaMsg[] = (msgsRes.data ?? [])
+        .filter(
+          (m): m is { id: string; direction: string; text: string | null; media_url: string; media_type: string; created_at: string } =>
+            !!m.media_url && !!m.media_type,
+        )
+        .map((m) => ({
+          id: m.id,
+          direction: m.direction as "inbound" | "outbound",
+          caption: m.text,
+          media_type: m.media_type,
+          created_at: m.created_at,
+        }));
+      setMediaMessages(mediaList);
 
       const items: HistoryItem[] = [];
 
@@ -218,11 +243,11 @@ export function LeadModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto py-10 px-4"
+      className="fixed inset-0 z-50 bg-black/40 flex items-stretch md:items-start justify-center overflow-y-auto md:py-10"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-2xl"
+        className="bg-white md:rounded-lg max-w-2xl w-full p-4 md:p-6 shadow-2xl min-h-full md:min-h-0 pb-[max(env(safe-area-inset-bottom),24px)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-4 gap-3">
@@ -236,6 +261,16 @@ export function LeadModal({
                 {lead.archetype && ` · ${ARCH_LABEL[lead.archetype]}`}
                 {lead.geo && ` · ${lead.geo}`}
               </p>
+              <div className="flex items-center gap-2 mt-1.5">
+                <SourceBadge source={lead.source} />
+                {lead.status && (
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[lead.status] ?? "bg-slate-100 text-slate-700"}`}
+                  >
+                    {STATUS_LABEL[lead.status] ?? lead.status}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button
@@ -244,6 +279,36 @@ export function LeadModal({
           >
             ×
           </button>
+        </div>
+
+        {/* Comunicação rápida */}
+        <div className="flex gap-2 mb-4">
+          <a
+            href={whatsLink(lead.phone, lead.name)}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-emerald-50 text-emerald-700 active:bg-emerald-100"
+          >
+            💬 WhatsApp
+          </a>
+          <button
+            onClick={() => {
+              navigator.clipboard?.writeText(lead.phone).catch(() => {});
+            }}
+            className="flex-1 text-xs font-semibold py-2 rounded-lg bg-slate-100 text-slate-700 active:bg-slate-200"
+          >
+            📋 Copiar
+          </button>
+          {lead.instagram && (
+            <a
+              href={`https://instagram.com/${lead.instagram.replace(/^@/, "")}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-rose-50 text-rose-700 active:bg-rose-100"
+            >
+              📷 Instagram
+            </a>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
@@ -384,6 +449,38 @@ export function LeadModal({
                     </strong>
                   </span>
                 </div>
+              )}
+            </div>
+          </details>
+        )}
+
+        {/* Mídia trocada */}
+        {mediaMessages.length > 0 && (
+          <details className="mb-4 text-sm" open>
+            <summary className="cursor-pointer font-semibold text-slate-600">
+              📸 Mídia trocada ({mediaMessages.length})
+            </summary>
+            <div className="mt-3 border border-slate-100 rounded-md p-3 bg-slate-50/40">
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {mediaMessages
+                  .filter((m) => m.media_type === "image")
+                  .map((m) => (
+                    <MediaThumb key={m.id} msgId={m.id} caption={m.caption} />
+                  ))}
+              </div>
+              {mediaMessages.some((m) => m.media_type !== "image") && (
+                <ul className="mt-3 space-y-1.5">
+                  {mediaMessages
+                    .filter((m) => m.media_type !== "image")
+                    .map((m) => (
+                      <MediaDoc
+                        key={m.id}
+                        msgId={m.id}
+                        caption={m.caption ?? "Documento"}
+                        direction={m.direction}
+                      />
+                    ))}
+                </ul>
               )}
             </div>
           </details>
@@ -595,6 +692,108 @@ function SelfieThumb({ leadId }: { leadId: string }) {
         </div>
       )}
     </>
+  );
+}
+
+function MediaThumb({
+  msgId,
+  caption,
+}: {
+  msgId: string;
+  caption: string | null;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/messages/${msgId}/media-url`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { url?: string } | null) => {
+        if (alive && j?.url) setUrl(j.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [msgId]);
+
+  return (
+    <>
+      <button
+        onClick={() => url && setOpen(true)}
+        disabled={!url}
+        className="aspect-square rounded-md overflow-hidden border border-slate-200 bg-slate-100 active:opacity-70 transition"
+        title={caption ?? "Imagem"}
+      >
+        {url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-xs text-slate-400">…</span>
+        )}
+      </button>
+      {open && url && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-6"
+          onClick={() => setOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt={caption ?? ""}
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function MediaDoc({
+  msgId,
+  caption,
+  direction,
+}: {
+  msgId: string;
+  caption: string;
+  direction: "inbound" | "outbound";
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/messages/${msgId}/media-url`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { url?: string } | null) => {
+        if (alive && j?.url) setUrl(j.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [msgId]);
+
+  return (
+    <li>
+      <a
+        href={url ?? undefined}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center gap-2 px-2 py-2 rounded-md bg-white border border-slate-200 active:opacity-70"
+      >
+        <span className="text-lg shrink-0">📄</span>
+        <span className="flex-1 min-w-0 text-[13px] font-medium text-slate-700 truncate">
+          {caption}
+        </span>
+        <span
+          className="text-[10px] uppercase tracking-wider text-slate-400 shrink-0"
+          aria-label={direction === "outbound" ? "Enviado" : "Recebido"}
+        >
+          {direction === "outbound" ? "↑" : "↓"}
+        </span>
+      </a>
+    </li>
   );
 }
 
