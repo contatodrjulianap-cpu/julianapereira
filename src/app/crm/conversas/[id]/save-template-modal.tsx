@@ -29,6 +29,7 @@ export function SaveTemplateModal({
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("⚡");
   const [favorite, setFavorite] = useState(false);
+  const [body, setBody] = useState(hasNameMatch ? suggestion : originalText);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -38,11 +39,22 @@ export function SaveTemplateModal({
       setName("");
       setEmoji("⚡");
       setFavorite(false);
+      setBody(hasNameMatch ? suggestion : originalText);
       setErr(null);
     }
-  }, [open, hasNameMatch]);
+  }, [open, hasNameMatch, suggestion, originalText]);
 
-  const body = useVariable ? suggestion : originalText;
+  // Toggle do checkbox aplica/desfaz a substituição no body atual.
+  // Se o user editou manualmente, preserva o que ele escreveu o máximo possível.
+  function handleToggleVariable(next: boolean) {
+    setUseVariable(next);
+    if (next && first) {
+      setBody((cur) => replaceNameWithVariable(cur, first));
+    } else if (!next && first) {
+      setBody((cur) => cur.replace(/\{primeiro_nome\}/g, first));
+    }
+  }
+
   const preview = interpolate(body, { primeiro_nome: first ?? undefined });
 
   async function save() {
@@ -119,21 +131,38 @@ export function SaveTemplateModal({
                 />
               </div>
 
-              <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold pt-1">
-                Mensagem
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                  Mensagem (pode editar)
+                </span>
+                {first && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setBody((cur) =>
+                        cur.includes("{primeiro_nome}")
+                          ? cur
+                          : `${cur} {primeiro_nome}`,
+                      )
+                    }
+                    className="text-[10px] font-semibold text-[var(--sakura-cocoa,#3b2d28)] active:opacity-60"
+                  >
+                    + {"{primeiro_nome}"}
+                  </button>
+                )}
               </div>
               <textarea
                 value={body}
-                readOnly
-                rows={4}
-                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none"
+                onChange={(e) => setBody(e.target.value)}
+                rows={5}
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none focus:border-[var(--sakura-cocoa,#3b2d28)]"
               />
               {hasNameMatch && (
                 <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={useVariable}
-                    onChange={(e) => setUseVariable(e.target.checked)}
+                    onChange={(e) => handleToggleVariable(e.target.checked)}
                     className="mt-0.5 w-4 h-4 accent-[var(--sakura-cocoa,#3b2d28)]"
                   />
                   <span>
@@ -141,17 +170,17 @@ export function SaveTemplateModal({
                     <code className="bg-slate-100 px-1 rounded">
                       {"{primeiro_nome}"}
                     </code>{" "}
-                    (recomendado — funciona pra qualquer lead)
+                    (funciona pra qualquer lead)
                   </span>
                 </label>
               )}
 
-              {useVariable && hasNameMatch && (
+              {first && body.includes("{primeiro_nome}") && (
                 <div>
                   <p className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
                     Prévia pro {first}:
                   </p>
-                  <p className="text-sm text-slate-700 mt-1 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                  <p className="text-sm text-slate-700 mt-1 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 whitespace-pre-wrap">
                     {preview}
                   </p>
                 </div>
