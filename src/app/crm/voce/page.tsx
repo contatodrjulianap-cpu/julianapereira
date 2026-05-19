@@ -24,6 +24,12 @@ const SECTIONS: Array<{
     description: "Templates de mensagem com variável {primeiro_nome}",
   },
   {
+    href: "/crm/voce/contatos",
+    icon: "📇",
+    label: "Contatos",
+    description: "Cadastro de contatos da clínica e parceiros pra compartilhar",
+  },
+  {
     href: "/crm/pipeline",
     icon: "📊",
     label: "Pipeline",
