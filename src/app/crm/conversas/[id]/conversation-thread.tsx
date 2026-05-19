@@ -366,12 +366,6 @@ export function ConversationThread({
             ref={inputRef}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
             placeholder="Mensagem"
             rows={1}
             className="w-full pl-3 pr-11 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none overflow-y-auto"
