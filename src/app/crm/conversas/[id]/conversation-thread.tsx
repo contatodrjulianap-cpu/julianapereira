@@ -7,6 +7,16 @@ import { ARCH_LABEL, type LeadFull } from "../../lead-modal";
 import { firstNameOf } from "@/lib/template-vars";
 import { QuickRepliesSheet } from "./quick-replies-sheet";
 import { SaveTemplateModal } from "./save-template-modal";
+import { AttachmentSheet, type AttachmentAction } from "./attachment-sheet";
+import {
+  LeadActionsSheet,
+  type LeadActionPayload,
+} from "../lead-actions-sheet";
+
+// TODO: configurar via integration_config (admin edita em Você → Integrações).
+const CLINIC_ADDRESS_MESSAGE = `📍 Clínica Sakura
+Av. Brigadeiro Faria Lima, 1234 — Itaim Bibi, São Paulo - SP
+Maps: https://maps.google.com/?q=Clinica+Sakura+Sao+Paulo`;
 
 type Message = {
   id: string;
@@ -27,15 +37,93 @@ export function ConversationThread({
 }) {
   const supabase = createClient();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [currentLead, setCurrentLead] = useState<LeadFull>(lead);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollEnd = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [attachOpen, setAttachOpen] = useState(false);
+  const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
   const [saveModalText, setSaveModalText] = useState<string | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  const firstName = firstNameOf(lead.name);
+  const firstName = firstNameOf(currentLead.name);
+
+  function handleAttachment(kind: AttachmentAction) {
+    setAttachOpen(false);
+    switch (kind) {
+      case "camera":
+        cameraInputRef.current?.click();
+        break;
+      case "document":
+        alert("Envio de documento ainda em desenvolvimento.");
+        break;
+      case "contact":
+        alert("Compartilhar contato ainda em desenvolvimento.");
+        break;
+      case "location":
+        setDraft((cur) =>
+          cur.trim() ? `${cur}\n\n${CLINIC_ADDRESS_MESSAGE}` : CLINIC_ADDRESS_MESSAGE,
+        );
+        setTimeout(() => inputRef.current?.focus(), 50);
+        break;
+      case "quick_reply":
+        setQuickOpen(true);
+        break;
+      case "pipeline":
+      case "source":
+        setActionsSheetOpen(true);
+        break;
+    }
+  }
+
+  async function handleSheetAction(a: LeadActionPayload) {
+    if (a.kind === "open_details" || a.kind === "copy_phone") {
+      setActionsSheetOpen(false);
+      if (a.kind === "copy_phone") {
+        try {
+          await navigator.clipboard.writeText(currentLead.phone);
+        } catch {
+          /* noop */
+        }
+      }
+      return;
+    }
+    const payload =
+      a.kind === "status"
+        ? { status: a.value }
+        : a.kind === "source"
+          ? { source: a.value }
+          : a.kind === "pin"
+            ? { pinned: a.value }
+            : a.kind === "follow_up"
+              ? {
+                  follow_up_at: a.days
+                    ? new Date(Date.now() + a.days * 86400_000).toISOString()
+                    : null,
+                }
+              : null;
+    if (!payload) {
+      setActionsSheetOpen(false);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/leads/${currentLead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "erro");
+      setCurrentLead((c) => ({ ...c, ...(data.lead as LeadFull) }));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "erro");
+    } finally {
+      setActionsSheetOpen(false);
+    }
+  }
 
   useEffect(() => {
     const ch = supabase
@@ -197,6 +285,17 @@ export function ConversationThread({
 
       {/* Input */}
       <div className="bg-white border-t border-slate-200 px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)] flex items-end gap-1.5">
+        <button
+          onClick={() => setAttachOpen(true)}
+          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:bg-slate-100 transition"
+          aria-label="Anexar / ações"
+          title="Anexar / ações"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
         <div className="flex-1 relative">
           <textarea
             ref={inputRef}
@@ -247,7 +346,6 @@ export function ConversationThread({
         onPick={(text, replyId) => {
           setDraft((cur) => (cur.trim() ? `${cur} ${text}` : text));
           setQuickOpen(false);
-          // Best-effort: incrementa uses_count + foca input
           fetch(`/api/quick-replies/${replyId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
@@ -260,9 +358,35 @@ export function ConversationThread({
       <SaveTemplateModal
         open={!!saveModalText}
         originalText={saveModalText ?? ""}
-        leadFullName={lead.name}
+        leadFullName={currentLead.name}
         onClose={() => setSaveModalText(null)}
         onSaved={() => setSaveModalText(null)}
+      />
+
+      <AttachmentSheet
+        open={attachOpen}
+        onClose={() => setAttachOpen(false)}
+        onPick={handleAttachment}
+      />
+
+      <LeadActionsSheet
+        open={actionsSheetOpen}
+        lead={currentLead}
+        onAction={handleSheetAction}
+        onClose={() => setActionsSheetOpen(false)}
+      />
+
+      {/* Input invisível: dispara a câmera quando "Câmera" é tocado no sheet */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={() => {
+          // Upload + envio via Z-API ainda não implementados.
+          alert("Captura recebida. Envio de mídia via Z-API entra na próxima sprint.");
+        }}
       />
     </div>
   );
