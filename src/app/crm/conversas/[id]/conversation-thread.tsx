@@ -36,6 +36,21 @@ type Message = {
   created_at: string;
 };
 
+function formatFollowUpShort(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const t = new Date(d);
+  t.setHours(0, 0, 0, 0);
+  const diff = Math.round((t.getTime() - today.getTime()) / 86400_000);
+  if (diff === 0) return "hoje";
+  if (diff === 1) return "amanhã";
+  if (diff === -1) return "ontem";
+  const dd = d.getDate().toString().padStart(2, "0");
+  const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+  return `${dd}/${mm}`;
+}
+
 export function ConversationThread({
   lead,
   initialMessages,
@@ -311,6 +326,30 @@ export function ConversationThread({
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-[15px] text-slate-900 truncate leading-tight">
               {currentLead.name ?? currentLead.phone}
+              {currentLead.status === "won" && (
+                <span className="ml-1.5 text-[12px]">✅</span>
+              )}
+              {currentLead.status === "lost" && (
+                <span className="ml-1.5 text-[12px]">❌</span>
+              )}
+              {currentLead.follow_up_at &&
+                currentLead.status !== "won" &&
+                currentLead.status !== "lost" && (
+                  <span className="ml-1.5 inline-flex items-baseline gap-1">
+                    <span className="text-[12px]">⏰</span>
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{
+                        color:
+                          new Date(currentLead.follow_up_at) < new Date()
+                            ? "#dc2626"
+                            : "#a06a56",
+                      }}
+                    >
+                      {formatFollowUpShort(currentLead.follow_up_at)}
+                    </span>
+                  </span>
+                )}
             </p>
             <p className="text-[11px] text-slate-500 leading-tight truncate">
               {currentLead.phone}

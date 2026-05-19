@@ -44,6 +44,21 @@ function relativeTime(iso: string): string {
   });
 }
 
+function formatFollowUpShort(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const t = new Date(d);
+  t.setHours(0, 0, 0, 0);
+  const diff = Math.round((t.getTime() - today.getTime()) / 86400_000);
+  if (diff === 0) return "hoje";
+  if (diff === 1) return "amanhã";
+  if (diff === -1) return "ontem";
+  const dd = d.getDate().toString().padStart(2, "0");
+  const mm = (d.getMonth() + 1).toString().padStart(2, "0");
+  return `${dd}/${mm}`;
+}
+
 function initialsOf(name: string | null): string {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
@@ -267,9 +282,23 @@ export function ConversationCard({
               {statusEmoji && (
                 <span className="ml-1.5 text-[13px]">{statusEmoji}</span>
               )}
-              {hasFollowUp && (
-                <span className="ml-1.5 text-[13px]" title="Follow up agendado">
-                  ⏰
+              {hasFollowUp && lead.follow_up_at && (
+                <span
+                  className="ml-1.5 inline-flex items-baseline gap-1"
+                  title={`Follow up: ${new Date(lead.follow_up_at).toLocaleDateString("pt-BR")}`}
+                >
+                  <span className="text-[13px]">⏰</span>
+                  <span
+                    className="text-[10px] font-semibold"
+                    style={{
+                      color:
+                        new Date(lead.follow_up_at) < new Date()
+                          ? "#dc2626"
+                          : "#a06a56",
+                    }}
+                  >
+                    {formatFollowUpShort(lead.follow_up_at)}
+                  </span>
                 </span>
               )}
               {temp && <span className="ml-1.5 text-[13px]">{temp}</span>}
