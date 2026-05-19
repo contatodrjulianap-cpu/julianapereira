@@ -146,3 +146,16 @@
   --sakura-gold: #A88452;
   --sakura-hairline: #D9CCB6;
 }
+
+/* ====================================================================
+   iOS Safari auto-zoom fix
+   Inputs com font-size < 16px disparam zoom no focus em iOS e não voltam.
+   Força 16px em todos inputs/textareas/selects em viewports mobile.
+==================================================================== */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
