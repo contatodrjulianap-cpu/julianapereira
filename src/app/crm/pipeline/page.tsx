@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { CrmShell } from "../crm-shell";
 import { PipelineView } from "./pipeline-view";
 
@@ -44,7 +44,8 @@ export default async function PipelinePage() {
     .map((l) => l.selfie_url);
   const signedByPath: Record<string, string> = {};
   if (paths.length > 0) {
-    const { data: signed } = await supabase.storage
+    const admin = createServiceClient();
+    const { data: signed } = await admin.storage
       .from("quiz-selfies")
       .createSignedUrls(paths, 60 * 60);
     for (const s of signed ?? []) {
