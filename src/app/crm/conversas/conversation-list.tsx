@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { LeadFull } from "../lead-modal";
 import type { LastMessage } from "./page";
+import { SourceBadge } from "./source-icons";
 
 type LeadCard = LeadFull & {
   selfie_signed_url?: string | null;
@@ -19,19 +20,6 @@ function temperatureOf(lead: LeadCard): "🔥" | "☀️" | "❄️" | null {
   if (h < 1) return "🔥";
   if (h < 24) return "☀️";
   return "❄️";
-}
-
-// Cor da bolinha por origem (canal).
-// Por enquanto deriva de `source` (texto livre); Sprint 4 substitui por source_id.
-function sourceColorOf(source: string | null): string {
-  const s = (source ?? "").toLowerCase();
-  if (s.includes("quiz")) return "rgb(249 115 22)"; // 🟠
-  if (s.includes("insta")) return "rgb(168 85 247)"; // 🟣
-  if (s.includes("google")) return "rgb(34 197 94)"; // 🟢
-  if (s.includes("tiktok")) return "rgb(239 68 68)"; // 🔴
-  if (s.includes("indica")) return "rgb(234 179 8)"; // 🟡
-  if (s.includes("organ") || s.includes("seo")) return "rgb(59 130 246)"; // 🔵
-  return "rgb(148 163 184)"; // 💬 WhatsApp direto (slate-400)
 }
 
 function relativeTime(iso: string): string {
@@ -105,7 +93,6 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
 
 function ConversationCard({ lead }: { lead: LeadCard }) {
   const temp = temperatureOf(lead);
-  const color = sourceColorOf(lead.source);
   const time = lead.last_message?.created_at ?? lead.last_message_at;
   const preview = lead.last_message?.text ?? "—";
   const isOutbound = lead.last_message?.direction === "outbound";
@@ -148,12 +135,8 @@ function ConversationCard({ lead }: { lead: LeadCard }) {
         </p>
       </div>
 
-      {/* Bolinha de origem */}
-      <span
-        className="shrink-0 w-2.5 h-2.5 rounded-full"
-        style={{ background: color }}
-        aria-hidden
-      />
+      {/* Badge da origem (logo do canal) */}
+      <SourceBadge source={lead.source} />
     </Link>
   );
 }
