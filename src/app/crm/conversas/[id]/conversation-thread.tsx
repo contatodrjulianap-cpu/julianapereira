@@ -14,6 +14,7 @@ import {
 } from "../lead-actions-sheet";
 import { BottomSheet } from "../bottom-sheet";
 import { ContactSheet } from "./contact-sheet";
+import { SourceBadge } from "../source-icons";
 import {
   MessageActionsSheet,
   type MessageActionPayload,
@@ -361,6 +362,14 @@ export function ConversationThread({
             </p>
           </div>
         </button>
+
+        {/* Badge da origem no canto direito */}
+        <div
+          className="shrink-0"
+          title={`Origem: ${currentLead.source ?? "WhatsApp direto"}`}
+        >
+          <SourceBadge source={currentLead.source} />
+        </div>
       </header>
 
       {/* Mensagens */}
