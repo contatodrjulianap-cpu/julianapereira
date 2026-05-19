@@ -74,14 +74,12 @@ export default async function ConversasLayout({
 
   return (
     <CrmShell active="conversas" userEmail={user.email ?? ""}>
-      {/* Em desktop, limita altura à viewport menos a navbar (~60px) — assim o scroll
-          fica contido nas mensagens internas, não no page body. */}
-      <div className="flex flex-1 min-h-0 min-w-0 md:h-[calc(100dvh-60px)] md:overflow-hidden">
-        {/* Sidebar lateral — só em desktop, estilo WhatsApp Web */}
+      {/* Em desktop: position fixed travado abaixo da navbar (~60px) — o page body
+          não scrolla; só a área de msgs interna do thread scrolla. */}
+      <div className="flex flex-1 min-h-0 min-w-0 md:fixed md:left-0 md:right-0 md:bottom-0 md:top-[60px] md:overflow-hidden">
         <aside className="hidden md:flex md:flex-col md:w-[380px] md:shrink-0 md:min-w-0 border-r border-slate-200 bg-white overflow-hidden">
           <ConversationList initialLeads={leadsWithExtras} />
         </aside>
-        {/* Outlet: thread em desktop, ou lista cheia/thread em mobile */}
         <main className="flex-1 flex flex-col min-h-0 min-w-0 relative md:overflow-hidden">
           {children}
         </main>
