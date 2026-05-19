@@ -43,8 +43,12 @@ const TABS: Tab[] = [
   },
 ];
 
+// Esconde bottom nav dentro da thread de uma conversa — senão sobrepõe o input.
+const HIDE_PATTERNS: RegExp[] = [/^\/crm\/conversas\/[^/]+$/];
+
 export function CrmBottomNav() {
   const pathname = usePathname() ?? "";
+  if (HIDE_PATTERNS.some((re) => re.test(pathname))) return null;
   return (
     <nav
       className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 pb-[env(safe-area-inset-bottom)]"

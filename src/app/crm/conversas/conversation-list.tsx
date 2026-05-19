@@ -99,7 +99,7 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0">
+    <div className="flex-1 flex flex-col bg-white min-h-0 min-w-0 overflow-x-hidden w-full">
       <header className="md:hidden sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3">
         <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">
           Conversas
