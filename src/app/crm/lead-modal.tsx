@@ -99,6 +99,18 @@ type MediaMsg = {
   created_at: string;
 };
 
+function detectSourceKey(src: string | null | undefined): string {
+  const s = (src ?? "").toLowerCase();
+  if (s.includes("insta")) return "instagram";
+  if (s.includes("google")) return "google";
+  if (s.includes("tiktok")) return "tiktok";
+  if (s.includes("quiz")) return "quiz";
+  if (s.includes("indica")) return "indicacao";
+  if (s.includes("organ") || s.includes("seo")) return "organico";
+  if (s.includes("whats")) return "whatsapp";
+  return src ?? "";
+}
+
 export function LeadModal({
   lead,
   onClose,
@@ -113,6 +125,7 @@ export function LeadModal({
     assigned_to: lead.assigned_to ?? "",
     next_contact_at: lead.next_contact_at ?? "",
     deal_value: lead.deal_value?.toString() ?? "",
+    source: detectSourceKey(lead.source),
   });
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
@@ -211,6 +224,7 @@ export function LeadModal({
           assigned_to: form.assigned_to.trim() || null,
           next_contact_at: form.next_contact_at || null,
           deal_value: form.deal_value === "" ? null : Number(form.deal_value),
+          source: form.source || null,
         }),
       });
       const data = await res.json();
@@ -222,6 +236,7 @@ export function LeadModal({
       setSaving(false);
     }
   }
+
 
   async function addNote() {
     if (!noteText.trim()) return;
@@ -330,7 +345,7 @@ export function LeadModal({
         <div className="flex-1 px-3 py-3 space-y-3">
           {/* Status do funil */}
           <Card title="Status do funil">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-3">
               <Field label="Status">
                 <select
                   value={form.status}
@@ -344,6 +359,22 @@ export function LeadModal({
                   ))}
                 </select>
               </Field>
+              <Field label="Origem (canal)">
+                <select
+                  value={form.source}
+                  onChange={(e) => setForm({ ...form, source: e.target.value })}
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                >
+                  <option value="">— Não definida</option>
+                  <option value="whatsapp">💬 WhatsApp direto</option>
+                  <option value="instagram">📷 Instagram</option>
+                  <option value="google">🔎 Google</option>
+                  <option value="tiktok">🎵 TikTok</option>
+                  <option value="quiz">❓ Quiz</option>
+                  <option value="indicacao">🤝 Indicação</option>
+                  <option value="organico">🌐 Orgânico / SEO</option>
+                </select>
+              </Field>
               <Field label="Responsável">
                 <input
                   value={form.assigned_to}
@@ -354,27 +385,29 @@ export function LeadModal({
                   className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
                 />
               </Field>
-              <Field label="Próximo contato">
-                <input
-                  type="date"
-                  value={form.next_contact_at}
-                  onChange={(e) =>
-                    setForm({ ...form, next_contact_at: e.target.value })
-                  }
-                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
-              </Field>
-              <Field label="Valor da venda (R$)">
-                <input
-                  type="number"
-                  value={form.deal_value}
-                  onChange={(e) =>
-                    setForm({ ...form, deal_value: e.target.value })
-                  }
-                  placeholder="—"
-                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Próximo contato">
+                  <input
+                    type="date"
+                    value={form.next_contact_at}
+                    onChange={(e) =>
+                      setForm({ ...form, next_contact_at: e.target.value })
+                    }
+                    className="w-full px-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none min-w-0"
+                  />
+                </Field>
+                <Field label="Valor venda (R$)">
+                  <input
+                    type="number"
+                    value={form.deal_value}
+                    onChange={(e) =>
+                      setForm({ ...form, deal_value: e.target.value })
+                    }
+                    placeholder="—"
+                    className="w-full px-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none min-w-0"
+                  />
+                </Field>
+              </div>
             </div>
             <button
               onClick={handleSave}
