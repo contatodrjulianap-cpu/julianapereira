@@ -56,7 +56,7 @@ export const STATUS_LABEL: Record<string, string> = {
   new: "📨 Novo",
   contacted: "📞 Contatado",
   qualified: "✅ Qualificado",
-  proposal: "💰 Proposta",
+  proposal: "⏰ Follow up",
   won: "🎉 Fechado",
   lost: "❌ Perdido",
 };

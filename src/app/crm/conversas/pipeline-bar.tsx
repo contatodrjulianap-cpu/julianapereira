@@ -2,27 +2,45 @@
 
 import type { LeadFull } from "../lead-modal";
 
-export type Bucket = "todos" | "novos" | "em_contato" | "avaliacao" | "fechados" | "perdidos";
+export type Bucket =
+  | "todos"
+  | "novos"
+  | "em_contato"
+  | "follow_up"
+  | "fechados"
+  | "perdidos";
 
 const BUCKETS: Array<{ key: Bucket; label: string; emoji: string }> = [
   { key: "todos", label: "Todos", emoji: "💬" },
   { key: "novos", label: "Novos", emoji: "🆕" },
   { key: "em_contato", label: "Em contato", emoji: "🤝" },
-  { key: "avaliacao", label: "Avaliação", emoji: "💰" },
+  { key: "follow_up", label: "Follow up", emoji: "⏰" },
   { key: "fechados", label: "Fechados", emoji: "✅" },
   { key: "perdidos", label: "Perdidos", emoji: "❌" },
 ];
 
-// Map status do lead → bucket do pipeline.
-export function bucketOf(status: string | null): Exclude<Bucket, "todos"> {
-  switch (status) {
+// Pra Sakura, "Avaliação" e "Follow up" são a mesma fase: lead que recebeu
+// orçamento e está em acompanhamento. Status="proposal" no DB → bucket "follow_up".
+// Lead com follow_up_at agendado (não-final) também cai no mesmo bucket.
+export function bucketOf(lead: {
+  status: string | null;
+  follow_up_at: string | null;
+}): Exclude<Bucket, "todos"> {
+  if (
+    lead.follow_up_at &&
+    lead.status !== "won" &&
+    lead.status !== "lost"
+  ) {
+    return "follow_up";
+  }
+  switch (lead.status) {
     case "new":
       return "novos";
     case "contacted":
     case "qualified":
       return "em_contato";
     case "proposal":
-      return "avaliacao";
+      return "follow_up";
     case "won":
       return "fechados";
     case "lost":
@@ -84,10 +102,10 @@ export function countByBucket(leads: LeadFull[]): Record<Bucket, number> {
     todos: leads.length,
     novos: 0,
     em_contato: 0,
-    avaliacao: 0,
+    follow_up: 0,
     fechados: 0,
     perdidos: 0,
   };
-  for (const l of leads) counts[bucketOf(l.status)]++;
+  for (const l of leads) counts[bucketOf(l)]++;
   return counts;
 }

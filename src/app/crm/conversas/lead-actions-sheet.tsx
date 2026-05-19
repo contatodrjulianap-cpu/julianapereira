@@ -6,7 +6,7 @@ import { SourceBadge } from "./source-icons";
 const PIPELINE = [
   { value: "new", emoji: "🆕", label: "Novos" },
   { value: "contacted", emoji: "🤝", label: "Em contato" },
-  { value: "proposal", emoji: "💰", label: "Avaliação" },
+  { value: "proposal", emoji: "⏰", label: "Follow up" },
   { value: "won", emoji: "✅", label: "Fechado" },
   { value: "lost", emoji: "❌", label: "Perdido" },
 ] as const;

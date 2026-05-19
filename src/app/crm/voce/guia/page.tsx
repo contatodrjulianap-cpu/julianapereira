@@ -32,6 +32,11 @@ const TEMPERATURE = [
     label: "Perdido",
     desc: "Lead com status Perdido. Substitui a temperatura — não fechou.",
   },
+  {
+    emoji: "⏰",
+    label: "Follow up agendado",
+    desc: "Lead com lembrete marcado (via ⏰ Lembrar amanhã das ações rápidas).",
+  },
 ];
 
 const SOURCES = [
@@ -47,7 +52,7 @@ const SOURCES = [
 const PIPELINE = [
   { emoji: "🆕", label: "Novos", desc: "Lead acabou de chegar, ainda não foi atendido." },
   { emoji: "🤝", label: "Em contato", desc: "Já começou a conversa, em qualificação." },
-  { emoji: "💰", label: "Avaliação", desc: "Recebeu orçamento ou aguardando avaliação clínica." },
+  { emoji: "⏰", label: "Follow up", desc: "Recebeu orçamento / avaliação e aguarda acompanhamento. Lead com lembrete marcado também cai aqui." },
   { emoji: "✅", label: "Fechados", desc: "Vendeu — paciente agendou o procedimento." },
   { emoji: "❌", label: "Perdidos", desc: "Desistiu, sumiu ou não fechou." },
 ];

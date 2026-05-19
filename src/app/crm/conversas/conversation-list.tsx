@@ -29,7 +29,7 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
     const q = search.trim().toLowerCase();
     return leads
       .filter((l) => {
-        if (bucket !== "todos" && bucketOf(l.status) !== bucket) return false;
+        if (bucket !== "todos" && bucketOf(l) !== bucket) return false;
         if (!q) return true;
         const text = `${l.name ?? ""} ${l.phone} ${l.last_message?.text ?? ""}`.toLowerCase();
         return text.includes(q);

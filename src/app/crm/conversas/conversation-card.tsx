@@ -108,7 +108,8 @@ export function ConversationCard({
   }
 
   const statusEmoji = statusEmojiOf(lead.status);
-  const temp = statusEmoji ? null : temperatureOf(lead);
+  const hasFollowUp = !!lead.follow_up_at && !statusEmoji; // não mostra ⏰ pra won/lost
+  const temp = statusEmoji || hasFollowUp ? null : temperatureOf(lead);
   const time = lead.last_message?.created_at ?? lead.last_message_at;
   const preview = lead.last_message?.text ?? "—";
   const isOutbound = lead.last_message?.direction === "outbound";
@@ -242,6 +243,11 @@ export function ConversationCard({
               {lead.name ?? lead.phone}
               {statusEmoji && (
                 <span className="ml-1.5 text-[13px]">{statusEmoji}</span>
+              )}
+              {hasFollowUp && (
+                <span className="ml-1.5 text-[13px]" title="Follow up agendado">
+                  ⏰
+                </span>
               )}
               {temp && <span className="ml-1.5 text-[13px]">{temp}</span>}
             </p>
