@@ -241,226 +241,153 @@ export function LeadModal({
     }
   }
 
+  const hasUtm = !!(
+    lead.utm_source ||
+    lead.utm_medium ||
+    lead.utm_campaign ||
+    lead.utm_term ||
+    lead.utm_content
+  );
+  const hasQuiz =
+    lead.quiz_answers && Object.keys(lead.quiz_answers).length > 0;
+
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/40 flex items-stretch md:items-start justify-center overflow-y-auto md:py-10"
+      className="fixed inset-0 z-50 bg-black/50 flex items-stretch md:items-start justify-center overflow-y-auto md:py-10"
       onClick={onClose}
     >
       <div
-        className="bg-white md:rounded-lg max-w-2xl w-full p-4 md:p-6 shadow-2xl min-h-full md:min-h-0 pb-[max(env(safe-area-inset-bottom),24px)]"
+        className="bg-[#f0f2f5] md:rounded-2xl max-w-2xl w-full min-h-full md:min-h-0 shadow-2xl overflow-hidden flex flex-col pb-[max(env(safe-area-inset-bottom),16px)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between mb-4 gap-3">
-          <div className="flex items-start gap-3 min-w-0">
-            {lead.selfie_url && <SelfieThumb leadId={lead.id} />}
-            <div className="min-w-0">
-              <h3 className="text-lg font-bold">{lead.name ?? "(sem nome)"}</h3>
-              <p className="text-sm text-slate-500">
-                {lead.phone}
-                {lead.instagram && ` · ${lead.instagram}`}
-                {lead.archetype && ` · ${ARCH_LABEL[lead.archetype]}`}
-                {lead.geo && ` · ${lead.geo}`}
-              </p>
-              <div className="flex items-center gap-2 mt-1.5">
-                <SourceBadge source={lead.source} />
-                {lead.status && (
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[lead.status] ?? "bg-slate-100 text-slate-700"}`}
-                  >
-                    {STATUS_LABEL[lead.status] ?? lead.status}
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
+        {/* Top bar */}
+        <div className="bg-[var(--sakura-cocoa,#3b2d28)] text-white px-3 py-3 flex items-center gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-700 text-2xl leading-none"
+            className="text-white p-1 active:opacity-60"
+            aria-label="Fechar"
           >
-            ×
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
           </button>
+          <p className="font-semibold text-sm flex-1">Info do contato</p>
         </div>
 
-        {/* Comunicação rápida */}
-        <div className="flex gap-2 mb-4">
-          <a
-            href={whatsLink(lead.phone, lead.name)}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-emerald-50 text-emerald-700 active:bg-emerald-100"
-          >
-            💬 WhatsApp
-          </a>
-          <button
-            onClick={() => {
-              navigator.clipboard?.writeText(lead.phone).catch(() => {});
-            }}
-            className="flex-1 text-xs font-semibold py-2 rounded-lg bg-slate-100 text-slate-700 active:bg-slate-200"
-          >
-            📋 Copiar
-          </button>
+        {/* Hero — avatar grande + nome + badges + action buttons */}
+        <div className="bg-white px-6 pt-8 pb-6 text-center">
+          <SelfieLargeAvatar leadId={lead.id} hasSelfie={!!lead.selfie_url} name={lead.name} />
+          <h2 className="text-[22px] font-semibold text-slate-900 mt-3 leading-tight">
+            {lead.name ?? "(sem nome)"}
+          </h2>
+          <p className="text-sm text-slate-500 mt-1">{lead.phone}</p>
           {lead.instagram && (
-            <a
-              href={`https://instagram.com/${lead.instagram.replace(/^@/, "")}`}
-              target="_blank"
-              rel="noreferrer noopener"
-              className="flex-1 text-center text-xs font-semibold py-2 rounded-lg bg-rose-50 text-rose-700 active:bg-rose-100"
-            >
-              📷 Instagram
-            </a>
+            <p className="text-xs text-slate-400 mt-0.5">{lead.instagram}</p>
           )}
-        </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <Field label="Status">
-            <select
-              value={form.status}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
-            >
-              {STATUS_OPTIONS.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Responsável">
-            <input
-              value={form.assigned_to}
-              onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
-              placeholder="ex: Lucas, Bárbara"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
-            />
-          </Field>
-          <Field label="Próximo contato">
-            <input
-              type="date"
-              value={form.next_contact_at}
-              onChange={(e) =>
-                setForm({ ...form, next_contact_at: e.target.value })
-              }
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
-            />
-          </Field>
-          <Field label="Valor da venda (R$)">
-            <input
-              type="number"
-              value={form.deal_value}
-              onChange={(e) => setForm({ ...form, deal_value: e.target.value })}
-              placeholder="ex: 25000"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md"
-            />
-          </Field>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
-            Adicionar nota
-          </label>
-          <div className="flex gap-2">
-            <input
-              value={noteText}
-              onChange={(e) => setNoteText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  addNote();
-                }
-              }}
-              placeholder="ex: Conversou e ficou de retornar até sexta"
-              className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-md"
-            />
-            <button
-              onClick={addNote}
-              disabled={!noteText.trim()}
-              className="px-3 py-2 text-sm rounded-md bg-slate-900 text-white disabled:opacity-40"
-            >
-              Adicionar
-            </button>
-          </div>
-        </div>
-
-        {notes.length > 0 && (
-          <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-            {[...notes].reverse().map((n, i) => (
-              <div
-                key={i}
-                className="bg-slate-50 border-l-2 border-emerald-500 px-3 py-2 rounded text-sm"
+          <div className="flex items-center justify-center gap-1.5 mt-3 flex-wrap">
+            <SourceBadge source={lead.source} />
+            {lead.archetype && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${ARCH_BADGE[lead.archetype]}`}
               >
-                <p className="text-[11px] text-slate-400 mb-1">
-                  {new Date(n.at).toLocaleString("pt-BR")} · {n.by}
-                </p>
-                <p>{n.text}</p>
-              </div>
-            ))}
+                {ARCH_LABEL[lead.archetype]}
+              </span>
+            )}
+            {lead.status && (
+              <span
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[lead.status] ?? "bg-slate-100 text-slate-700"}`}
+              >
+                {STATUS_LABEL[lead.status] ?? lead.status}
+              </span>
+            )}
           </div>
-        )}
 
-        {lead.quiz_answers && Object.keys(lead.quiz_answers).length > 0 && (
-          <details className="mb-4 text-sm" open>
-            <summary className="cursor-pointer font-semibold text-slate-600">
-              Respostas do quiz ({Object.keys(lead.quiz_answers).length}/8)
-            </summary>
-            <div className="mt-3 space-y-2.5 border border-slate-100 rounded-md p-3 bg-slate-50/60">
-              {QUESTIONS.map((q) => {
-                const ans = lead.quiz_answers?.[q.key];
-                if (!ans) return null;
-                const selected = Array.isArray(ans) ? ans : [ans];
-                const opts = selected
-                  .map((v) => q.options.find((o) => o.value === v))
-                  .filter(Boolean) as { emoji?: string; label: string }[];
-                return (
-                  <div key={q.key} className="text-[13px] leading-snug">
-                    <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-400">
-                      Q{q.num} · {q.title}
-                    </p>
-                    {opts.length > 0 ? (
-                      opts.map((opt, i) => (
-                        <p key={i} className="text-slate-800 mt-0.5">
-                          {opt.emoji && <span className="mr-1">{opt.emoji}</span>}
-                          {opt.label}
-                        </p>
-                      ))
-                    ) : (
-                      <p className="text-slate-800 mt-0.5">{selected.join(", ")}</p>
-                    )}
-                  </div>
-                );
-              })}
-              {lead.archetype_scores && (
-                <div className="pt-2 border-t border-slate-200 flex gap-3 text-[11px] text-slate-500">
-                  <span>
-                    🔥 Pronta:{" "}
-                    <strong className="text-slate-700">
-                      {lead.archetype_scores.PRONTA ?? 0}
-                    </strong>
-                  </span>
-                  <span>
-                    🟡 Esperançosa:{" "}
-                    <strong className="text-slate-700">
-                      {lead.archetype_scores.ESPERANCOSA ?? 0}
-                    </strong>
-                  </span>
-                  <span>
-                    📍 Cética:{" "}
-                    <strong className="text-slate-700">
-                      {lead.archetype_scores.CETICA ?? 0}
-                    </strong>
-                  </span>
-                </div>
-              )}
+          <div className="flex items-center justify-center gap-5 mt-6">
+            <CircleAction
+              href={whatsLink(lead.phone, lead.name)}
+              icon="💬"
+              label="WhatsApp"
+            />
+            <CircleAction
+              onClick={() =>
+                navigator.clipboard?.writeText(lead.phone).catch(() => {})
+              }
+              icon="📋"
+              label="Copiar"
+            />
+            {lead.instagram && (
+              <CircleAction
+                href={`https://instagram.com/${lead.instagram.replace(/^@/, "")}`}
+                icon="📷"
+                label="Instagram"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Cards */}
+        <div className="flex-1 px-3 py-3 space-y-3">
+          {/* Status do funil */}
+          <Card title="Status do funil">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Status">
+                <select
+                  value={form.status}
+                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                >
+                  {STATUS_OPTIONS.map((s) => (
+                    <option key={s} value={s}>
+                      {STATUS_LABEL[s]}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Responsável">
+                <input
+                  value={form.assigned_to}
+                  onChange={(e) =>
+                    setForm({ ...form, assigned_to: e.target.value })
+                  }
+                  placeholder="—"
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
+              <Field label="Próximo contato">
+                <input
+                  type="date"
+                  value={form.next_contact_at}
+                  onChange={(e) =>
+                    setForm({ ...form, next_contact_at: e.target.value })
+                  }
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
+              <Field label="Valor da venda (R$)">
+                <input
+                  type="number"
+                  value={form.deal_value}
+                  onChange={(e) =>
+                    setForm({ ...form, deal_value: e.target.value })
+                  }
+                  placeholder="—"
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
             </div>
-          </details>
-        )}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="mt-3 w-full py-2 text-sm font-semibold text-white bg-[var(--sakura-cocoa,#3b2d28)] rounded-lg disabled:opacity-40 active:opacity-80"
+            >
+              {saving ? "Salvando..." : "Salvar alterações"}
+            </button>
+          </Card>
 
-        {/* Mídia trocada */}
-        {mediaMessages.length > 0 && (
-          <details className="mb-4 text-sm" open>
-            <summary className="cursor-pointer font-semibold text-slate-600">
-              📸 Mídia trocada ({mediaMessages.length})
-            </summary>
-            <div className="mt-3 border border-slate-100 rounded-md p-3 bg-slate-50/40">
+          {/* Mídia trocada */}
+          {mediaMessages.length > 0 && (
+            <Card title={`📸 Mídia, fotos e docs · ${mediaMessages.length}`}>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                 {mediaMessages
                   .filter((m) => m.media_type === "image")
@@ -482,28 +409,122 @@ export function LeadModal({
                     ))}
                 </ul>
               )}
-            </div>
-          </details>
-        )}
+            </Card>
+          )}
 
-        {/* Histórico (timeline de eventos + mensagens) */}
-        <details className="mb-4 text-sm" open>
-          <summary className="cursor-pointer font-semibold text-slate-600">
-            🕐 Histórico ({loadingHistory ? "..." : history.length} itens)
-          </summary>
-          <div className="mt-3 max-h-72 overflow-y-auto border border-slate-100 rounded-md bg-slate-50/40">
+          {/* Notas */}
+          <Card title="📝 Notas">
+            <div className="flex gap-2">
+              <input
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addNote();
+                  }
+                }}
+                placeholder="ex: Conversou e ficou de retornar até sexta"
+                className="flex-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+              />
+              <button
+                onClick={addNote}
+                disabled={!noteText.trim()}
+                className="px-3 py-2 text-sm rounded-lg bg-[var(--sakura-cocoa,#3b2d28)] text-white disabled:opacity-40"
+              >
+                +
+              </button>
+            </div>
+            {notes.length > 0 && (
+              <ul className="mt-3 space-y-2 max-h-48 overflow-y-auto">
+                {[...notes].reverse().map((n, i) => (
+                  <li
+                    key={i}
+                    className="bg-slate-50 border-l-2 border-emerald-500 px-3 py-2 rounded text-sm"
+                  >
+                    <p className="text-[11px] text-slate-400 mb-0.5">
+                      {new Date(n.at).toLocaleString("pt-BR")} · {n.by}
+                    </p>
+                    <p>{n.text}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
+          {/* Quiz */}
+          {hasQuiz && (
+            <Card title={`📝 Quiz · ${Object.keys(lead.quiz_answers ?? {}).length}/8`}>
+              <div className="space-y-2.5">
+                {QUESTIONS.map((q) => {
+                  const ans = lead.quiz_answers?.[q.key];
+                  if (!ans) return null;
+                  const selected = Array.isArray(ans) ? ans : [ans];
+                  const opts = selected
+                    .map((v) => q.options.find((o) => o.value === v))
+                    .filter(Boolean) as { emoji?: string; label: string }[];
+                  return (
+                    <div key={q.key} className="text-[13px] leading-snug">
+                      <p className="text-[10px] uppercase tracking-wide font-semibold text-slate-400">
+                        Q{q.num} · {q.title}
+                      </p>
+                      {opts.length > 0 ? (
+                        opts.map((opt, i) => (
+                          <p key={i} className="text-slate-800 mt-0.5">
+                            {opt.emoji && (
+                              <span className="mr-1">{opt.emoji}</span>
+                            )}
+                            {opt.label}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-slate-800 mt-0.5">
+                          {selected.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+                {lead.archetype_scores && (
+                  <div className="pt-2 mt-2 border-t border-slate-100 flex gap-3 text-[11px] text-slate-500">
+                    <span>
+                      🔥 Pronta:{" "}
+                      <strong className="text-slate-700">
+                        {lead.archetype_scores.PRONTA ?? 0}
+                      </strong>
+                    </span>
+                    <span>
+                      🟡 Esperançosa:{" "}
+                      <strong className="text-slate-700">
+                        {lead.archetype_scores.ESPERANCOSA ?? 0}
+                      </strong>
+                    </span>
+                    <span>
+                      📍 Cética:{" "}
+                      <strong className="text-slate-700">
+                        {lead.archetype_scores.CETICA ?? 0}
+                      </strong>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* Histórico */}
+          <Card title={`📅 Histórico · ${loadingHistory ? "..." : history.length}`}>
             {loadingHistory ? (
-              <p className="p-3 text-xs text-slate-400 italic">Carregando...</p>
+              <p className="text-xs text-slate-400 italic">Carregando...</p>
             ) : history.length === 0 ? (
-              <p className="p-3 text-xs text-slate-400 italic">
+              <p className="text-xs text-slate-400 italic">
                 Sem eventos ainda.
               </p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="max-h-72 overflow-y-auto divide-y divide-slate-100 -mx-4">
                 {history.map((h) => (
                   <li
                     key={h.id}
-                    className={`px-3 py-2 flex items-start gap-2 ${
+                    className={`px-4 py-2 flex items-start gap-2 ${
                       h.kind === "msg_out"
                         ? "bg-emerald-50/40"
                         : h.kind === "msg_in"
@@ -511,7 +532,9 @@ export function LeadModal({
                           : ""
                     }`}
                   >
-                    <span className="text-base leading-tight pt-0.5">{h.emoji}</span>
+                    <span className="text-base leading-tight pt-0.5">
+                      {h.emoji}
+                    </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-[12px] font-medium text-slate-800">
@@ -536,109 +559,177 @@ export function LeadModal({
                 ))}
               </ul>
             )}
-          </div>
-        </details>
+          </Card>
 
-        {(lead.utm_source ||
-          lead.utm_medium ||
-          lead.utm_campaign ||
-          lead.utm_term ||
-          lead.utm_content) && (
-          <div className="mb-4 bg-slate-50 border border-slate-200 rounded-md p-3">
-            <p className="text-[11px] uppercase tracking-wide font-semibold text-slate-500 mb-2">
-              🔗 Atribuição (UTM)
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-1.5 text-[12px]">
-              {lead.utm_source && (
-                <div>
-                  <span className="text-slate-400 font-mono text-[10px]">source</span>
-                  <p className="text-slate-800 font-medium truncate">
-                    {lead.utm_source}
-                  </p>
-                </div>
-              )}
-              {lead.utm_medium && (
-                <div>
-                  <span className="text-slate-400 font-mono text-[10px]">medium</span>
-                  <p className="text-slate-800 font-medium truncate">
-                    {lead.utm_medium}
-                  </p>
-                </div>
-              )}
-              {lead.utm_campaign && (
-                <div>
-                  <span className="text-slate-400 font-mono text-[10px]">campaign</span>
-                  <p className="text-slate-800 font-medium truncate">
-                    {lead.utm_campaign}
-                  </p>
-                </div>
-              )}
-              {lead.utm_term && (
-                <div>
-                  <span className="text-slate-400 font-mono text-[10px]">term</span>
-                  <p className="text-slate-800 font-medium truncate">
-                    {lead.utm_term}
-                  </p>
-                </div>
-              )}
-              {lead.utm_content && (
-                <div>
-                  <span className="text-slate-400 font-mono text-[10px]">content</span>
-                  <p className="text-slate-800 font-medium truncate">
-                    {lead.utm_content}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+          {/* UTM */}
+          {hasUtm && (
+            <Card title="🔗 Atribuição (UTM)">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-[12px]">
+                {lead.utm_source && (
+                  <UtmField label="source" value={lead.utm_source} />
+                )}
+                {lead.utm_medium && (
+                  <UtmField label="medium" value={lead.utm_medium} />
+                )}
+                {lead.utm_campaign && (
+                  <UtmField label="campaign" value={lead.utm_campaign} />
+                )}
+                {lead.utm_term && <UtmField label="term" value={lead.utm_term} />}
+                {lead.utm_content && (
+                  <UtmField label="content" value={lead.utm_content} />
+                )}
+              </div>
+            </Card>
+          )}
 
-        {lead.tags?.length > 0 && (
-          <details className="mb-4 text-sm">
-            <summary className="cursor-pointer font-semibold text-slate-600">
-              Tags ({lead.tags.length})
-            </summary>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {lead.tags.map((t) => (
-                <span
-                  key={t}
-                  className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] rounded"
-                >
-                  {t}
-                </span>
-              ))}
-            </div>
-          </details>
-        )}
+          {/* Tags */}
+          {lead.tags?.length > 0 && (
+            <Card title={`🏷️ Tags · ${lead.tags.length}`}>
+              <div className="flex flex-wrap gap-1.5">
+                {lead.tags.map((t) => (
+                  <span
+                    key={t}
+                    className="px-2 py-0.5 bg-slate-100 text-slate-700 text-[11px] rounded-full"
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </Card>
+          )}
 
-        {error && <p className="text-xs text-red-600 mb-3">{error}</p>}
-
-        <div className="flex justify-between items-center">
-          <a
-            href={whatsLink(lead.phone, lead.name)}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="px-3 py-2 text-sm rounded-md bg-emerald-500 text-white hover:bg-emerald-600"
-          >
-            💬 WhatsApp
-          </a>
-          <div className="flex gap-2">
-            <button
-              onClick={onClose}
-              className="px-3 py-2 text-sm rounded-md border border-slate-200 hover:border-slate-400"
-            >
-              Fechar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="px-3 py-2 text-sm rounded-md bg-slate-900 text-white disabled:opacity-40"
-            >
-              {saving ? "Salvando..." : "💾 Salvar"}
-            </button>
-          </div>
+          {error && <p className="text-xs text-red-600 px-2">{error}</p>}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SelfieLargeAvatar({
+  leadId,
+  hasSelfie,
+  name,
+}: {
+  leadId: string;
+  hasSelfie: boolean;
+  name: string | null;
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!hasSelfie) return;
+    let alive = true;
+    fetch(`/api/leads/${leadId}/selfie`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { url?: string } | null) => {
+        if (alive && j?.url) setUrl(j.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [leadId, hasSelfie]);
+
+  const initial = (name ?? "?").trim()[0]?.toUpperCase() ?? "?";
+
+  if (!url) {
+    return (
+      <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 text-3xl font-semibold mx-auto">
+        {initial}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md mx-auto block active:opacity-80"
+        aria-label="Ver foto ampliada"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={url} alt="" className="w-full h-full object-cover" />
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-[70] bg-black/90 flex items-center justify-center p-6"
+          onClick={() => setOpen(false)}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={url}
+            alt=""
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+function CircleAction({
+  icon,
+  label,
+  href,
+  onClick,
+}: {
+  icon: string;
+  label: string;
+  href?: string;
+  onClick?: () => void;
+}) {
+  const button = (
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center gap-1 active:opacity-60"
+    >
+      <span className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">
+        {icon}
+      </span>
+      <span className="text-[10px] font-semibold text-slate-600">{label}</span>
+    </button>
+  );
+  if (href) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex flex-col items-center gap-1 active:opacity-60"
+      >
+        <span className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-xl">
+          {icon}
+        </span>
+        <span className="text-[10px] font-semibold text-slate-600">{label}</span>
+      </a>
+    );
+  }
+  return button;
+}
+
+function Card({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="bg-white rounded-2xl p-4">
+      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-3">
+        {title}
+      </h4>
+      {children}
+    </section>
+  );
+}
+
+function UtmField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="min-w-0">
+      <span className="text-slate-400 font-mono text-[10px]">{label}</span>
+      <p className="text-slate-800 font-medium truncate text-[13px]">{value}</p>
     </div>
   );
 }
