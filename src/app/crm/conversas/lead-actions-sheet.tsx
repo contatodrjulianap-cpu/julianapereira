@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef } from "react";
 import { BottomSheet } from "./bottom-sheet";
 import { SourceBadge } from "./source-icons";
 
@@ -178,40 +177,22 @@ function QuickAction({
 }
 
 function NextContactAction({ onPick }: { onPick: (date: string) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function open() {
-    const el = inputRef.current;
-    if (!el) return;
-    // showPicker() em iOS/Android Chrome funciona; fallback p/ focus + click
-    type WithShowPicker = HTMLInputElement & { showPicker?: () => void };
-    const withPicker = el as WithShowPicker;
-    if (typeof withPicker.showPicker === "function") {
-      withPicker.showPicker();
-    } else {
-      el.focus();
-      el.click();
-    }
-  }
-
+  // Pattern <label> envolvendo <input> — click no label dispara o picker
+  // nativo do iOS Safari e Android Chrome de forma consistente.
   return (
-    <button
-      onClick={open}
-      className="relative flex flex-col items-center gap-1 py-2.5 rounded-lg active:bg-slate-100"
-    >
+    <label className="relative flex flex-col items-center gap-1 py-2.5 rounded-lg active:bg-slate-100 cursor-pointer">
       <span className="text-2xl">📅</span>
       <span className="text-[10px] font-semibold text-slate-700 leading-tight text-center">
         Próximo contato
       </span>
       <input
-        ref={inputRef}
         type="date"
-        className="absolute opacity-0 pointer-events-none inset-0"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
         onChange={(e) => {
           const v = e.target.value;
           if (v) onPick(v);
         }}
       />
-    </button>
+    </label>
   );
 }
