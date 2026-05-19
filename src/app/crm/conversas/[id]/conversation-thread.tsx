@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { ARCH_LABEL, type LeadFull } from "../../lead-modal";
+import { firstNameOf } from "@/lib/template-vars";
+import { QuickRepliesSheet } from "./quick-replies-sheet";
+import { SaveTemplateModal } from "./save-template-modal";
 
 type Message = {
   id: string;
@@ -27,6 +30,12 @@ export function ConversationThread({
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollEnd = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [quickOpen, setQuickOpen] = useState(false);
+  const [saveModalText, setSaveModalText] = useState<string | null>(null);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const firstName = firstNameOf(lead.name);
 
   useEffect(() => {
     const ch = supabase
@@ -142,11 +151,41 @@ export function ConversationThread({
                 </p>
               )}
               <div
-                className={`max-w-[78%] px-3 py-2 rounded-lg text-[14px] shadow-sm ${
+                className={`max-w-[78%] px-3 py-2 rounded-lg text-[14px] shadow-sm select-none ${
                   m.direction === "outbound"
-                    ? "ml-auto bg-[#d9fdd3] text-slate-800"
+                    ? "ml-auto bg-[#d9fdd3] text-slate-800 cursor-pointer"
                     : "mr-auto bg-white text-slate-800"
                 }`}
+                onPointerDown={
+                  m.direction === "outbound"
+                    ? () => {
+                        if (longPressTimer.current)
+                          clearTimeout(longPressTimer.current);
+                        longPressTimer.current = setTimeout(() => {
+                          if (
+                            typeof navigator !== "undefined" &&
+                            navigator.vibrate
+                          ) {
+                            navigator.vibrate(20);
+                          }
+                          setSaveModalText(m.text);
+                        }, 500);
+                      }
+                    : undefined
+                }
+                onPointerUp={() => {
+                  if (longPressTimer.current)
+                    clearTimeout(longPressTimer.current);
+                }}
+                onPointerCancel={() => {
+                  if (longPressTimer.current)
+                    clearTimeout(longPressTimer.current);
+                }}
+                title={
+                  m.direction === "outbound"
+                    ? "Segure pra salvar como resposta rápida"
+                    : undefined
+                }
               >
                 <p className="whitespace-pre-wrap break-words">{m.text}</p>
               </div>
@@ -157,8 +196,17 @@ export function ConversationThread({
       </div>
 
       {/* Input */}
-      <div className="bg-white border-t border-slate-200 px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)] flex items-end gap-2">
+      <div className="bg-white border-t border-slate-200 px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)] flex items-end gap-1.5">
+        <button
+          onClick={() => setQuickOpen(true)}
+          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-amber-500 active:bg-amber-50 transition"
+          aria-label="Respostas rápidas"
+          title="Respostas rápidas"
+        >
+          <span className="text-[22px] leading-none">⚡</span>
+        </button>
         <textarea
+          ref={inputRef}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -189,6 +237,31 @@ export function ConversationThread({
           </svg>
         </button>
       </div>
+
+      <QuickRepliesSheet
+        open={quickOpen}
+        onClose={() => setQuickOpen(false)}
+        ctx={{ primeiro_nome: firstName ?? undefined }}
+        onPick={(text, replyId) => {
+          setDraft((cur) => (cur.trim() ? `${cur} ${text}` : text));
+          setQuickOpen(false);
+          // Best-effort: incrementa uses_count + foca input
+          fetch(`/api/quick-replies/${replyId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ uses_count_increment: true }),
+          }).catch(() => {});
+          setTimeout(() => inputRef.current?.focus(), 50);
+        }}
+      />
+
+      <SaveTemplateModal
+        open={!!saveModalText}
+        originalText={saveModalText ?? ""}
+        leadFullName={lead.name}
+        onClose={() => setSaveModalText(null)}
+        onSaved={() => setSaveModalText(null)}
+      />
     </div>
   );
 }

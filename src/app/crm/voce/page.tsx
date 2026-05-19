@@ -18,6 +18,12 @@ const SECTIONS: Array<{
     description: "O que cada emoji, logo de canal e gesto significa",
   },
   {
+    href: "/crm/voce/respostas-rapidas",
+    icon: "⚡",
+    label: "Respostas rápidas",
+    description: "Templates de mensagem com variável {primeiro_nome}",
+  },
+  {
     href: "/crm/pipeline",
     icon: "📊",
     label: "Pipeline",
