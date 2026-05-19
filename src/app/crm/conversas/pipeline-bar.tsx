@@ -60,8 +60,8 @@ export function PipelineBar({
   counts: Record<Bucket, number>;
 }) {
   return (
-    <div className="bg-white border-b border-slate-100 overflow-x-auto">
-      <div className="flex gap-2 px-3 py-2 min-w-max">
+    <div className="overflow-x-auto">
+      <div className="flex gap-2 px-3 pb-2 min-w-max">
         {BUCKETS.map((b) => {
           const isActive = active === b.key;
           const count = counts[b.key] ?? 0;

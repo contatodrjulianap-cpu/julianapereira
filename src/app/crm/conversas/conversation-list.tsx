@@ -185,11 +185,11 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
       </header>
 
       {/* Barra de urgência (Hoje / Vencidos / Próximos / Frios) */}
-      <div className="bg-white border-b border-slate-100">
-        <p className="px-4 pt-2 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
+      <div className="bg-white">
+        <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
           Quando chamar
         </p>
-        <div className="overflow-x-auto"><div className="flex gap-2 px-3 py-2 min-w-max">
+        <div className="overflow-x-auto"><div className="flex gap-2 px-3 pb-2 min-w-max">
           {URGENCY_CHIPS.map((c) => {
             const isActive = urgency === c.key;
             const count =
@@ -225,8 +225,8 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
         </div>
       </div>
 
-      <div className="bg-white">
-        <p className="px-4 pt-2 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
+      <div className="bg-white border-t border-slate-100">
+        <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
           Etapa no funil
         </p>
         <PipelineBar active={bucket} onChange={setBucket} counts={counts} />
