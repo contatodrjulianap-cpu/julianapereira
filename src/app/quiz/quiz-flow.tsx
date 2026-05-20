@@ -538,8 +538,7 @@ function LeadScreen({
   onSubmit: () => void;
 }) {
   const phoneDigits = lead.phone.replace(/\D/g, "");
-  const valid =
-    lead.name.trim().length >= 2 && phoneDigits.length >= 10 && lead.lgpd;
+  const valid = lead.name.trim().length >= 2 && phoneDigits.length >= 10;
 
   return (
     <FadeUp className="flex-1 flex flex-col justify-center">
@@ -590,20 +589,6 @@ function LeadScreen({
           autoComplete="off"
         />
       </div>
-
-      <label className="flex items-start gap-3 mb-4 cursor-pointer text-sm">
-        <input
-          type="checkbox"
-          checked={lead.lgpd}
-          onChange={(e) => setLead((l) => ({ ...l, lgpd: e.target.checked }))}
-          className="mt-[3px] w-4 h-4 accent-[var(--sakura-cocoa)]"
-        />
-        <span style={{ color: "var(--sakura-cocoa-2)" }}>
-          Aceito receber contato sobre meu plano. Minhas respostas e a foto
-          enviada são tratadas com sigilo (LGPD) e usadas apenas pra avaliação
-          clínica e orçamento pela Dra. Juliana.
-        </span>
-      </label>
 
       {error && (
         <p
