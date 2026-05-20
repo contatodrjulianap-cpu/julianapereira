@@ -8,7 +8,7 @@ import { logEvent } from "@/lib/event-log";
 // Quando wa_numbers está vazia (chips ainda não chegaram), retorna fallback
 // pro número de teste atual — quiz/UX continuam funcionando.
 
-const FALLBACK_PHONE = "5521995040731"; // celular do Lucas, vai sair após chips chegarem
+const FALLBACK_PHONE = "5511982295873"; // número da Sakura, usado enquanto wa_numbers está vazia
 
 export type WaRoute = {
   leadId: string | null;
