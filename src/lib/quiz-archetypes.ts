@@ -32,6 +32,8 @@ export type Question = {
   subtitle?: string;
   options: QuizOption[];
   multi?: boolean;
+  inputType?: "options" | "text";
+  textPlaceholder?: string;
 };
 
 export const QUESTIONS: Question[] = [
@@ -50,22 +52,22 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: "q2_urgencia_emocional",
+    key: "q2_evita_sorrir",
     num: 2,
-    title: "Quando foi a última vez que você sorriu numa foto sem travar?",
-    subtitle: "Quanto mais antiga a memória, mais forte o sinal.",
+    title: "Você evita sorrir em fotos?",
+    subtitle: "Honestidade total — quanto mais forte o sinal, mais a equipe consegue te ajudar.",
     options: [
-      { value: "hoje", label: "Hoje, sorrio normal nas fotos", weights: { CETICA: 2 }, emoji: "📸" },
-      { value: "meses", label: "Faz alguns meses", weights: { ESPERANCOSA: 2 }, emoji: "🗓️" },
-      { value: "1ano", label: "Faz mais de 1 ano", weights: { PRONTA: 3 }, emoji: "⏳" },
-      { value: "mao_boca", label: "Nem lembro — eu rio com a mão na frente da boca", weights: { PRONTA: 4 }, emoji: "🙈" },
+      { value: "sempre", label: "Sempre — coloco a mão na boca ou desvio", weights: { PRONTA: 4 }, emoji: "🙈" },
+      { value: "frequente", label: "Frequentemente — em fotos importantes evito", weights: { PRONTA: 3 }, emoji: "📸" },
+      { value: "as_vezes", label: "Às vezes — depende do dia ou do ângulo", weights: { ESPERANCOSA: 2 }, emoji: "🤷‍♀️" },
+      { value: "raramente", label: "Raramente — sorrio normal na maioria delas", weights: { CETICA: 2 }, emoji: "😊" },
     ],
   },
   {
     key: "q3_objecao",
     num: 3,
-    title: "Qual a sua maior trava na decisão de fazer lentes?",
-    subtitle: "A objeção real — a que faz você adiar a decisão.",
+    title: "Qual a sua maior dúvida na decisão de fazer lentes?",
+    subtitle: "A dúvida real — a que faz você adiar a decisão.",
     options: [
       { value: "destruir_dente", label: "Medo de destruir o dente natural", weights: { CETICA: 3 }, emoji: "🛡️" },
       { value: "fake", label: "Medo do resultado ficar fake / Hollywood", weights: { CETICA: 3 }, emoji: "✨" },
@@ -75,19 +77,13 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: "q4_momento_profissional",
+    key: "q4_profissao",
     num: 4,
-    title: "O que você faz hoje?",
-    subtitle: "A Ju adapta o plano ao seu momento profissional.",
-    options: [
-      { value: "empresaria", label: "Empresária / sócia de negócio", weights: { PRONTA: 3 }, emoji: "💼" },
-      { value: "liberal", label: "Profissional liberal (médica, advogada, arquiteta...)", weights: { PRONTA: 3 }, emoji: "🎓" },
-      { value: "influenciadora", label: "Influenciadora / criadora — vivo de imagem", weights: { PRONTA: 3 }, emoji: "📸" },
-      { value: "executiva", label: "Executiva / gestora em empresa", weights: { ESPERANCOSA: 2 }, emoji: "🏢" },
-      { value: "clt_autonoma", label: "CLT em cargo médio / autônoma em início", weights: { ESPERANCOSA: 1 }, emoji: "🌱" },
-      { value: "nao_responder", label: "Prefiro não responder", weights: { ESPERANCOSA: 1 }, emoji: "🤐" },
-      { value: "estudante", label: "Estudante / entre empregos", weights: { CETICA: 2 }, emoji: "📚" },
-    ],
+    title: "Em qual profissão você trabalha atualmente?",
+    subtitle: "A Ju adapta o plano ao seu momento profissional — pode escrever do seu jeito.",
+    inputType: "text",
+    textPlaceholder: "Ex.: empresária, médica, arquiteta, criadora de conteúdo...",
+    options: [],
   },
   {
     key: "q5_expectativa",
@@ -126,16 +122,18 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: "q7_5_capacidade",
+    key: "q8_renda",
     num: 8,
-    title: "Pra fazer caber no seu plano, qual parcelamento faria sentido pra você?",
+    title: "Qual a sua faixa de renda mensal?",
     subtitle:
-      "Tratamento sério tem investimento sério. Sem julgar resposta — apenas pra direcionar o caminho certo.",
+      "Pra direcionar o plano certo (resina, porcelana, parcelamento). Sigilo total — usado só pra avaliação interna.",
     options: [
-      { value: "vista_6x", label: "Posso pagar à vista ou em até 6x", weights: { PRONTA: 3 } },
-      { value: "12x", label: "Preciso parcelar em até 12x no cartão", weights: { ESPERANCOSA: 3 } },
-      { value: "pix_boleto", label: "Prefiro PIX parcelado ou boleto (entrada de ~30%)", weights: { ESPERANCOSA: 2 } },
-      { value: "conversar", label: "Preciso conversar antes de pensar em valor", knockout: true, weights: { CETICA: 3 } },
+      { value: "ate_5k", label: "Até R$ 5 mil", weights: { CETICA: 3 }, knockout: true, emoji: "🪙" },
+      { value: "5_10k", label: "R$ 5 mil a R$ 10 mil", weights: { CETICA: 2 }, emoji: "💵" },
+      { value: "10_20k", label: "R$ 10 mil a R$ 20 mil", weights: { ESPERANCOSA: 2 }, emoji: "💰" },
+      { value: "20_40k", label: "R$ 20 mil a R$ 40 mil", weights: { PRONTA: 2 }, emoji: "💎" },
+      { value: "acima_40k", label: "Acima de R$ 40 mil", weights: { PRONTA: 3 }, emoji: "👑" },
+      { value: "nao_responder", label: "Prefiro não responder", weights: { ESPERANCOSA: 1 }, emoji: "🤐" },
     ],
   },
 ];
@@ -167,6 +165,8 @@ export function scoreAnswers(
   for (const q of questions) {
     const ans = answers[q.key];
     if (!ans) continue;
+    // Text input: vai pro CRM como contexto, sem score
+    if (q.inputType === "text") continue;
     const selected = Array.isArray(ans) ? ans : [ans];
     for (const value of selected) {
       const opt = q.options.find((o) => o.value === value);

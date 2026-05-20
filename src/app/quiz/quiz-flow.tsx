@@ -96,6 +96,10 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
     setTimeout(() => advanceFrom(key), 240);
   }
 
+  function setTextAnswer(key: string, value: string) {
+    setAnswers((prev) => ({ ...prev, [key]: value }));
+  }
+
   function toggleMultiAnswer(key: string, value: string) {
     setAnswers((prev) => {
       const cur = prev[key];
@@ -179,6 +183,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
             currentAnswer={answers[QUESTIONS[step.index].key]}
             onAnswer={(value) => answerQuestion(QUESTIONS[step.index].key, value)}
             onToggle={(value) => toggleMultiAnswer(QUESTIONS[step.index].key, value)}
+            onSetText={(value) => setTextAnswer(QUESTIONS[step.index].key, value)}
             onContinue={() => advanceFrom(QUESTIONS[step.index].key)}
           />
         )}
@@ -334,8 +339,8 @@ function CoverScreen({
           style={{ border: "1px solid var(--sakura-hairline)" }}
         >
           <img
-            src="/quiz/ju-hero.jpg"
-            alt="Dra. Juliana Pereira"
+            src="/quiz/case-antes-depois.jpg"
+            alt="Antes e depois — paciente da Dra. Juliana Pereira"
             width={613}
             height={732}
             className="w-full h-full object-cover"
@@ -413,20 +418,24 @@ function QuestionScreen({
   currentAnswer,
   onAnswer,
   onToggle,
+  onSetText,
   onContinue,
 }: {
   question: Question;
   currentAnswer: AnswerValue | undefined;
   onAnswer: (value: string) => void;
   onToggle: (value: string) => void;
+  onSetText: (value: string) => void;
   onContinue: () => void;
 }) {
   const isMulti = !!question.multi;
+  const isText = question.inputType === "text";
   const selected = Array.isArray(currentAnswer)
     ? currentAnswer
     : currentAnswer
       ? [currentAnswer]
       : [];
+  const textValue = typeof currentAnswer === "string" ? currentAnswer : "";
 
   return (
     <FadeUp className="flex-1 flex flex-col justify-center">
@@ -454,6 +463,26 @@ function QuestionScreen({
           {question.subtitle}
         </p>
       )}
+      {isText ? (
+        <div className="flex flex-col gap-4">
+          <input
+            type="text"
+            value={textValue}
+            onChange={(e) => onSetText(e.target.value)}
+            placeholder={question.textPlaceholder ?? ""}
+            autoFocus
+            className="w-full px-4 py-4 text-base bg-transparent transition focus:outline-none"
+            style={{
+              border: "1px solid var(--sakura-hairline)",
+              color: "var(--sakura-cocoa)",
+              fontSize: "16px",
+            }}
+          />
+          <PrimaryButton onClick={onContinue} disabled={textValue.trim().length < 2}>
+            Continuar →
+          </PrimaryButton>
+        </div>
+      ) : (
       <div className="flex flex-col gap-3">
         {question.options.map((opt) => {
           const isSelected = selected.includes(opt.value);
@@ -483,7 +512,8 @@ function QuestionScreen({
           );
         })}
       </div>
-      {isMulti && (
+      )}
+      {!isText && isMulti && (
         <div className="mt-6">
           <PrimaryButton onClick={onContinue} disabled={selected.length === 0}>
             Continuar →

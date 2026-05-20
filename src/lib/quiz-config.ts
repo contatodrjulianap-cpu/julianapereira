@@ -26,14 +26,21 @@ const OptionSchema = z.object({
   caseType: z.string().optional(),
 });
 
-const QuestionSchema = z.object({
-  key: z.string().min(1),
-  num: z.number(),
-  title: z.string().min(1),
-  subtitle: z.string().optional(),
-  options: z.array(OptionSchema).min(1),
-  multi: z.boolean().optional(),
-});
+const QuestionSchema = z
+  .object({
+    key: z.string().min(1),
+    num: z.number(),
+    title: z.string().min(1),
+    subtitle: z.string().optional(),
+    options: z.array(OptionSchema),
+    multi: z.boolean().optional(),
+    inputType: z.enum(["options", "text"]).optional(),
+    textPlaceholder: z.string().optional(),
+  })
+  .refine(
+    (q) => q.inputType === "text" || q.options.length >= 1,
+    { message: "options is required when inputType is not 'text'" },
+  );
 
 const ResultCopySchema = z.object({
   badge: z.string().min(1),
