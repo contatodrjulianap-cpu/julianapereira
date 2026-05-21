@@ -445,6 +445,12 @@ export function ConversationThread({
                     fileName={m.text ?? "Arquivo"}
                   />
                 )}
+                {m.media_type === "audio" && (
+                  <RemoteAudio messageId={m.id} signedUrl={m.media_signed_url ?? null} />
+                )}
+                {m.media_type === "video" && (
+                  <RemoteVideo messageId={m.id} signedUrl={m.media_signed_url ?? null} />
+                )}
                 {m.text && (
                   <p className="whitespace-pre-wrap break-words">{m.text}</p>
                 )}
@@ -741,5 +747,66 @@ function DocumentBubble({
         {fileName}
       </span>
     </a>
+  );
+}
+
+function RemoteAudio({
+  messageId,
+  signedUrl,
+}: {
+  messageId: string;
+  signedUrl: string | null;
+}) {
+  const [url, setUrl] = useState<string | null>(signedUrl);
+  useEffect(() => {
+    if (url) return;
+    let alive = true;
+    fetch(`/api/messages/${messageId}/media-url`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { url?: string } | null) => {
+        if (alive && d?.url) setUrl(d.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [messageId, url]);
+  if (!url) {
+    return <div className="text-xs text-slate-400 py-2 px-2">🎵 carregando...</div>;
+  }
+  return <audio controls preload="metadata" src={url} className="max-w-full mb-1" />;
+}
+
+function RemoteVideo({
+  messageId,
+  signedUrl,
+}: {
+  messageId: string;
+  signedUrl: string | null;
+}) {
+  const [url, setUrl] = useState<string | null>(signedUrl);
+  useEffect(() => {
+    if (url) return;
+    let alive = true;
+    fetch(`/api/messages/${messageId}/media-url`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { url?: string } | null) => {
+        if (alive && d?.url) setUrl(d.url);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [messageId, url]);
+  if (!url) {
+    return <div className="text-xs text-slate-400 py-3 px-2">🎬 carregando...</div>;
+  }
+  return (
+    <video
+      controls
+      preload="metadata"
+      src={url}
+      className="rounded-md max-w-full max-h-72 mb-1"
+    />
   );
 }

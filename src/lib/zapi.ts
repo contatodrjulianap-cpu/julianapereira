@@ -256,9 +256,13 @@ export type ZapiWebhookPayload = {
   messageId?: string;
   momment?: number;
   text?: { message?: string };
-  image?: { caption?: string; imageUrl?: string };
-  audio?: { audioUrl?: string };
-  document?: { documentUrl?: string; mimeType?: string };
+  image?: { caption?: string; imageUrl?: string; mimeType?: string };
+  audio?: { audioUrl?: string; mimeType?: string };
+  video?: { caption?: string; videoUrl?: string; mimeType?: string };
+  document?: { documentUrl?: string; mimeType?: string; fileName?: string };
+  sticker?: { stickerUrl?: string };
+  contact?: { displayName?: string; vcard?: string };
+  location?: { latitude?: number; longitude?: number; address?: string };
   [k: string]: unknown;
 };
 
