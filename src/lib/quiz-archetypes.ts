@@ -122,18 +122,16 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: "q8_renda",
+    key: "q8_orcamento",
     num: 8,
-    title: "Qual a sua faixa de renda mensal?",
+    title: "O tratamento das lentes com a Dra. Juliana parte de R$ 8.000,00. Cabe no seu orçamento atual?",
     subtitle:
-      "Pra direcionar o plano certo (resina, porcelana, parcelamento). Sigilo total — usado só pra avaliação interna.",
+      "Honestidade total — direciona o atendimento certo, sem pressão.",
     options: [
-      { value: "ate_5k", label: "Até R$ 5 mil", weights: { CETICA: 3 }, knockout: true, emoji: "🪙" },
-      { value: "5_10k", label: "R$ 5 mil a R$ 10 mil", weights: { CETICA: 2 }, emoji: "💵" },
-      { value: "10_20k", label: "R$ 10 mil a R$ 20 mil", weights: { ESPERANCOSA: 2 }, emoji: "💰" },
-      { value: "20_40k", label: "R$ 20 mil a R$ 40 mil", weights: { PRONTA: 2 }, emoji: "💎" },
-      { value: "acima_40k", label: "Acima de R$ 40 mil", weights: { PRONTA: 3 }, emoji: "👑" },
-      { value: "nao_responder", label: "Prefiro não responder", weights: { ESPERANCOSA: 1 }, emoji: "🤐" },
+      { value: "cabe_avista", label: "Sim. Cabe no meu orçamento.", weights: { PRONTA: 4 }, emoji: "✅" },
+      { value: "cabe_parcelado", label: "Sim. Cabe no meu orçamento, mas parcelado.", weights: { PRONTA: 2 }, emoji: "💳" },
+      { value: "nao_cabe", label: "Não. Não cabe no meu orçamento.", weights: { CETICA: 3 }, knockout: true, emoji: "🚫" },
+      { value: "info", label: "Só estou buscando informações.", weights: { CETICA: 2 }, knockout: true, emoji: "🔍" },
     ],
   },
 ];
@@ -268,10 +266,10 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
     badge: "Acompanhe a Ju por dentro",
     title: "Antes da avaliação, vale conhecer melhor.",
     description:
-      "Você ainda está pesquisando — e isso é saudável. A Ju posta no Instagram bastidores, casos reais e quebra das principais dúvidas (resina amarela, fake, desgaste). Quando fizer sentido, a porta fica aberta.",
+      "Dá uma olhada nos destaques do Instagram da Ju — casos completos paciente por paciente, antes/depois, bastidores e as principais dúvidas (resina amarela, fake, desgaste). Quando fizer sentido, a porta fica aberta.",
     tone: "cocoa",
     ctaPrimary: {
-      label: "Seguir @drajuliana.pereira no Instagram →",
+      label: "Ver destaques no Instagram →",
       href: () => INSTAGRAM_URL,
     },
   },
