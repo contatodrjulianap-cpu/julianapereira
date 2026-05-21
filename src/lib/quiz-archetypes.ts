@@ -124,7 +124,7 @@ export const QUESTIONS: Question[] = [
   {
     key: "q8_orcamento",
     num: 8,
-    title: "O tratamento das lentes com a Dra. Juliana parte de R$ 8.000,00. Cabe no seu orçamento atual?",
+    title: "O tratamento das lentes com a Dra. Juliana vai de R$ 8.000,00 a R$ 60.000,00. Cabe no seu orçamento atual?",
     subtitle:
       "Honestidade total — direciona o atendimento certo, sem pressão.",
     options: [
