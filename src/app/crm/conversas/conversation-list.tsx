@@ -97,49 +97,83 @@ export function ConversationList({
   const [ownerFilter, setOwnerFilter] = useState<string>(initialOwner);
   const [sheetLead, setSheetLead] = useState<LeadCard | null>(null);
 
+  // Cascata: cada contador respeita os OUTROS filtros, ignorando só o seu próprio
+  // facet. Ex: badges de "Etapa no funil" refletem o atendente/urgência atuais.
+  const matchesFilters = (
+    l: LeadCard,
+    except: "urgency" | "bucket" | "owner" | undefined,
+    q: string,
+  ): boolean => {
+    if (except !== "bucket" && bucket !== "todos" && bucketOf(l) !== bucket) return false;
+    if (except !== "urgency" && !matchesUrgency(l, urgency)) return false;
+    if (except !== "owner" && ownerFilter !== "todos") {
+      if (ownerFilter === "_unassigned") {
+        if (l.assigned_owner_id) return false;
+      } else if (l.assigned_owner_id !== ownerFilter) {
+        return false;
+      }
+    }
+    if (q) {
+      const text = `${l.name ?? ""} ${l.phone} ${l.last_message?.text ?? ""}`.toLowerCase();
+      if (!text.includes(q)) return false;
+    }
+    return true;
+  };
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return leads
-      .filter((l) => {
-        if (bucket !== "todos" && bucketOf(l) !== bucket) return false;
-        if (!matchesUrgency(l, urgency)) return false;
-        if (ownerFilter !== "todos") {
-          if (ownerFilter === "_unassigned") {
-            if (l.assigned_owner_id) return false;
-          } else if (l.assigned_owner_id !== ownerFilter) {
-            return false;
-          }
-        }
-        if (!q) return true;
-        const text = `${l.name ?? ""} ${l.phone} ${l.last_message?.text ?? ""}`.toLowerCase();
-        return text.includes(q);
-      })
+      .filter((l) => matchesFilters(l, undefined, q))
       .sort((a, b) => {
         if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
         const at = a.last_message_at ? new Date(a.last_message_at).getTime() : 0;
         const bt = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
         return bt - at;
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, search, bucket, urgency, ownerFilter]);
 
   const urgencyCounts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = leads.filter((l) => matchesFilters(l, "urgency", q));
     const out: Record<UrgencyFilter, number> = {
-      todos: leads.length,
+      todos: base.length,
       hoje: 0,
       vencidos: 0,
       proximos: 0,
       frios: 0,
     };
-    for (const l of leads) {
+    for (const l of base) {
       if (matchesUrgency(l, "hoje")) out.hoje++;
       if (matchesUrgency(l, "vencidos")) out.vencidos++;
       if (matchesUrgency(l, "proximos")) out.proximos++;
       if (matchesUrgency(l, "frios")) out.frios++;
     }
     return out;
-  }, [leads]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, search, bucket, ownerFilter]);
 
-  const counts = useMemo(() => countByBucket(leads), [leads]);
+  const counts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = leads.filter((l) => matchesFilters(l, "bucket", q));
+    return countByBucket(base);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, search, urgency, ownerFilter]);
+
+  const ownerCounts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const base = leads.filter((l) => matchesFilters(l, "owner", q));
+    const out: Record<string, number> = { todos: base.length, _unassigned: 0 };
+    for (const a of attendants) out[a.id] = 0;
+    for (const l of base) {
+      if (!l.assigned_owner_id) out._unassigned++;
+      else if (out[l.assigned_owner_id] !== undefined) {
+        out[l.assigned_owner_id]++;
+      }
+    }
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, search, bucket, urgency, attendants]);
 
   function applyPatched(updated: LeadFull) {
     setLeads((prev) =>
@@ -211,8 +245,7 @@ export function ConversationList({
         <div className="overflow-x-auto"><div className="flex gap-2 px-3 pb-2 min-w-max">
           {URGENCY_CHIPS.map((c) => {
             const isActive = urgency === c.key;
-            const count =
-              c.key === "todos" ? leads.length : urgencyCounts[c.key];
+            const count = urgencyCounts[c.key];
             return (
               <button
                 key={c.key}
@@ -259,11 +292,12 @@ export function ConversationList({
               { id: "_unassigned", label: "Sem atendente" },
             ].map((opt) => {
               const isActive = ownerFilter === opt.id;
+              const count = ownerCounts[opt.id] ?? 0;
               return (
                 <button
                   key={opt.id}
                   onClick={() => setOwnerFilter(opt.id)}
-                  className="px-3 py-1.5 rounded-full transition shrink-0 text-[11px] font-semibold whitespace-nowrap"
+                  className="px-3 py-1.5 rounded-full transition shrink-0 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1.5"
                   style={{
                     background: isActive
                       ? "var(--sakura-rose-2,#a06a56)"
@@ -272,6 +306,16 @@ export function ConversationList({
                   }}
                 >
                   {opt.label}
+                  <span
+                    className="px-1.5 py-0.5 rounded-full text-[10px]"
+                    style={{
+                      background: isActive
+                        ? "rgba(255,255,255,0.18)"
+                        : "rgb(226 232 240)",
+                    }}
+                  >
+                    {count}
+                  </span>
                 </button>
               );
             })}
