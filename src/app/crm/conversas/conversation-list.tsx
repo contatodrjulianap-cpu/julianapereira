@@ -73,16 +73,28 @@ function matchesUrgency(lead: LeadCard, filter: UrgencyFilter): boolean {
   return true;
 }
 
-export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] }) {
+type Attendant = { id: string; display_name: string | null };
+
+export function ConversationList({
+  initialLeads,
+  isAdmin = false,
+  attendants = [],
+}: {
+  initialLeads: LeadCard[];
+  isAdmin?: boolean;
+  attendants?: Attendant[];
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialUrgency = (searchParams.get("filter") ?? "todos") as UrgencyFilter;
   const initialBucket = (searchParams.get("bucket") ?? "todos") as Bucket;
+  const initialOwner = searchParams.get("owner") ?? "todos";
 
   const [leads, setLeads] = useState<LeadCard[]>(initialLeads);
   const [search, setSearch] = useState("");
   const [bucket, setBucket] = useState<Bucket>(initialBucket);
   const [urgency, setUrgency] = useState<UrgencyFilter>(initialUrgency);
+  const [ownerFilter, setOwnerFilter] = useState<string>(initialOwner);
   const [sheetLead, setSheetLead] = useState<LeadCard | null>(null);
 
   const filtered = useMemo(() => {
@@ -91,6 +103,13 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
       .filter((l) => {
         if (bucket !== "todos" && bucketOf(l) !== bucket) return false;
         if (!matchesUrgency(l, urgency)) return false;
+        if (ownerFilter !== "todos") {
+          if (ownerFilter === "_unassigned") {
+            if (l.assigned_owner_id) return false;
+          } else if (l.assigned_owner_id !== ownerFilter) {
+            return false;
+          }
+        }
         if (!q) return true;
         const text = `${l.name ?? ""} ${l.phone} ${l.last_message?.text ?? ""}`.toLowerCase();
         return text.includes(q);
@@ -101,7 +120,7 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
         const bt = b.last_message_at ? new Date(b.last_message_at).getTime() : 0;
         return bt - at;
       });
-  }, [leads, search, bucket, urgency]);
+  }, [leads, search, bucket, urgency, ownerFilter]);
 
   const urgencyCounts = useMemo(() => {
     const out: Record<UrgencyFilter, number> = {
@@ -224,6 +243,42 @@ export function ConversationList({ initialLeads }: { initialLeads: LeadCard[] })
         </div>
         </div>
       </div>
+
+      {isAdmin && attendants.length > 0 && (
+        <div className="bg-white border-t border-slate-100">
+          <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
+            Atendente
+          </p>
+          <div className="overflow-x-auto"><div className="flex gap-2 px-3 pb-2 min-w-max">
+            {[
+              { id: "todos", label: "Todas" },
+              ...attendants.map((a) => ({
+                id: a.id,
+                label: a.display_name ?? "Sem nome",
+              })),
+              { id: "_unassigned", label: "Sem atendente" },
+            ].map((opt) => {
+              const isActive = ownerFilter === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => setOwnerFilter(opt.id)}
+                  className="px-3 py-1.5 rounded-full transition shrink-0 text-[11px] font-semibold whitespace-nowrap"
+                  style={{
+                    background: isActive
+                      ? "var(--sakura-rose-2,#a06a56)"
+                      : "rgb(241 245 249)",
+                    color: isActive ? "white" : "rgb(51 65 85)",
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white border-t border-slate-100">
         <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">

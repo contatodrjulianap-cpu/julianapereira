@@ -25,6 +25,15 @@ export default async function ConversasPage() {
     .maybeSingle();
   const isAdmin = crmUser?.role === "admin";
 
+  let attendants: Array<{ id: string; display_name: string | null }> = [];
+  if (isAdmin) {
+    const { data: users } = await supabase
+      .from("crm_users")
+      .select("id, display_name")
+      .order("display_name");
+    attendants = users ?? [];
+  }
+
   let leadsQuery = supabase
     .from("leads")
     .select("*")
@@ -76,7 +85,11 @@ export default async function ConversasPage() {
     <>
       {/* Mobile: lista cheia. Layout do desktop já mostra a lista na sidebar. */}
       <div className="flex-1 md:hidden flex flex-col min-h-0 min-w-0">
-        <ConversationList initialLeads={leadsWithExtras} />
+        <ConversationList
+          initialLeads={leadsWithExtras}
+          isAdmin={isAdmin}
+          attendants={attendants}
+        />
       </div>
       {/* Desktop: empty state (sidebar à esquerda já tem a lista) */}
       <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-slate-50 text-center px-8">
