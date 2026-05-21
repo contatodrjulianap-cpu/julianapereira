@@ -101,9 +101,32 @@ async function parseAndStoreMedia(
   }
 }
 
+// Tipos de callback do Z-API que NÃO são mensagens novas — não devem virar
+// row em `messages`. ReceivedCallback é o único que carrega mensagem inbound.
+const IGNORED_CALLBACK_TYPES = new Set([
+  "MessageStatusCallback", // ack de delivery/read das nossas próprias mensagens
+  "PresenceChatCallback", // lead ficou online/offline/digitando
+  "ConnectedCallback",
+  "DisconnectedCallback",
+  "NotificationCallback",
+]);
+
 export async function POST(req: NextRequest) {
   const start = Date.now();
   const payload = (await req.json()) as ZapiWebhookPayload;
+
+  if (payload.type && IGNORED_CALLBACK_TYPES.has(payload.type)) {
+    await logEvent({
+      type: "zapi_webhook",
+      direction: "inbound",
+      target: "zapi",
+      status: "skipped",
+      payload,
+      error: `callback type=${payload.type}`,
+      duration_ms: Date.now() - start,
+    });
+    return NextResponse.json({ ignored: payload.type });
+  }
 
   // Ignora mensagens enviadas pela própria conta (echo)
   if (payload.fromMe) {
