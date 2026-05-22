@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="max-image-preview:large">
+<title>VLP — Por Dentro | Viver de Lentes em Porcelana | Dra. Juliana Pereira</title>
+<meta name="description" content="Por dentro do VLP — Viver de Lentes em Porcelana com a Dra. Juliana Pereira. 12 módulos do planejamento à instalação, casos premium documentados e o método pra cobrar high ticket por porcelana.">
+<link rel="icon" href="/lp/juliana/vlp-por-dentro-v2/assets/img/marca-simbolo-bege.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Roboto:wght@400;500;700;900&family=Roboto+Slab:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Roboto', 'system-ui', 'sans-serif'],
+        display: ['Poppins', 'system-ui', 'sans-serif'],
+        serif: ['"Roboto Slab"', 'Georgia', 'serif'],
+      },
+      colors: {
+        // Paleta verde garrafa profundo + branco + nude
+        floresta: '#0e3a35', // verde garrafa (bg dark sections, accent)
+        petroleo: '#0e3a35', // mesmo verde garrafa pra accent
+        vinho: '#0a0a0a',    // preto profundo (CTA dark secundário)
+        rose: '#d9b19a',     // nude (emphasis)
+        nude: '#d9b19a',     // nude (warm accent)
+        gelo: '#ffffff',     // branco
+        bege: '#f1f1f1',     // off-white soft
+      },
+    },
+  },
+};
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Roboto', system-ui, sans-serif;
+    background: #ffffff;
+    color: #0e3a35;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  .display { font-family: 'Poppins', system-ui, sans-serif; font-weight: 800; letter-spacing: -0.025em; }
+  .display em, em.display {
+    font-style: italic; font-weight: 900;
+    color: #0e3a35;
+    background: linear-gradient(180deg, transparent 62%, #d9b19a 62%, #d9b19a 96%, transparent 96%);
+    padding: 0 .06em;
+  }
+  /* em sections com fundo verde garrafa, emphasis vira nude italic limpo */
+  .text-gelo .display em { color: #d9b19a; background: none; padding: 0; }
+
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] .chev { transform: rotate(45deg); }
+  .chev { transition: transform .25s; display: inline-block; }
+
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 14px;
+    font-family: 'Roboto', sans-serif; font-weight: 700;
+    font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
+    color: #0e3a35;
+  }
+  .eyebrow::before { content: ""; width: 28px; height: 2px; background: #0e3a35; }
+  .eyebrow.center { justify-content: center; }
+  .eyebrow.on-dark { color: #d9b19a; }
+  .eyebrow.on-dark::before { background: #d9b19a; }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #d9b19a; animation: pulse 2.2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(1.35); } }
+
+  .lift { transition: transform .35s ease, box-shadow .35s ease, border-color .35s ease; }
+  .lift:hover { transform: translateY(-4px); box-shadow: 0 28px 60px -28px rgba(14,58,53,.35); border-color: #0e3a35; }
+
+  .marquee { overflow: hidden; }
+  .marquee-track { display: flex; gap: 64px; animation: scroll 50s linear infinite; white-space: nowrap; width: max-content; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  .cta {
+    position: relative; overflow: hidden;
+    border-radius: 999px;
+    transition: transform .25s ease, box-shadow .35s ease, background-color .25s ease;
+    will-change: transform;
+  }
+  .cta::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+    transform: translateX(-110%); transition: transform .7s;
+  }
+  .cta:hover::before { transform: translateX(110%); }
+  .cta:hover { transform: translateY(-2px); box-shadow: 0 20px 40px -20px rgba(14,58,53,.55); }
+
+  /* CTA primary: BRANCO com texto verde garrafa */
+  .cta-petroleo { background: #ffffff; color: #0e3a35; box-shadow: 0 6px 18px -6px rgba(0,0,0,.25); }
+  .cta-petroleo:hover { background: #f1f1f1; color: #082621; }
+  /* CTA dark secundário: preto + texto branco */
+  .cta-vinho { background: #0a0a0a; color: #ffffff; }
+  .cta-vinho:hover { background: #1f1f1f; }
+  /* CTA warm: nude + texto verde garrafa */
+  .cta-nude { background: #d9b19a; color: #0e3a35; }
+  .cta-nude:hover { background: #c89b80; }
+
+  .hero {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(ellipse 900px 700px at 85% -10%, rgba(217,177,154,.32), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 10% 110%, rgba(255,255,255,.08), transparent 65%),
+      #0e3a35;
+  }
+
+  .insight {
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(ellipse 600px 400px at 50% 100%, rgba(14,58,53,.10), transparent 70%),
+      #ffffff;
+  }
+  .insight::before {
+    content: "\201C";
+    position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
+    font-family: 'Roboto Slab', serif; font-weight: 700;
+    font-size: 480px;
+    color: rgba(14,58,53,.12); line-height: 1; pointer-events: none;
+  }
+
+  .price-card {
+    background: linear-gradient(180deg, #ffffff 0%, #f1f1f1 100%);
+    box-shadow: 0 40px 80px -40px rgba(14,58,53,.45), inset 0 1px 0 rgba(255,255,255,.9);
+    border: 2px solid #0e3a35;
+  }
+
+  .ribbon {
+    background: #d9b19a; color: #0e3a35;
+    padding: 4px 14px; border-radius: 999px;
+    font-size: 12px; letter-spacing: .22em; text-transform: uppercase; font-weight: 900;
+    display: inline-block;
+  }
+
+  .frame {
+    position: relative;
+    border-radius: 14px; overflow: hidden;
+    box-shadow: 0 40px 80px -40px rgba(14,58,53,.55);
+  }
+
+  .badge-pos {
+    display: inline-block; background: #0e3a35; color: #ffffff;
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 13px; letter-spacing: .18em; text-transform: uppercase; font-weight: 900;
+  }
+  .badge-neg {
+    display: inline-block; background: #d9b19a; color: #0e3a35;
+    padding: 4px 12px; border-radius: 999px;
+    font-size: 13px; letter-spacing: .18em; text-transform: uppercase; font-weight: 900;
+  }
+
+  p, li { font-weight: 400; }
+  strong { font-weight: 700; color: #0e3a35; }
+  .text-gelo strong { color: #d9b19a; }
+
+  .lead { font-size: 19px; }
+  @media (min-width: 640px) { .lead { font-size: 21px; } }
+
+  /* Logo VLP tipográfico */
+  .wordmark {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  /* Módulo header (cronograma) */
+  .mod-num {
+    font-family: 'Poppins', sans-serif; font-style: italic; font-weight: 900;
+    color: #0e3a35; font-size: 1.5rem; letter-spacing: 0;
+  }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- Topbar -->
+<div class="bg-floresta text-gelo text-sm sticky top-0 z-50 border-b border-nude/15">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex items-center justify-center sm:justify-between gap-4 flex-wrap">
+    <p class="uppercase tracking-[.22em] text-center sm:text-left">
+      <span class="text-petroleo font-bold">Curso completo</span>
+      <span class="opacity-40 mx-2">●</span>
+      <span class="opacity-90">12 módulos · do planejamento à instalação</span>
+    </p>
+    <a href="https://wa.me/5531971092786?text=Vim%20da%20p%C3%A1gina%20do%20VLP%20%E2%80%94%20Viver%20de%20Lentes%20em%20Porcelana%2C%20tenho%20interesse%21"
+       target="_blank" rel="noopener"
+       class="cta cta-nude hidden sm:inline-flex items-center gap-2 px-5 py-2 text-sm font-bold tracking-wide">
+      Quero entrar pro VLP →
+    </a>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="bg-floresta text-gelo">
+  <div class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between">
+    <div class="flex items-baseline gap-3">
+      <span class="wordmark text-3xl text-nude">VLP</span>
+      <span class="text-xs uppercase tracking-[.28em] opacity-70 hidden sm:inline">Viver de Lentes em Porcelana</span>
+    </div>
+    <span class="text-xs uppercase tracking-[.28em] opacity-70 hidden md:inline">Com Dra. Juliana Pereira</span>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero text-gelo py-16 sm:py-28">
+  <div class="max-w-6xl mx-auto px-5 grid md:grid-cols-[1.2fr_1fr] gap-14 items-center relative z-10">
+    <div>
+      <div class="eyebrow on-dark mb-7"><span class="dot"></span><span>Por dentro do método</span></div>
+      <h1 class="display text-4xl sm:text-5xl md:text-6xl leading-[1.05] mb-7">
+        Domine porcelana do <em>planejamento à entrega</em> e transforme a estética em uma <em>carreira altamente lucrativa.</em>
+      </h1>
+      <p class="lead opacity-90 mb-9 max-w-xl">
+        O treinamento completo da Dra. Juliana pra dominar lentes em porcelana — do diagnóstico ao antes/depois — e cobrar <strong class="text-nude">high ticket de verdade</strong> pelo seu trabalho.
+      </p>
+      <a href="https://wa.me/5531971092786?text=Vim%20da%20p%C3%A1gina%20do%20VLP%20%E2%80%94%20Viver%20de%20Lentes%20em%20Porcelana%2C%20tenho%20interesse%21"
+         target="_blank" rel="noopener"
+         class="cta cta-nude inline-flex items-center gap-3 px-9 py-4 text-lg font-bold tracking-wide">
+        Quero entrar pro VLP <span>→</span>
+      </a>
+      <p class="text-xs uppercase tracking-[.28em] opacity-55 mt-5">12 módulos · Casos completos paciente por paciente · Suporte direto</p>
+    </div>
+
+    <figure class="relative aspect-[4/5] frame">
+      <img src="/lp/juliana/vlp-por-dentro-v2/assets/img/juliana-hero.jpg" alt="Dra. Juliana Pereira"
+           class="w-full h-full object-cover" loading="eager" fetchpriority="high">
+      <div class="absolute inset-0 bg-gradient-to-t from-floresta/85 via-floresta/10 to-transparent"></div>
+      <figcaption class="absolute left-6 bottom-6 right-6 text-gelo z-10">
+        <p class="display text-3xl">Dra. Juliana Pereira</p>
+        <p class="text-[11px] uppercase tracking-[.28em] text-nude mt-1">CROSP 130.904 · Referência em estética dental</p>
+      </figcaption>
+      <div class="absolute top-5 right-5 bg-nude text-floresta px-4 py-3 rounded-md text-[10px] uppercase tracking-[.22em] font-bold z-10">
+        Palestrante<br>
+        <span class="display text-xl block font-medium tracking-normal normal-case">CIOSP</span>
+      </div>
+    </figure>
+  </div>
+</section>
+
+<!-- Marquee -->
+<div class="marquee bg-bege border-y border-petroleo/20 py-5">
+  <div class="marquee-track text-floresta/85">
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">12</span>módulos completos</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">4</span>casos premium documentados</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">3</span>bônus exclusivos</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">High</span>ticket por paciente</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">12</span>módulos completos</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">4</span>casos premium documentados</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">3</span>bônus exclusivos</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+    <span class="flex items-center gap-3 display text-xl"><span class="text-petroleo font-semibold text-3xl">High</span>ticket por paciente</span>
+    <span class="text-rose opacity-60 display text-xl">◆</span>
+  </div>
+</div>
+
+<!-- Galeria casos -->
+<section class="py-20 sm:py-28 bg-bege">
+  <div class="max-w-7xl mx-auto px-5">
+    <div class="text-center mb-14">
+      <div class="eyebrow center mb-6"><span>Casos premium documentados</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.08] max-w-3xl mx-auto">
+        Casos reais em porcelana, <em>do diagnóstico à instalação</em>
+      </h2>
+      <p class="lead mt-5 opacity-80 max-w-2xl mx-auto">Você acompanha casos completos paciente por paciente — do diagnóstico ao antes/depois — com cada decisão clínica explicada:</p>
+    </div>
+    <div class="max-w-3xl mx-auto">
+      <figure class="aspect-[4/5] sm:aspect-[5/4] overflow-hidden rounded-xl bg-bege lift relative">
+        <img src="/lp/juliana/vlp-por-dentro-v2/assets/img/vlp-antes-depois.jpg" alt="Antes e depois — paciente VLP" class="w-full h-full object-cover" loading="lazy">
+        <figcaption class="absolute left-5 bottom-5 text-[11px] uppercase tracking-[.28em] font-bold text-floresta bg-nude px-4 py-2 rounded-full">Antes & Depois</figcaption>
+      </figure>
+    </div>
+    <div class="text-center mt-14">
+      <a href="https://wa.me/5531971092786?text=Vim%20da%20p%C3%A1gina%20do%20VLP%20%E2%80%94%20Viver%20de%20Lentes%20em%20Porcelana%2C%20tenho%20interesse%21"
+         target="_blank" rel="noopener"
+         class="cta cta-petroleo inline-flex items-center gap-3 px-10 py-4 text-lg font-bold tracking-wide">
+        Quero entrar pro VLP <span>→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Pra quem é / não é -->
+<section class="py-20 sm:py-28 bg-gelo">
+  <div class="max-w-5xl mx-auto px-5">
+    <div class="text-center mb-14">
+      <div class="eyebrow center mb-6"><span>Pra quem é</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.08]">Esse curso é pra você se…</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-6">
+      <div class="bg-bege rounded-xl p-9 border border-petroleo/15 lift">
+        <p class="badge-pos">✓ É pra você</p>
+        <ul class="mt-6 space-y-4 text-base">
+          <li class="flex gap-3"><span class="text-petroleo flex-shrink-0 mt-1">●</span><span>Dentista iniciante que quer começar firme em estética</span></li>
+          <li class="flex gap-3"><span class="text-petroleo flex-shrink-0 mt-1">●</span><span>Já trabalha com estética e quer migrar pra casos premium em porcelana</span></li>
+          <li class="flex gap-3"><span class="text-petroleo flex-shrink-0 mt-1">●</span><span>Quer aumentar faturamento com tratamentos high ticket</span></li>
+          <li class="flex gap-3"><span class="text-petroleo flex-shrink-0 mt-1">●</span><span>Busca previsibilidade clínica e financeira</span></li>
+          <li class="flex gap-3"><span class="text-petroleo flex-shrink-0 mt-1">●</span><span>Quer dominar o caso inteiro — do planejamento à instalação — com método</span></li>
+        </ul>
+      </div>
+      <div class="bg-floresta text-gelo rounded-xl p-9 border border-floresta lift">
+        <p class="badge-neg">✗ NÃO é pra você</p>
+        <ul class="mt-6 space-y-4 text-base">
+          <li class="flex gap-3"><span class="text-rose flex-shrink-0 mt-1">●</span><span>Procura atalho sem planejamento nem treino em manequim</span></li>
+          <li class="flex gap-3"><span class="text-rose flex-shrink-0 mt-1">●</span><span>Quer cobrar high ticket sem estudar comunicação com paciente e laboratório</span></li>
+          <li class="flex gap-3"><span class="text-rose flex-shrink-0 mt-1">●</span><span>Não tem interesse em estudar fotografia, marketing e posicionamento</span></li>
+          <li class="flex gap-3"><span class="text-rose flex-shrink-0 mt-1">●</span><span>Quer "fórmula de 1 aula" — aqui são 12 módulos com casos completos</span></li>
+          <li class="flex gap-3"><span class="text-rose flex-shrink-0 mt-1">●</span><span>Não quer tirar dúvida nem ser cobrado pelo próprio progresso</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- O que aprende (resumo) -->
+<section class="py-20 sm:py-28 bg-floresta text-gelo">
+  <div class="max-w-5xl mx-auto px-5">
+    <div class="text-center mb-14">
+      <div class="eyebrow on-dark center mb-6"><span>O que você vai aprender</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.08] max-w-3xl mx-auto">
+        Trilhas completas pra você dominar <em>porcelana de ponta a ponta</em>
+      </h2>
+    </div>
+    <ul class="grid sm:grid-cols-2 gap-x-12 gap-y-4 text-base sm:text-lg">
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Planejamento estético completo (fotografias, mockup, aprovação)</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Preparos seguros e previsíveis com método</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Comunicação correta com laboratório</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Fotografia odontológica profissional</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Marketing pra atrair pacientes premium</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Como vender tratamentos high ticket sem assustar</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Casos completos do início ao fim, paciente por paciente</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Pós-operatório, manutenção e longevidade clínica</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Segurança jurídica: contratos, consentimentos e direitos</span></li>
+      <li class="flex gap-3"><span class="text-nude flex-shrink-0 mt-1">●</span><span>Como transformar porcelana em carreira lucrativa</span></li>
+    </ul>
+  </div>
+</section>
+
+<!-- Cronograma 12 módulos -->
+<section id="cronograma" class="py-20 sm:py-28 bg-gelo">
+  <div class="max-w-5xl mx-auto px-5">
+    <div class="text-center mb-14">
+      <div class="eyebrow center mb-6"><span>Cronograma oficial</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.08]"><em>12 módulos</em> + bônus</h2>
+      <p class="lead mt-5 opacity-80 max-w-2xl mx-auto">Estrutura completa do treinamento — do básico ao avançado, com metodologia prática, clínica e lucrativa.</p>
+    </div>
+
+    <div class="space-y-3">
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">01</span>
+            <span class="display text-xl sm:text-2xl ml-3">Comece por Aqui</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Mentalidade, direcionamento e visão do mercado</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Boas-vindas ao VLP</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como funciona o curso</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>O que você vai aprender</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como acelerar seus resultados</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>A mentalidade do dentista high ticket</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Os erros que atrasam quem quer viver de porcelana</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Construindo uma carreira através das lentes</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">02</span>
+            <span class="display text-xl sm:text-2xl ml-3">Orientação do Paciente e Primeira Consulta</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Como gerar confiança e preparar o paciente pra fechar</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Resina x Porcelana</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Quando indicar porcelana</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como explicar valor sem assustar o paciente</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Tempo clínico e planejamento</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como aumentar percepção de valor</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Precificação inteligente</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como transformar consulta em fechamento</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">03</span>
+            <span class="display text-xl sm:text-2xl ml-3">Procedimentos Prévios</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">O que precisa ser resolvido antes das lentes</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Limpeza e raspagem</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Clareamento dental</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Gengivoplastia</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Ortodontia prévia</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Levantes posteriores</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Ajustes funcionais</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Diagnóstico periodontal</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Quando NÃO começar um caso</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">04</span>
+            <span class="display text-xl sm:text-2xl ml-3">Planejamento Estético Completo</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">A base dos casos premium</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Fotografias iniciais</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Posicionamento fotográfico</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Checklist clínico obrigatório</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Planejamento digital e analógico</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Apresentação do planejamento ao paciente</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Aprovação estética</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como lidar com reprovação do mockup</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Anatomia e regras estéticas</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Comunicação correta com o laboratório</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">05</span>
+            <span class="display text-xl sm:text-2xl ml-3">Preparos e Execução Clínica</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">O passo a passo das lentes em porcelana</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Guia de preparo</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Tipos de preparo</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Término em chanfro</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Preparo em gesso</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Treino em manequim</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Moldagem ou escaneamento</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Provisórios</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Ajustes e adaptação</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Prova seca e prova úmida</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Aprovação final do paciente</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Instalação das lentes</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Ajustes finais e refinamento</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">06</span>
+            <span class="display text-xl sm:text-2xl ml-3">Pós-Lentes e Acompanhamento</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Como evitar retrabalho e aumentar longevidade</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Procedimentos pós-lentes</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Sensibilidade</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Ajustes pós cimentação</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Cuidados do paciente</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Manutenção</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como aumentar durabilidade clínica</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">07</span>
+            <span class="display text-xl sm:text-2xl ml-3">Marketing Pra Dentistas</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Como atrair pacientes premium pelo Instagram</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Investimento x lucro</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Posicionamento digital</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>O segredo pra crescer no Instagram</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Conteúdo que gera autoridade</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Fotografias que vendem</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Conteúdo viciante</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como gravar vídeos</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Tráfego pago</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como vender tratamentos high ticket</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como apresentar orçamento sem perder pacientes</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">08</span>
+            <span class="display text-xl sm:text-2xl ml-3">Documentação e Segurança Jurídica</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Como se proteger na odontologia estética</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como evitar processos</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Contratos odontológicos</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Direitos e deveres</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Uso de imagem</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Sensibilidade e pós-operatório</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Consentimentos</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Segurança clínica e jurídica</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">09</span>
+            <span class="display text-xl sm:text-2xl ml-3">Fotografia Odontológica</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Como fazer imagens que valorizam seu trabalho</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Equipamentos</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Configuração de câmera</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Canon T7</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Iluminação</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Edição de fotos</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Antes e depois profissional</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Fotos pra Instagram e portfólio</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">10</span>
+            <span class="display text-xl sm:text-2xl ml-3">Mentalidade e Crescimento Financeiro</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Como transformar odontologia estética em carreira lucrativa</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <ul class="mt-5 ml-9 space-y-2 text-base">
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Minha trajetória</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Construção de autoridade</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Estoicismo na odontologia</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Mindset profissional</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Quanto cobrar</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Como enriquecer na odontologia estética</li>
+          <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Escala clínica e crescimento</li>
+        </ul>
+      </details>
+
+      <details class="bg-bege border border-petroleo/15 rounded-xl p-6 lift">
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num">11</span>
+            <span class="display text-xl sm:text-2xl ml-3">Casos Clínicos Completos</span>
+            <p class="text-sm opacity-70 mt-1 ml-9">Acompanhamento real paciente por paciente</p>
+          </div>
+          <span class="chev text-petroleo display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <div class="mt-5 ml-9 text-base space-y-4">
+          <p>Você acompanha casos completos do início ao fim:</p>
+          <ul class="space-y-2">
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Planejamento</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Preparos</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Moldagem</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Provisórios</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Provas</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Instalação</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Ajustes finais</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Acabamento estético</li>
+          </ul>
+          <p class="font-bold pt-2">Casos reais:</p>
+          <ul class="space-y-2">
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>BL1</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>BL2</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Retratamentos</li>
+            <li class="flex gap-3"><span class="text-petroleo mt-1">●</span>Diferentes anatomias e perfis estéticos</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="bg-floresta text-gelo border border-nude/20 rounded-xl p-6 lift" open>
+        <summary class="flex justify-between items-start gap-4">
+          <div>
+            <span class="mod-num" style="color:#d9b19a">12</span>
+            <span class="display text-xl sm:text-2xl ml-3 text-nude">Bônus Especiais</span>
+            <p class="text-sm opacity-75 mt-1 ml-9">3 bônus exclusivos pra ampliar seu repertório</p>
+          </div>
+          <span class="chev text-nude display text-3xl leading-none flex-shrink-0">+</span>
+        </summary>
+        <div class="mt-5 ml-9 text-base space-y-5">
+          <div>
+            <p class="font-bold text-nude">Bônus: Gengivoplastia</p>
+            <ul class="space-y-2 mt-2">
+              <li class="flex gap-3"><span class="text-nude mt-1">●</span>Gengivoplastia com bisturi elétrico</li>
+              <li class="flex gap-3"><span class="text-nude mt-1">●</span>Casos reais completos</li>
+            </ul>
+          </div>
+          <div>
+            <p class="font-bold text-nude">Bônus: Escaneamento</p>
+            <ul class="space-y-2 mt-2">
+              <li class="flex gap-3"><span class="text-nude mt-1">●</span>Introdução ao escaneamento intraoral</li>
+            </ul>
+          </div>
+          <div>
+            <p class="font-bold text-nude">Bônus Final</p>
+            <ul class="space-y-2 mt-2">
+              <li class="flex gap-3"><span class="text-nude mt-1">●</span>Encerramento</li>
+              <li class="flex gap-3"><span class="text-nude mt-1">●</span>Próximos passos</li>
+              <li class="flex gap-3"><span class="text-nude mt-1">●</span>Grupo de suporte</li>
+            </ul>
+          </div>
+        </div>
+      </details>
+
+    </div>
+
+    <div class="text-center mt-14">
+      <a href="https://wa.me/5531971092786?text=Vim%20da%20p%C3%A1gina%20do%20VLP%20%E2%80%94%20Viver%20de%20Lentes%20em%20Porcelana%2C%20tenho%20interesse%21"
+         target="_blank" rel="noopener"
+         class="cta cta-petroleo inline-flex items-center gap-3 px-10 py-4 text-lg font-bold tracking-wide">
+        Quero entrar pro VLP <span>→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Insight emocional -->
+<section class="insight py-28 sm:py-36">
+  <div class="max-w-4xl mx-auto px-5 text-center relative z-10">
+    <p class="display italic text-3xl sm:text-5xl leading-[1.18]">
+      Aprenda o método clínico e estratégico que transformou as lentes em porcelana em uma <span class="not-italic font-semibold text-vinho">carreira altamente lucrativa</span> e respeitada.
+    </p>
+    <p class="mt-12 text-xs uppercase tracking-[.32em] text-petroleo font-bold">— Dra. Juliana Pereira</p>
+  </div>
+</section>
+
+<!-- Investimento -->
+<section id="investimento" class="py-20 sm:py-28 bg-floresta text-gelo">
+  <div class="max-w-3xl mx-auto px-5 text-center">
+    <div class="eyebrow on-dark center mb-6"><span>Investimento</span></div>
+    <h2 class="display text-3xl sm:text-5xl leading-[1.1] mb-3">
+      Em <em>1 caso premium</em> você já recupera o curso
+    </h2>
+    <p class="lead opacity-85 mb-10">Tratamentos em porcelana são high ticket. O investimento no VLP é diluído no primeiro paciente que você fechar com o método.</p>
+
+    <div class="price-card text-floresta rounded-2xl p-9 sm:p-14 w-full">
+      <span class="ribbon mb-6">Turma em formação</span>
+      <p class="display text-3xl sm:text-4xl leading-tight mt-5 mb-3">Condições e valor<br><em>liberados via WhatsApp</em></p>
+      <p class="text-base opacity-70">Fale com a equipe pra entrar na lista e receber as condições especiais de abertura.</p>
+      <a href="https://wa.me/5531971092786?text=Vim%20da%20p%C3%A1gina%20do%20VLP%20%E2%80%94%20Viver%20de%20Lentes%20em%20Porcelana%2C%20quero%20saber%20as%20condi%C3%A7%C3%B5es%21"
+         target="_blank" rel="noopener"
+         class="cta cta-vinho mt-8 inline-flex items-center gap-3 px-10 py-4 text-lg font-bold tracking-wide">
+        Quero as condições <span>→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- Plataforma -->
+<section class="py-20 sm:py-28 bg-gelo">
+  <div class="max-w-4xl mx-auto px-5">
+    <div class="text-center mb-12">
+      <div class="eyebrow center mb-6"><span>Plataforma</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.08]">
+        Assista <em>onde estiver</em>, no seu ritmo, no nosso aplicativo
+      </h2>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-10 max-w-3xl mx-auto">
+      <div class="text-center p-6 bg-bege rounded-xl border border-petroleo/15 lift">
+        <p class="display text-3xl text-petroleo">↓</p>
+        <p class="font-bold mt-2">Download das aulas</p>
+      </div>
+      <div class="text-center p-6 bg-bege rounded-xl border border-petroleo/15 lift">
+        <p class="display text-3xl text-petroleo">▮▯</p>
+        <p class="font-bold mt-2">iOS e Android</p>
+      </div>
+      <div class="text-center p-6 bg-bege rounded-xl border border-petroleo/15 lift">
+        <p class="display text-3xl text-petroleo">♫</p>
+        <p class="font-bold mt-2">Reprodução em segundo plano</p>
+      </div>
+      <div class="text-center p-6 bg-bege rounded-xl border border-petroleo/15 lift">
+        <p class="display text-3xl text-petroleo">▭</p>
+        <p class="font-bold mt-2">Reprodução na TV</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Bio Ju -->
+<section class="py-20 sm:py-28 bg-floresta text-gelo">
+  <div class="max-w-6xl mx-auto px-5 grid md:grid-cols-[1fr_1.3fr] gap-14 items-center">
+    <div>
+      <figure class="relative aspect-[3/4] frame">
+        <img src="/lp/juliana/vlp-por-dentro-v2/assets/img/juliana-bio.jpg" alt="Dra. Juliana Pereira" class="w-full h-full object-cover" loading="lazy">
+        <div class="absolute inset-0 bg-gradient-to-t from-floresta/55 via-transparent to-transparent"></div>
+        <figcaption class="absolute left-6 bottom-6 right-6 text-gelo z-10">
+          <p class="display text-xs uppercase tracking-[.28em] text-nude">Dra. Juliana Pereira</p>
+        </figcaption>
+      </figure>
+    </div>
+    <div>
+      <div class="eyebrow on-dark mb-7"><span>Quem te ensina</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.05] mb-7">Dra. Juliana Pereira</h2>
+      <div class="space-y-5 lead opacity-90">
+        <p>Dentista, empresária e referência em estética dental no Brasil. Frequentemente convidada a palestrar no <strong>CIOSP</strong> — o maior congresso odontológico da América Latina — e em diversos cursos presenciais. Ensina com abordagem prática, baseada em clínica real.</p>
+        <p>Construiu uma carreira altamente lucrativa em estética dental e agora ensina o método que transformou <strong>porcelana</strong> em um dos principais canais de faturamento da clínica.</p>
+      </div>
+      <div class="grid grid-cols-3 gap-5 mt-12 pt-10 border-t border-nude/20">
+        <div>
+          <p class="display text-4xl sm:text-5xl text-nude leading-none">12</p>
+          <p class="text-[11px] uppercase tracking-[.2em] opacity-75 mt-2">Módulos completos</p>
+        </div>
+        <div>
+          <p class="display text-4xl sm:text-5xl text-nude leading-none">CIOSP</p>
+          <p class="text-[11px] uppercase tracking-[.2em] opacity-75 mt-2">Palestrante oficial</p>
+        </div>
+        <div>
+          <p class="display text-4xl sm:text-5xl text-nude leading-none">4</p>
+          <p class="text-[11px] uppercase tracking-[.2em] opacity-75 mt-2">Casos documentados</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Garantia -->
+<section class="py-20 sm:py-24 bg-gelo">
+  <div class="max-w-3xl mx-auto px-5 text-center">
+    <div class="inline-flex items-center justify-center w-24 h-24 rounded-full bg-floresta text-nude display text-4xl mb-7 font-medium">7</div>
+    <h2 class="display text-4xl sm:text-6xl leading-[1.08] mb-5"><em>7 dias</em> de garantia</h2>
+    <p class="lead opacity-85 max-w-2xl mx-auto">
+      Assinando agora, você terá acesso ao conteúdo completo do VLP. Se em 7 dias assistindo às aulas você não gostar, devolvemos todo o seu dinheiro de forma simples e segura.
+    </p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="py-20 sm:py-28 bg-floresta text-gelo">
+  <div class="max-w-3xl mx-auto px-5">
+    <div class="text-center mb-14">
+      <div class="eyebrow on-dark center mb-6"><span>FAQ</span></div>
+      <h2 class="display text-4xl sm:text-6xl leading-[1.08]">Perguntas frequentes</h2>
+    </div>
+    <div class="space-y-3">
+      <details class="bg-gelo/5 border border-nude/15 rounded-xl p-6">
+        <summary class="flex justify-between items-center font-bold text-lg gap-4">
+          <span>Quais as formas de pagamento?</span>
+          <span class="chev text-nude display text-2xl">+</span>
+        </summary>
+        <p class="mt-4 opacity-85">Cartão de crédito e Pix. As condições especiais de abertura de turma são passadas via WhatsApp da equipe.</p>
+      </details>
+      <details class="bg-gelo/5 border border-nude/15 rounded-xl p-6">
+        <summary class="flex justify-between items-center font-bold text-lg gap-4">
+          <span>Há possibilidade de cancelamento?</span>
+          <span class="chev text-nude display text-2xl">+</span>
+        </summary>
+        <p class="mt-4 opacity-85">Nos primeiros 7 (sete) dias após a compra, você poderá cancelar sua inscrição e receber o dinheiro de volta.</p>
+      </details>
+      <details class="bg-gelo/5 border border-nude/15 rounded-xl p-6">
+        <summary class="flex justify-between items-center font-bold text-lg gap-4">
+          <span>Sou iniciante. Vou conseguir acompanhar?</span>
+          <span class="chev text-nude display text-2xl">+</span>
+        </summary>
+        <p class="mt-4 opacity-85">Sim. O VLP foi desenhado pra te levar do básico ao avançado. Você começa pela mentalidade e visão do mercado e vai até casos premium completos, com treino em manequim antes da clínica.</p>
+      </details>
+      <details class="bg-gelo/5 border border-nude/15 rounded-xl p-6">
+        <summary class="flex justify-between items-center font-bold text-lg gap-4">
+          <span>Já trabalho com porcelana. Vale a pena?</span>
+          <span class="chev text-nude display text-2xl">+</span>
+        </summary>
+        <p class="mt-4 opacity-85">Vale. O VLP foca em método pra cobrar high ticket, casos completos paciente por paciente, comunicação com laboratório e marketing pra atrair pacientes premium — o que separa quem cobra bem de quem fica refém de orçamento.</p>
+      </details>
+      <details class="bg-gelo/5 border border-nude/15 rounded-xl p-6">
+        <summary class="flex justify-between items-center font-bold text-lg gap-4">
+          <span>Posso dividir com mais pessoas?</span>
+          <span class="chev text-nude display text-2xl">+</span>
+        </summary>
+        <p class="mt-4 opacity-85">O acesso é individual. Outras pessoas precisam adquirir o próprio curso caso desejem participar.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- Última chamada -->
+<section class="py-24 bg-gelo text-center">
+  <div class="max-w-3xl mx-auto px-5">
+    <div class="eyebrow center mb-7"><span>Última chamada</span></div>
+    <h2 class="display text-4xl sm:text-6xl leading-[1.08] mb-8">Pronta pra <em>viver de lentes em porcelana</em>?</h2>
+    <a href="https://wa.me/5531971092786?text=Vim%20da%20p%C3%A1gina%20do%20VLP%20%E2%80%94%20Viver%20de%20Lentes%20em%20Porcelana%2C%20tenho%20interesse%21"
+       target="_blank" rel="noopener"
+       class="cta cta-vinho inline-flex items-center gap-3 px-12 py-5 text-lg font-bold tracking-wide">
+      Quero entrar pro VLP <span>→</span>
+    </a>
+    <p class="text-xs uppercase tracking-[.28em] opacity-65 mt-6">12 módulos · Casos premium · 7 dias de garantia</p>
+  </div>
+</section>
+
+<!-- Suporte -->
+<section class="py-12 bg-bege border-t border-petroleo/15">
+  <div class="max-w-3xl mx-auto px-5 text-center">
+    <p class="opacity-75 mb-4">Pra dúvidas, fale com nosso suporte:</p>
+    <a href="https://wa.me/5538997491880" target="_blank" rel="noopener"
+       class="cta cta-petroleo inline-block px-8 py-3 font-bold tracking-wide">
+      Falar com suporte no WhatsApp
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="bg-floresta text-gelo/65 py-9">
+  <div class="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
+    <div class="flex items-center gap-3">
+      <span class="wordmark text-nude text-xl">VLP</span>
+      <p>© 2026 Viver de Lentes em Porcelana — Todos os direitos reservados</p>
+    </div>
+    <div class="flex gap-5">
+      <a href="https://instagram.com/drajuliana.pereira" target="_blank" rel="noopener" class="hover:text-nude transition">Instagram</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
