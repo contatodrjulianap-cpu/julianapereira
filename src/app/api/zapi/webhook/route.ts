@@ -85,9 +85,12 @@ async function parseAndStoreMedia(
     if (!resp.ok) throw new Error(`download HTTP ${resp.status}`);
     const buffer = await resp.arrayBuffer();
     const path = `${leadId}/${randomUUID()}.${ext}`;
+    // Normaliza mimeType: Z-API entrega "audio/ogg; codecs=opus" e o bucket
+    // tem allowlist exata — strip de qualquer "; ..." pra bater no allowlist.
+    const cleanMimeType = mimeType.split(";")[0].trim();
     const { error: upErr } = await admin.storage
       .from("wa-media")
-      .upload(path, buffer, { contentType: mimeType, upsert: false });
+      .upload(path, buffer, { contentType: cleanMimeType, upsert: false });
     if (upErr) throw upErr;
     return { text: label, media_url: path, media_type: mediaType };
   } catch (e) {
