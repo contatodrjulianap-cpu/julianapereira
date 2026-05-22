@@ -31,7 +31,9 @@ async function parseAndStoreMedia(
     mediaType = "image";
     mimeType = payload.image.mimeType ?? "image/jpeg";
     ext = "jpg";
-    label = payload.image.caption ?? null;
+    // caption vem "" (string vazia) do Z-API quando não tem legenda — `??`
+    // não cobre isso, precisa de `||` pra cair no fallback "[imagem]".
+    label = payload.image.caption || "[imagem]";
   } else if (payload.audio?.audioUrl) {
     url = payload.audio.audioUrl;
     mediaType = "audio";
@@ -43,7 +45,7 @@ async function parseAndStoreMedia(
     mediaType = "video";
     mimeType = payload.video.mimeType ?? "video/mp4";
     ext = "mp4";
-    label = payload.video.caption ?? "[vídeo]";
+    label = payload.video.caption || "[vídeo]";
   } else if (payload.document?.documentUrl) {
     url = payload.document.documentUrl;
     mediaType = "document";
@@ -52,7 +54,7 @@ async function parseAndStoreMedia(
     ext =
       fileName?.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 8) ||
       "bin";
-    label = fileName ?? "[documento]";
+    label = fileName || "[documento]";
   } else if (payload.sticker?.stickerUrl) {
     url = payload.sticker.stickerUrl;
     mediaType = "image";
@@ -100,7 +102,7 @@ async function parseAndStoreMedia(
       error: msg,
     });
     return {
-      text: label ?? `[${mediaType} — falha download]`,
+      text: label || `[${mediaType} — falha download]`,
       media_url: null,
       media_type: null,
     };
