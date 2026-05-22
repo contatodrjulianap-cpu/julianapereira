@@ -221,6 +221,26 @@ export async function POST(req: NextRequest) {
     .select()
     .single();
 
+  // Para leads @lid (privacidade do WhatsApp esconde o phone real), o
+  // senderName em payload.fromMe=true é a atendente, não o destinatário.
+  // Extrai nome do texto inicial ("Oii Sandra" → Sandra) se lead sem nome.
+  if (isOutboundEcho && lead && !lead.name && payload.text?.message) {
+    const m = payload.text.message.match(
+      /^(?:oi+|ol[áa]+|bom\s+dia|boa\s+tarde|boa\s+noite)[,\s!]+([A-Za-zÁ-Úá-ú]{2,30})\b/i,
+    );
+    const candidate = m?.[1];
+    const DENY = new Set([
+      "tudo", "bom", "boa", "amor", "linda", "querida", "querido",
+      "amiga", "amigo", "bem", "sim", "nao", "não", "ola", "olá",
+      "oi", "mae", "mãe", "pai", "doutora", "doutor", "dra", "dr",
+      "sou", "aqui", "eu", "como", "vamos", "voce", "você", "vc",
+    ]);
+    if (candidate && !DENY.has(candidate.toLowerCase())) {
+      const name = candidate[0].toUpperCase() + candidate.slice(1).toLowerCase();
+      await supabase.from("leads").update({ name }).eq("id", lead.id);
+    }
+  }
+
   // Sticky attribution: só seta assigned_owner_id/wa_number_id se lead ainda
   // não tem owner. Preserva atribuição vinda do quiz (claim_lead_for_wa) e
   // de leads que já trocaram mensagem antes.

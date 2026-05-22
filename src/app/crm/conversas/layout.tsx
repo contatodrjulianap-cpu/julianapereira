@@ -34,11 +34,13 @@ export default async function ConversasLayout({
     attendants = users ?? [];
   }
 
+  // Admin (Ju + Lucas) precisa ver tudo — atendente só vê os dela (limit 200
+  // é suficiente porque cada uma tem subset por assigned_owner_id).
   let leadsQuery = supabase
     .from("leads")
     .select("*")
     .order("last_message_at", { ascending: false, nullsFirst: false })
-    .limit(200);
+    .limit(isAdmin ? 2000 : 200);
   if (!isAdmin) leadsQuery = leadsQuery.eq("assigned_owner_id", user.id);
   const { data: leadsRaw } = await leadsQuery;
   const leads = (leadsRaw ?? []) as LeadFull[];
