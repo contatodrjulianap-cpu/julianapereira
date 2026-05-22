@@ -216,19 +216,33 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parseAndStoreMedia(payload, lead.id, supabase);
 
-  const { error: msgErr } = await supabase.from("messages").upsert(
-    {
-      lead_id: lead.id,
+  // INSERT simples — supabase-js não aceita onConflict em UNIQUE partial,
+  // então tratamos manualmente: erro 23505 (unique violation) = eco duplicado
+  // de uma msg que CRM /send já gravou primeiro, ignora silenciosamente.
+  const { error: msgErr } = await supabase.from("messages").insert({
+    lead_id: lead.id,
+    direction: isOutboundEcho ? "outbound" : "inbound",
+    text: parsed.text,
+    media_url: parsed.media_url,
+    media_type: parsed.media_type,
+    raw: payload as unknown as Record<string, unknown>,
+    zapi_message_id: payload.messageId ?? null,
+    sent_by: null,
+  });
+
+  if (msgErr && (msgErr as { code?: string }).code === "23505") {
+    await logEvent({
+      type: "zapi_webhook",
       direction: isOutboundEcho ? "outbound" : "inbound",
-      text: parsed.text,
-      media_url: parsed.media_url,
-      media_type: parsed.media_type,
-      raw: payload as unknown as Record<string, unknown>,
-      zapi_message_id: payload.messageId ?? null,
-      sent_by: null,
-    },
-    { onConflict: "zapi_message_id", ignoreDuplicates: true },
-  );
+      target: "zapi",
+      lead_id: lead.id,
+      status: "skipped",
+      payload,
+      error: "duplicate zapi_message_id (já gravado via /send)",
+      duration_ms: Date.now() - start,
+    });
+    return NextResponse.json({ ok: true, lead_id: lead.id, deduped: true });
+  }
 
   if (msgErr) {
     await logEvent({
