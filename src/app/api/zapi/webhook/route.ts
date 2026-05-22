@@ -128,19 +128,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ignored: payload.type });
   }
 
-  // Ignora mensagens enviadas pela própria conta (echo)
-  if (payload.fromMe) {
-    await logEvent({
-      type: "zapi_webhook",
-      direction: "inbound",
-      target: "zapi",
-      status: "skipped",
-      payload,
-      error: "fromMe=true",
-      duration_ms: Date.now() - start,
-    });
-    return NextResponse.json({ ignored: "fromMe" });
-  }
+  // fromMe=true = eco de resposta enviada pela própria atendente. Grava como
+  // outbound com sent_by=null (= "veio do celular"). Quando o CRM /api/zapi/send
+  // já gravou a mensagem primeiro, o UNIQUE em zapi_message_id deduplica e o
+  // eco é ignorado silenciosamente.
+  const isOutboundEcho = payload.fromMe === true;
 
   // Ignora grupos por enquanto
   if (payload.isGroup) {
@@ -178,17 +170,20 @@ export async function POST(req: NextRequest) {
     ? await ownerForInstance(payload.instanceId)
     : null;
 
+  // No echo outbound (fromMe=true), senderName/senderPhoto vêm da atendente,
+  // não do lead — então não sobrescreve name/avatar do lead nesse caso.
+  const leadUpsertPayload: Record<string, unknown> = {
+    phone,
+    last_message_at: new Date().toISOString(),
+  };
+  if (!isOutboundEcho) {
+    leadUpsertPayload.name = payload.senderName ?? null;
+    leadUpsertPayload.avatar_url = payload.senderPhoto ?? null;
+  }
+
   const { data: lead, error: leadErr } = await supabase
     .from("leads")
-    .upsert(
-      {
-        phone,
-        name: payload.senderName ?? null,
-        avatar_url: payload.senderPhoto ?? null,
-        last_message_at: new Date().toISOString(),
-      },
-      { onConflict: "phone" },
-    )
+    .upsert(leadUpsertPayload, { onConflict: "phone" })
     .select()
     .single();
 
@@ -221,15 +216,19 @@ export async function POST(req: NextRequest) {
 
   const parsed = await parseAndStoreMedia(payload, lead.id, supabase);
 
-  const { error: msgErr } = await supabase.from("messages").insert({
-    lead_id: lead.id,
-    direction: "inbound",
-    text: parsed.text,
-    media_url: parsed.media_url,
-    media_type: parsed.media_type,
-    raw: payload as unknown as Record<string, unknown>,
-    zapi_message_id: payload.messageId ?? null,
-  });
+  const { error: msgErr } = await supabase.from("messages").upsert(
+    {
+      lead_id: lead.id,
+      direction: isOutboundEcho ? "outbound" : "inbound",
+      text: parsed.text,
+      media_url: parsed.media_url,
+      media_type: parsed.media_type,
+      raw: payload as unknown as Record<string, unknown>,
+      zapi_message_id: payload.messageId ?? null,
+      sent_by: null,
+    },
+    { onConflict: "zapi_message_id", ignoreDuplicates: true },
+  );
 
   if (msgErr) {
     await logEvent({
@@ -247,7 +246,7 @@ export async function POST(req: NextRequest) {
 
   await logEvent({
     type: "zapi_webhook",
-    direction: "inbound",
+    direction: isOutboundEcho ? "outbound" : "inbound",
     target: "zapi",
     lead_id: lead.id,
     status: "success",
@@ -255,7 +254,7 @@ export async function POST(req: NextRequest) {
     duration_ms: Date.now() - start,
   });
 
-  return NextResponse.json({ ok: true, lead_id: lead.id });
+  return NextResponse.json({ ok: true, lead_id: lead.id, fromMe: isOutboundEcho });
 }
 
 export async function GET() {
