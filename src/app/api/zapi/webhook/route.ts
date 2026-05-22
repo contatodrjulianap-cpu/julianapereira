@@ -68,6 +68,12 @@ async function parseAndStoreMedia(
     };
   } else if (payload.location) {
     return { text: "[localização]", media_url: null, media_type: null };
+  } else if ((payload as { order?: { products?: Array<{ name?: string }> } }).order) {
+    const order = (payload as { order: { products?: Array<{ name?: string }>; total?: number } }).order;
+    const products = order.products ?? [];
+    const names = products.map((p) => p.name).filter(Boolean).join(", ");
+    const label = names ? `[catálogo: ${names}]` : "[catálogo]";
+    return { text: label, media_url: null, media_type: null };
   } else {
     return { text: "[mídia sem conteúdo]", media_url: null, media_type: null };
   }
@@ -126,6 +132,29 @@ export async function POST(req: NextRequest) {
       duration_ms: Date.now() - start,
     });
     return NextResponse.json({ ignored: payload.type });
+  }
+
+  // Z-API às vezes manda eventos NÃO-mensagem com type=ReceivedCallback:
+  // - Chamada recebida: payload tem `callId` no top level (mesmo que null)
+  // - Reaction (❤️/👍): payload tem `reaction` (objeto com value, time, etc)
+  // Esses não são mensagem nem mídia — não devem virar row em `messages`.
+  const isCallEvent =
+    "callId" in (payload as Record<string, unknown>) ||
+    "expiresAt" in (payload as Record<string, unknown>);
+  const isReaction = Boolean((payload as { reaction?: unknown }).reaction);
+  if (isCallEvent || isReaction) {
+    await logEvent({
+      type: "zapi_webhook",
+      direction: "inbound",
+      target: "zapi",
+      status: "skipped",
+      payload,
+      error: isCallEvent ? "call_event" : "reaction",
+      duration_ms: Date.now() - start,
+    });
+    return NextResponse.json({
+      ignored: isCallEvent ? "call_event" : "reaction",
+    });
   }
 
   // fromMe=true = eco de resposta enviada pela própria atendente. Grava como
