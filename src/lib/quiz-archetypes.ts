@@ -7,6 +7,25 @@
 
 export type Archetype = "PRONTA" | "ESPERANCOSA" | "CETICA";
 export type Geo = "SP" | "BR" | "INTL";
+export type Variant = "resina" | "porcelana";
+
+export const VARIANTS = ["resina", "porcelana"] as const;
+
+export function isVariant(v: string): v is Variant {
+  return (VARIANTS as readonly string[]).includes(v);
+}
+
+// Ancoragem de preço do Q8 — vem da tabela oferta-resina-porcelana.md
+// (implementacao-full-sales/fase-1). Range = piso PIX → valor cheio.
+export const PRICE_ANCHOR: Record<Variant, { min: string; max: string }> = {
+  resina: { min: "R$ 17.500,00", max: "R$ 25.000,00" },
+  porcelana: { min: "R$ 25.000,00", max: "R$ 33.000,00" },
+};
+
+export const VARIANT_LABEL: Record<Variant, string> = {
+  resina: "lentes de resina",
+  porcelana: "lentes de porcelana",
+};
 
 // QuestionKey é string runtime-loaded da config DB.
 // Hardcoded são os 8 keys canônicos (q1_caso, q2_urgencia_emocional, ...) mas
@@ -124,7 +143,8 @@ export const QUESTIONS: Question[] = [
   {
     key: "q8_orcamento",
     num: 8,
-    title: "O tratamento das lentes com a Dra. Juliana vai de R$ 8.000,00 a R$ 60.000,00. Cabe no seu orçamento atual?",
+    // Title genérico (sem preço). Cada variant injeta sua faixa via getQuestionsFor().
+    title: "Cabe no seu orçamento atual?",
     subtitle:
       "Honestidade total — direciona o atendimento certo, sem pressão.",
     options: [
@@ -135,6 +155,24 @@ export const QUESTIONS: Question[] = [
     ],
   },
 ];
+
+// ====================================================
+// Per-variant question overrides
+// Q8 é a única pergunta que muda entre resina e porcelana (ancoragem de preço).
+// Builder pode sobrescrever via DB; aqui ficam os defaults hardcoded.
+// ====================================================
+
+export function getQuestionsFor(variant: Variant): Question[] {
+  const anchor = PRICE_ANCHOR[variant];
+  const variantLabel = VARIANT_LABEL[variant];
+  return QUESTIONS.map((q) => {
+    if (q.key !== "q8_orcamento") return q;
+    return {
+      ...q,
+      title: `O tratamento de ${variantLabel} com a Dra. Juliana vai de ${anchor.min} a ${anchor.max}. Cabe no seu orçamento atual?`,
+    };
+  });
+}
 
 // ====================================================
 // Score → Bucket
@@ -211,15 +249,17 @@ export function scoreAnswers(
 export function whatsappMessageFor(
   archetype: Archetype,
   firstName: string,
+  variant?: Variant,
 ): string {
   const nome = firstName.trim() || "tudo bem";
+  const plano = variant ? ` (Plano ${variant === "resina" ? "Resina" : "Porcelana"})` : "";
   switch (archetype) {
     case "PRONTA":
-      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas e quero marcar uma avaliação com a equipe da Dra. Juliana ainda essa semana. Que horários têm?`;
+      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas${plano} e quero marcar uma avaliação com a equipe da Dra. Juliana ainda essa semana. Que horários têm?`;
     case "ESPERANCOSA":
-      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas do quiz da Dra. Juliana. Tenho interesse em fazer mas queria entender como funciona a avaliação e as opções de parcelamento antes. Pode me explicar?`;
+      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas do quiz da Dra. Juliana${plano}. Tenho interesse em fazer mas queria entender como funciona a avaliação e as opções de parcelamento antes. Pode me explicar?`;
     case "CETICA":
-      return `Oi! Sou a/o ${nome}, fiz o quiz da Dra. Juliana e quero conversar sobre minhas dúvidas antes de qualquer decisão.`;
+      return `Oi! Sou a/o ${nome}, fiz o quiz da Dra. Juliana${plano} e quero conversar sobre minhas dúvidas antes de qualquer decisão.`;
   }
 }
 

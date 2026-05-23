@@ -1,8 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { QuizConfig } from "@/lib/quiz-config";
-import type { Question, QuizOption, Archetype, Geo } from "@/lib/quiz-archetypes";
+import type { Question, QuizOption, Archetype, Geo, Variant } from "@/lib/quiz-archetypes";
+
+const VARIANT_TABS: { value: Variant; label: string }[] = [
+  { value: "resina", label: "🩷 Plano Resina" },
+  { value: "porcelana", label: "🤍 Plano Porcelana" },
+];
 
 const ARCH_LABEL: Record<Archetype, string> = {
   PRONTA: "🔥 Pronta",
@@ -16,7 +22,14 @@ const TONE_OPTIONS: { value: "rose" | "cream" | "cocoa"; label: string }[] = [
   { value: "cocoa", label: "🟫 Cocoa" },
 ];
 
-export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
+export function BuilderView({
+  initialConfig,
+  variant,
+}: {
+  initialConfig: QuizConfig;
+  variant: Variant;
+}) {
+  const router = useRouter();
   const [config, setConfig] = useState<QuizConfig>(initialConfig);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +102,7 @@ export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch("/api/quiz/config", {
+      const res = await fetch(`/api/quiz/config?variant=${variant}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
@@ -117,13 +130,27 @@ export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
     setError(null);
   }
 
+  function switchVariant(target: Variant) {
+    if (target === variant) return;
+    if (
+      dirty &&
+      !confirm(
+        "Você tem mudanças não salvas nessa variante. Trocar agora descarta. Continuar?",
+      )
+    ) {
+      return;
+    }
+    // Navega — page.tsx (force-dynamic) recarrega config da variant nova do DB
+    router.push(`/crm/builder?variant=${target}`);
+  }
+
   return (
     <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-6 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Construtor do Quiz</h2>
           <p className="text-sm text-slate-500">
-            {config.questions.length} perguntas · 3 telas de resultado · live em /quiz após salvar
+            {config.questions.length} perguntas · 3 telas de resultado · live em /quiz/{variant} após salvar
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -151,7 +178,7 @@ export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
             {saving ? "Salvando..." : "💾 Salvar"}
           </button>
           <a
-            href="/quiz"
+            href={`/quiz/${variant}`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-2 text-sm rounded-md border border-slate-200 hover:border-slate-400"
@@ -159,6 +186,30 @@ export function BuilderView({ initialConfig }: { initialConfig: QuizConfig }) {
             👁 Preview
           </a>
         </div>
+      </div>
+
+      {/* Tabs de variant */}
+      <div className="flex items-center gap-1 mb-5 border-b border-slate-200">
+        {VARIANT_TABS.map((t) => {
+          const active = t.value === variant;
+          return (
+            <button
+              key={t.value}
+              onClick={() => switchVariant(t.value)}
+              className={
+                "px-4 py-2 text-sm font-medium -mb-px border-b-2 transition " +
+                (active
+                  ? "border-rose-500 text-rose-700"
+                  : "border-transparent text-slate-500 hover:text-slate-900")
+              }
+            >
+              {t.label}
+            </button>
+          );
+        })}
+        <span className="ml-auto text-[11px] text-slate-400">
+          Cada variant tem config própria no DB · salvar afeta só /quiz/{variant}
+        </span>
       </div>
 
       {error && (
@@ -569,6 +620,7 @@ const DEFAULT_COVER: NonNullable<QuizConfig["cover"]> = {
     "A equipe da Dra. Juliana lê suas respostas, vê se faz sentido pro nosso protocolo e te chama no WhatsApp pra agendar a avaliação.",
   cta_label: "Começar →",
   legal: "Suas respostas são tratadas com sigilo (LGPD).",
+  image_path: undefined,
 };
 
 const DEFAULT_COMMITMENT: NonNullable<QuizConfig["commitment"]> = {
@@ -664,6 +716,14 @@ function CoverEditor({
               />
             </Field>
           </div>
+          <Field label="Caminho da imagem (em /public, ex: /quiz/case-resina.jpg)">
+            <input
+              value={c.image_path ?? ""}
+              onChange={(e) => onChange({ image_path: e.target.value || undefined })}
+              placeholder="/quiz/case-resina.jpg"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md font-mono"
+            />
+          </Field>
         </div>
       )}
     </section>

@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import {
-  QUESTIONS as HARDCODED_QUESTIONS,
+  getQuestionsFor,
   RESULT_COPY as HARDCODED_RESULTS,
   INSTAGRAM_URL,
+  PRICE_ANCHOR,
+  VARIANT_LABEL,
   type Archetype,
   type Question,
+  type Variant,
 } from "./quiz-archetypes";
 
 const GeoEnum = z.enum(["SP", "BR", "INTL"]);
@@ -58,6 +61,7 @@ const CoverSchema = z.object({
   subtitle2: z.string().optional(),
   cta_label: z.string().min(1),
   legal: z.string().min(1),
+  image_path: z.string().optional(),
 });
 
 const CommitmentSchema = z.object({
@@ -85,84 +89,94 @@ export const QuizConfigSchema = z.object({
 
 export type QuizConfig = z.infer<typeof QuizConfigSchema>;
 
-// Default a partir do hardcoded em quiz-archetypes.ts
-export const DEFAULT_CONFIG: QuizConfig = {
-  cover: {
-    badge: "Avaliação · 3 min",
-    headline: "Responda esse questionário rápido,",
-    headline_highlight: "para iniciar a sua avaliação",
-    subtitle1:
-      "Ao final, preenchendo os requisitos você será direcionado para o WhatsApp, para agendar.",
-    cta_label: "Começar →",
-    legal: "Suas respostas são tratadas com sigilo (LGPD).",
-  },
-  commitment: {
-    pre_title: "Antes de começar:",
-    body:
-      "Quanto mais honesta a resposta, melhor a equipe consegue te receber. Não tem resposta certa nem errada — só direciona o atendimento.",
-    question: "Topa responder com sinceridade?",
-    yes_label: "Topo, vamos",
-    no_label: "Ainda não tenho certeza",
-  },
-  questions: HARDCODED_QUESTIONS as Question[],
-  results: {
-    PRONTA: {
-      badge: HARDCODED_RESULTS.PRONTA.badge,
-      title: HARDCODED_RESULTS.PRONTA.title,
-      description: HARDCODED_RESULTS.PRONTA.description,
-      ctaLabel: HARDCODED_RESULTS.PRONTA.ctaPrimary.label,
-      tone: HARDCODED_RESULTS.PRONTA.tone,
+// Default por variant — Q8 já vem com preço da variant, cover aponta pra
+// imagem específica (`/quiz/case-<variant>.jpg`), headline menciona o material.
+export function DEFAULT_CONFIG_FOR(variant: Variant): QuizConfig {
+  const planoLabel = variant === "resina" ? "Resina" : "Porcelana";
+  const matLabel = VARIANT_LABEL[variant];
+  const anchor = PRICE_ANCHOR[variant];
+  return {
+    cover: {
+      badge: `Avaliação · Plano ${planoLabel}`,
+      headline: "Responda esse questionário rápido,",
+      headline_highlight: `para iniciar sua avaliação de ${matLabel}`,
+      subtitle1: `Ao final, preenchendo os requisitos você será direcionado pro WhatsApp pra agendar sua avaliação do Plano ${planoLabel} (${anchor.min} a ${anchor.max}).`,
+      cta_label: "Começar →",
+      legal: "Suas respostas são tratadas com sigilo (LGPD).",
+      image_path: `/quiz/img_${variant}.jpeg`,
     },
-    ESPERANCOSA: {
-      badge: HARDCODED_RESULTS.ESPERANCOSA.badge,
-      title: HARDCODED_RESULTS.ESPERANCOSA.title,
-      description: HARDCODED_RESULTS.ESPERANCOSA.description,
-      ctaLabel: HARDCODED_RESULTS.ESPERANCOSA.ctaPrimary.label,
-      tone: HARDCODED_RESULTS.ESPERANCOSA.tone,
+    commitment: {
+      pre_title: "Antes de começar:",
+      body:
+        "Quanto mais honesta a resposta, melhor a equipe consegue te receber. Não tem resposta certa nem errada — só direciona o atendimento.",
+      question: "Topa responder com sinceridade?",
+      yes_label: "Topo, vamos",
+      no_label: "Ainda não tenho certeza",
     },
-    CETICA: {
-      badge: HARDCODED_RESULTS.CETICA.badge,
-      title: HARDCODED_RESULTS.CETICA.title,
-      description: HARDCODED_RESULTS.CETICA.description,
-      ctaLabel: HARDCODED_RESULTS.CETICA.ctaPrimary.label,
-      tone: HARDCODED_RESULTS.CETICA.tone,
+    questions: getQuestionsFor(variant) as Question[],
+    results: {
+      PRONTA: {
+        badge: HARDCODED_RESULTS.PRONTA.badge,
+        title: HARDCODED_RESULTS.PRONTA.title,
+        description: HARDCODED_RESULTS.PRONTA.description,
+        ctaLabel: HARDCODED_RESULTS.PRONTA.ctaPrimary.label,
+        tone: HARDCODED_RESULTS.PRONTA.tone,
+      },
+      ESPERANCOSA: {
+        badge: HARDCODED_RESULTS.ESPERANCOSA.badge,
+        title: HARDCODED_RESULTS.ESPERANCOSA.title,
+        description: HARDCODED_RESULTS.ESPERANCOSA.description,
+        ctaLabel: HARDCODED_RESULTS.ESPERANCOSA.ctaPrimary.label,
+        tone: HARDCODED_RESULTS.ESPERANCOSA.tone,
+      },
+      CETICA: {
+        badge: HARDCODED_RESULTS.CETICA.badge,
+        title: HARDCODED_RESULTS.CETICA.title,
+        description: HARDCODED_RESULTS.CETICA.description,
+        ctaLabel: HARDCODED_RESULTS.CETICA.ctaPrimary.label,
+        tone: HARDCODED_RESULTS.CETICA.tone,
+      },
     },
-  },
-  instagram_url: INSTAGRAM_URL,
-};
+    instagram_url: INSTAGRAM_URL,
+  };
+}
 
 /**
- * Lê config do DB. Em caso de erro/ausência/parse fail, retorna DEFAULT_CONFIG.
- * Chamado tanto pelo /quiz (server) quanto pelo /crm/builder.
+ * Lê config do DB pra uma variant. Em caso de erro/ausência/parse fail,
+ * retorna DEFAULT_CONFIG_FOR(variant).
+ * Chamado tanto pelo /quiz/[variant] (server) quanto pelo /crm/builder.
  */
-export async function getQuizConfig(): Promise<QuizConfig> {
+export async function getQuizConfig(variant: Variant): Promise<QuizConfig> {
   try {
     const supabase = createServiceClient();
     const { data, error } = await supabase
       .from("quiz_config")
       .select("config")
-      .eq("id", "current")
+      .eq("id", variant)
       .maybeSingle();
 
     if (error) {
-      console.error("getQuizConfig db error", error);
-      return DEFAULT_CONFIG;
+      console.error("getQuizConfig db error", { variant, error });
+      return DEFAULT_CONFIG_FOR(variant);
     }
 
     if (!data?.config || Object.keys(data.config as object).length === 0) {
-      return DEFAULT_CONFIG;
+      return DEFAULT_CONFIG_FOR(variant);
     }
 
     const parsed = QuizConfigSchema.safeParse(data.config);
     if (!parsed.success) {
-      console.error("quiz_config invalid schema, fallback", parsed.error.issues);
-      return DEFAULT_CONFIG;
+      console.error("quiz_config invalid schema, fallback", {
+        variant,
+        issues: parsed.error.issues,
+      });
+      return DEFAULT_CONFIG_FOR(variant);
     }
     return parsed.data;
   } catch (e) {
-    console.error("getQuizConfig threw", e);
-    return DEFAULT_CONFIG;
+    console.error("getQuizConfig threw", { variant, e });
+    return DEFAULT_CONFIG_FOR(variant);
   }
 }
 
-export type { Archetype };
+export type { Archetype, Variant };

@@ -1,16 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { QuizConfigSchema, getQuizConfig } from "@/lib/quiz-config";
+import { isVariant } from "@/lib/quiz-archetypes";
 import { logEvent } from "@/lib/event-log";
 
-export async function GET() {
-  const cfg = await getQuizConfig();
+function parseVariant(req: NextRequest) {
+  const url = new URL(req.url);
+  const v = url.searchParams.get("variant") ?? "resina";
+  if (!isVariant(v)) return null;
+  return v;
+}
+
+export async function GET(req: NextRequest) {
+  const variant = parseVariant(req);
+  if (!variant) {
+    return NextResponse.json({ error: "invalid variant" }, { status: 400 });
+  }
+  const cfg = await getQuizConfig(variant);
   return NextResponse.json(cfg, {
     headers: { "Cache-Control": "no-store" },
   });
 }
 
 export async function PUT(req: NextRequest) {
+  const variant = parseVariant(req);
+  if (!variant) {
+    return NextResponse.json({ error: "invalid variant" }, { status: 400 });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -30,7 +47,7 @@ export async function PUT(req: NextRequest) {
 
   const service = createServiceClient();
   const { error } = await service.from("quiz_config").upsert({
-    id: "current",
+    id: variant,
     config: parsed.data,
     updated_by: user.email ?? user.id,
   });
@@ -45,6 +62,7 @@ export async function PUT(req: NextRequest) {
     target: "supabase",
     status: "success",
     payload: {
+      variant,
       questions_count: parsed.data.questions.length,
       updated_by: user.email,
     },

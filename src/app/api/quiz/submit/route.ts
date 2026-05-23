@@ -29,6 +29,7 @@ const Body = z.object({
   knockout: z.boolean().default(false),
   answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   selfie_path: z.string().nullable().optional(),
+  variant: z.enum(["resina", "porcelana"]),
   utm: UtmSchema,
 });
 
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
     knockout,
     answers,
     selfie_path,
+    variant,
     utm,
   } = parsed.data;
 
@@ -72,10 +74,12 @@ export async function POST(req: NextRequest) {
         case_type: case_type ?? null,
         archetype_scores: scores,
         quiz_answers: answers,
+        quiz_variant: variant,
         ...(selfie_path ? { selfie_url: selfie_path } : {}),
         tags: [
           `arch:${archetype}`,
           `geo:${geo}`,
+          `quiz:${variant}`,
           ...(knockout ? ["knockout"] : []),
           ...(utm?.utm_source ? [`utm:${utm.utm_source}`] : []),
         ],
@@ -102,7 +106,7 @@ export async function POST(req: NextRequest) {
     target: "internal",
     lead_id: lead.id,
     status: "success",
-    payload: { archetype, geo, case_type, knockout, scores },
+    payload: { archetype, geo, case_type, knockout, scores, variant },
   });
 
   // Greeting WhatsApp — config-driven via /crm/integrations.
@@ -164,6 +168,7 @@ export async function POST(req: NextRequest) {
               geo,
               case_type: case_type ?? "unknown",
               knockout,
+              variant,
               ...(utm ?? {}),
             },
           },

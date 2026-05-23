@@ -6,9 +6,12 @@ import {
   type AnswerValue,
   type Question,
   type ScoreResult,
+  type Variant,
 } from "@/lib/quiz-archetypes";
 import type { QuizConfig } from "@/lib/quiz-config";
 import { trackEvent, getUtm } from "@/lib/track";
+
+const DEFAULT_COVER_IMAGE = "/quiz/case-antes-depois.jpg";
 
 type Step =
   | { kind: "cover" }
@@ -32,7 +35,7 @@ function stepNameOf(s: Step): string | null {
   return null;
 }
 
-export function QuizFlow({ config }: { config: QuizConfig }) {
+export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Variant }) {
   const QUESTIONS = config.questions;
   const TOTAL_VISUAL_STEPS = 1 + QUESTIONS.length + 1;
 
@@ -41,9 +44,9 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
 
   // Pageview + initial step view (cover) on mount
   useEffect(() => {
-    trackEvent("quiz_pageview");
-    trackEvent("quiz_step_view", { step: "cover" });
-  }, []);
+    trackEvent("quiz_pageview", { variant });
+    trackEvent("quiz_step_view", { step: "cover", variant });
+  }, [variant]);
   const [answers, setAnswers] = useState<Record<string, AnswerValue>>({});
   const [lead, setLead] = useState<Lead>({
     name: "",
@@ -135,6 +138,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
           knockout: result.knockout,
           answers,
           selfie_path: selfiePath,
+          variant,
           utm,
         }),
       });
@@ -215,6 +219,7 @@ export function QuizFlow({ config }: { config: QuizConfig }) {
             leadPhone={lead.phone}
             leadId={step.leadId}
             config={config}
+            variant={variant}
           />
         )}
       </main>
@@ -339,11 +344,17 @@ function CoverScreen({
           style={{ border: "1px solid var(--sakura-hairline)" }}
         >
           <img
-            src="/quiz/case-antes-depois.jpg"
+            src={c.image_path ?? DEFAULT_COVER_IMAGE}
             alt="Antes e depois — paciente da Dra. Juliana Pereira"
             width={613}
             height={732}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback se a imagem específica da variant ainda não foi subida
+              const el = e.currentTarget;
+              if (el.src.endsWith(DEFAULT_COVER_IMAGE)) return;
+              el.src = DEFAULT_COVER_IMAGE;
+            }}
           />
         </div>
       </div>
@@ -766,12 +777,14 @@ function ResultScreen({
   leadPhone,
   leadId,
   config,
+  variant,
 }: {
   result: ScoreResult;
   firstName: string;
   leadPhone: string;
   leadId: string;
   config: QuizConfig;
+  variant: Variant;
 }) {
   const copy = config.results[result.archetype];
   const tone = copy.tone ?? "cream";
@@ -800,6 +813,7 @@ function ResultScreen({
       archetype: result.archetype,
       phone: leadPhone,
       fn: firstName,
+      variant,
     });
     fetch(`/api/quiz/wa-link?${params.toString()}`)
       .then((r) => r.json())
@@ -815,7 +829,7 @@ function ResultScreen({
     return () => {
       alive = false;
     };
-  }, [result.archetype, leadPhone, firstName]);
+  }, [result.archetype, leadPhone, firstName, variant]);
 
   return (
     <FadeUp className="flex-1 flex flex-col">
@@ -856,7 +870,7 @@ function ResultScreen({
           }
           trackEvent(
             result.archetype === "CETICA" ? "quiz_instagram_click" : "quiz_wa_click",
-            { archetype: result.archetype, geo: result.geo, lead_id: leadId },
+            { archetype: result.archetype, geo: result.geo, lead_id: leadId, variant },
           );
         }}
         className="block text-center font-semibold py-4 px-6 rounded-none mb-3 transition hover:opacity-90"
