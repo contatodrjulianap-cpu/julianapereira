@@ -75,7 +75,7 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     // Tracking
     const stepName = stepNameOf(next);
-    if (stepName) trackEvent("quiz_step_view", { step: stepName });
+    if (stepName) trackEvent("quiz_step_view", { step: stepName, variant });
   }
 
   function back() {

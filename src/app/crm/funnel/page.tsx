@@ -10,7 +10,7 @@ import { UtmBreakdown, type UtmRow } from "./utm-breakdown";
 
 export const dynamic = "force-dynamic";
 
-type SP = { preset?: string; from?: string; to?: string };
+type SP = { preset?: string; from?: string; to?: string; variant?: string };
 
 function resolveRange(sp: SP): FunnelRange {
   // BR timezone (-03:00). Tudo aqui é UTC, mas presets são pensados em horário local.
@@ -92,11 +92,17 @@ export default async function FunnelPage({
 
   const params = await searchParams;
   const range = resolveRange(params);
+  const variant: "resina" | "porcelana" | null =
+    params.variant === "resina" || params.variant === "porcelana"
+      ? params.variant
+      : null;
+  range.variant = variant;
 
   const admin = createServiceClient();
   const { data, error } = await admin.rpc("quiz_funnel_metrics", {
     start_at: range.start_at,
     end_at: range.end_at,
+    variant,
   });
 
   const metrics: FunnelMetrics = (data as FunnelMetrics) ?? {

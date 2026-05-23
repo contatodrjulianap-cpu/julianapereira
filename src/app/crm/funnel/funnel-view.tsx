@@ -11,6 +11,7 @@ export type FunnelRange = {
   label: string;
   from?: string;
   to?: string;
+  variant?: "resina" | "porcelana" | null;
 };
 
 export type FunnelMetrics = {
@@ -150,17 +151,25 @@ export function FunnelView({
   return (
     <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-8 w-full">
       {/* Header + filtros */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-4">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
             Funil
           </h2>
           <p className="text-sm text-slate-500 mt-1">
             Conversão por etapa · {range.label}
+            {range.variant && (
+              <span className="text-slate-700 font-medium">
+                {" · "}
+                {range.variant === "resina" ? "Resina" : "Porcelana"}
+              </span>
+            )}
           </p>
         </div>
         <RangeFilter range={range} />
       </div>
+      <VariantFilter range={range} />
+      <div className="mb-6" />
 
       {error && (
         <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -303,7 +312,15 @@ function RangeFilter({ range }: { range: FunnelRange }) {
       alert("Data 'de' não pode ser depois de 'até'");
       return;
     }
-    router.push(`/crm/funnel?from=${from}&to=${to}`);
+    const qs = new URLSearchParams({ from, to });
+    if (range.variant) qs.set("variant", range.variant);
+    router.push(`/crm/funnel?${qs.toString()}`);
+  }
+
+  function hrefPreset(key: FunnelRange["preset"]): string {
+    const qs = new URLSearchParams({ preset: key });
+    if (range.variant) qs.set("variant", range.variant);
+    return `/crm/funnel?${qs.toString()}`;
   }
 
   return (
@@ -312,7 +329,7 @@ function RangeFilter({ range }: { range: FunnelRange }) {
         {PRESETS.map((p) => (
           <Link
             key={p.key}
-            href={`/crm/funnel?preset=${p.key}`}
+            href={hrefPreset(p.key)}
             onClick={() => setShowCustom(false)}
             className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
               range.preset === p.key
@@ -367,6 +384,49 @@ function RangeFilter({ range }: { range: FunnelRange }) {
 
 function toIsoDate(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+const VARIANT_PILLS: {
+  key: "all" | "resina" | "porcelana";
+  label: string;
+  active: string;
+}[] = [
+  { key: "all", label: "📊 Ambos", active: "bg-slate-900 text-white" },
+  { key: "resina", label: "🟨 Resina", active: "bg-amber-600 text-white" },
+  { key: "porcelana", label: "🟦 Porcelana", active: "bg-sky-600 text-white" },
+];
+
+function VariantFilter({ range }: { range: FunnelRange }) {
+  // Preserva preset/from/to atual ao trocar variant
+  function hrefFor(v: "all" | "resina" | "porcelana"): string {
+    const qs = new URLSearchParams();
+    if (range.preset === "custom" && range.from && range.to) {
+      qs.set("from", range.from);
+      qs.set("to", range.to);
+    } else {
+      qs.set("preset", range.preset);
+    }
+    if (v !== "all") qs.set("variant", v);
+    return `/crm/funnel?${qs.toString()}`;
+  }
+  const current: "all" | "resina" | "porcelana" = range.variant ?? "all";
+  return (
+    <div className="inline-flex items-center bg-white rounded-lg ring-1 ring-slate-200 p-0.5 shadow-sm">
+      {VARIANT_PILLS.map((p) => (
+        <Link
+          key={p.key}
+          href={hrefFor(p.key)}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+            current === p.key
+              ? p.active
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          {p.label}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 function Stat({
