@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import {
   ARCH_BADGE,
@@ -19,6 +19,28 @@ export type CrmUser = { id: string; display_name: string; role: string };
 
 const ARCH_OPTIONS = ["all", "PRONTA", "ESPERANCOSA", "CETICA"] as const;
 const STATUS_FILTER_OPTIONS = ["all", ...STATUS_OPTIONS] as const;
+
+const ORIGIN_OPTIONS = ["all", "vendas", "kiwify", "quiz", "outros"] as const;
+type OriginGroup = (typeof ORIGIN_OPTIONS)[number];
+
+const ORIGIN_LABELS: Record<OriginGroup, string> = {
+  all: "Todas origens",
+  vendas: "Página de vendas",
+  kiwify: "Kiwify",
+  quiz: "Quiz",
+  outros: "Outros",
+};
+
+function originGroupOf(source: string | null | undefined): OriginGroup {
+  if (!source) return "outros";
+  const s = source.toLowerCase();
+  if (s === "kiwify" || s.startsWith("kiwify")) return "kiwify";
+  if (s === "quiz") return "quiz";
+  if (s === "vlr-pagina-venda" || s.startsWith("lp-") || s.startsWith("vlr-")) {
+    return "vendas";
+  }
+  return "outros";
+}
 
 // ============================================================
 // Componente principal
@@ -48,6 +70,62 @@ export function PipelineView({
   const [filterArch, setFilterArch] = useState<(typeof ARCH_OPTIONS)[number]>("all");
   const [filterStatus, setFilterStatus] =
     useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
+  const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
+
+  // Inline save: PATCH /api/leads/[id] e otimista local
+  const patchLead = useCallback(
+    async (
+      leadId: string,
+      changes: Record<string, unknown>,
+      rollback: () => void,
+    ) => {
+      const res = await fetch(`/api/leads/${leadId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(changes),
+      });
+      if (!res.ok) {
+        rollback();
+        const data = await res.json().catch(() => ({}));
+        alert(`Erro ao salvar: ${data.error ?? res.statusText}`);
+      }
+    },
+    [],
+  );
+
+  const updateStatus = useCallback(
+    (leadId: string, newStatus: string) => {
+      const prev = leads.find((l) => l.id === leadId)?.status ?? null;
+      setLeads((cur) =>
+        cur.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l)),
+      );
+      patchLead(leadId, { status: newStatus }, () => {
+        setLeads((cur) =>
+          cur.map((l) => (l.id === leadId ? { ...l, status: prev } : l)),
+        );
+      });
+    },
+    [leads, patchLead],
+  );
+
+  const updateOwner = useCallback(
+    (leadId: string, newOwnerId: string | null) => {
+      const prev = leads.find((l) => l.id === leadId)?.assigned_owner_id ?? null;
+      setLeads((cur) =>
+        cur.map((l) =>
+          l.id === leadId ? { ...l, assigned_owner_id: newOwnerId } : l,
+        ),
+      );
+      patchLead(leadId, { assigned_owner_id: newOwnerId }, () => {
+        setLeads((cur) =>
+          cur.map((l) =>
+            l.id === leadId ? { ...l, assigned_owner_id: prev } : l,
+          ),
+        );
+      });
+    },
+    [leads, patchLead],
+  );
 
   // Realtime sync
   useEffect(() => {
@@ -84,6 +162,9 @@ export function PipelineView({
     return leads
       .filter((l) => {
         if (filterArch !== "all" && l.archetype !== filterArch) return false;
+        if (filterOrigin !== "all" && originGroupOf(l.source) !== filterOrigin) {
+          return false;
+        }
         if (filterStatus !== "all" && (l.status ?? "new") !== filterStatus) return false;
         if (filterOwner !== "all" && l.assigned_owner_id !== filterOwner) return false;
         if (search) {
@@ -102,7 +183,32 @@ export function PipelineView({
         if (ao !== bo) return ao - bo;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [leads, search, filterArch, filterStatus, filterOwner]);
+  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin]);
+
+  // Contagem por status (pra pills de filtro)
+  const countByStatus = useMemo(() => {
+    const map: Record<string, number> = { all: leads.length };
+    STATUS_OPTIONS.forEach((s) => {
+      map[s] = leads.filter((l) => (l.status ?? "new") === s).length;
+    });
+    return map;
+  }, [leads]);
+
+  // Contagem por origem
+  const countByOrigin = useMemo(() => {
+    const map: Record<OriginGroup, number> = {
+      all: leads.length,
+      vendas: 0,
+      kiwify: 0,
+      quiz: 0,
+      outros: 0,
+    };
+    leads.forEach((l) => {
+      const g = originGroupOf(l.source);
+      map[g] = (map[g] ?? 0) + 1;
+    });
+    return map;
+  }, [leads]);
 
   // Métricas
   const stats = useMemo(() => {
@@ -164,47 +270,35 @@ export function PipelineView({
       </section>
 
       {/* Filtros */}
-      <section className="bg-white border border-slate-200 rounded-md p-3 mb-3 flex flex-wrap items-center gap-2">
+      <section className="bg-white border border-slate-200 rounded-md p-3 mb-3 flex flex-col md:flex-row md:flex-wrap md:items-center gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="🔍 Buscar por nome ou WhatsApp"
-          className="flex-1 min-w-[200px] px-3 py-2 text-sm border border-slate-200 rounded-md outline-none focus:border-slate-900"
+          className="w-full md:flex-1 md:min-w-[200px] px-3 py-2.5 md:py-2 text-base md:text-sm border border-slate-200 rounded-md outline-none focus:border-slate-900"
         />
-        <div className="flex gap-1 flex-wrap">
-          {ARCH_OPTIONS.map((a) => (
-            <button
-              key={a}
-              onClick={() => setFilterArch(a)}
-              className={`px-3 py-1.5 text-xs rounded-md border transition ${
-                filterArch === a
-                  ? "bg-slate-900 text-white border-slate-900"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
-              }`}
-            >
-              {a === "all" ? "Todos" : ARCH_LABEL[a as keyof typeof ARCH_LABEL]}
-            </button>
-          ))}
+        <div className="-mx-3 md:mx-0 px-3 md:px-0 overflow-x-auto md:overflow-visible">
+          <div className="flex gap-1 md:flex-wrap whitespace-nowrap">
+            {ARCH_OPTIONS.map((a) => (
+              <button
+                key={a}
+                onClick={() => setFilterArch(a)}
+                className={`flex-shrink-0 px-3 py-2 md:py-1.5 text-xs rounded-md border transition ${
+                  filterArch === a
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
+                }`}
+              >
+                {a === "all" ? "Todos" : ARCH_LABEL[a as keyof typeof ARCH_LABEL]}
+              </button>
+            ))}
+          </div>
         </div>
-        <select
-          value={filterStatus}
-          onChange={(e) =>
-            setFilterStatus(e.target.value as (typeof STATUS_FILTER_OPTIONS)[number])
-          }
-          className="px-3 py-2 text-sm border border-slate-200 rounded-md outline-none"
-        >
-          <option value="all">Todos os status</option>
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABEL[s]}
-            </option>
-          ))}
-        </select>
         {isAdmin && salesUsers.length > 0 && (
           <select
             value={filterOwner}
             onChange={(e) => setFilterOwner(e.target.value)}
-            className="px-3 py-2 text-sm border border-slate-200 rounded-md outline-none"
+            className="w-full md:w-auto px-3 py-2.5 md:py-2 text-base md:text-sm border border-slate-200 rounded-md outline-none"
           >
             <option value="all">Todas as atendentes</option>
             {salesUsers.map((u) => (
@@ -216,22 +310,191 @@ export function PipelineView({
         )}
       </section>
 
-      {/* Tabela */}
-      <section className="bg-white border border-slate-200 rounded-md overflow-hidden">
+      {/* Aba de origem: pills com contagem */}
+      <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-2 overflow-x-auto md:overflow-visible">
+        <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
+            Origem:
+          </span>
+          {ORIGIN_OPTIONS.map((g) => (
+            <button
+              key={g}
+              onClick={() => setFilterOrigin(g)}
+              className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
+                filterOrigin === g
+                  ? "bg-amber-600 text-white"
+                  : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
+              }`}
+            >
+              {ORIGIN_LABELS[g]}{" "}
+              <span className="opacity-70 ml-1">({countByOrigin[g] ?? 0})</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Aba de status: pills com contagem (clica e filtra) */}
+      <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-3 overflow-x-auto md:overflow-visible">
+        <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
+            Status:
+          </span>
+          <button
+            onClick={() => setFilterStatus("all")}
+            className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
+              filterStatus === "all"
+                ? "bg-slate-900 text-white"
+                : "bg-white text-slate-700 ring-1 ring-slate-300"
+            }`}
+          >
+            Todos <span className="opacity-70 ml-1">({countByStatus.all})</span>
+          </button>
+          {STATUS_OPTIONS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ring-1 ${
+                filterStatus === s
+                  ? `${STATUS_BADGE[s]} ring-current`
+                  : "bg-white text-slate-700 ring-slate-300 hover:ring-slate-400"
+              }`}
+            >
+              {STATUS_LABEL[s]}{" "}
+              <span className="opacity-70 ml-1">({countByStatus[s] ?? 0})</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ============ MOBILE: lista em cards ============ */}
+      <div className="md:hidden space-y-2">
+        {filtered.length === 0 ? (
+          <div className="bg-white rounded-md border border-slate-200 p-8 text-center text-sm text-slate-500">
+            Nenhum lead com esse filtro.
+          </div>
+        ) : (
+          filtered.map((l) => {
+            const ownerLabel = l.assigned_owner_id
+              ? usersById[l.assigned_owner_id]?.display_name
+              : l.assigned_to;
+            return (
+              <div
+                key={l.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => setEditing(l)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setEditing(l);
+                  }
+                }}
+                className="w-full text-left bg-white rounded-md border border-slate-200 p-3 active:bg-slate-50 transition flex flex-col gap-2 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                    {l.selfie_signed_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={l.selfie_signed_url}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover border border-slate-200 shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-slate-100 border border-slate-200 shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-900 text-[15px] leading-tight truncate">
+                        {l.name ?? (
+                          <span className="text-slate-400 italic">sem nome</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500 truncate mt-0.5">
+                        {l.phone}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {fmtEntrada(l.created_at)}
+                        {l.geo ? ` · ${l.geo}` : ""}
+                        {l.deal_value
+                          ? ` · ${fmtBRL(Number(l.deal_value))}`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <select
+                    value={l.status ?? "new"}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      updateStatus(l.id, e.target.value);
+                    }}
+                    aria-label="Status"
+                    className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${STATUS_BADGE[l.status ?? "new"]}`}
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {STATUS_LABEL[s]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    {l.archetype && (
+                      <span
+                        className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${ARCH_BADGE[l.archetype]}`}
+                      >
+                        {ARCH_LABEL[l.archetype]}
+                      </span>
+                    )}
+                    {ownerLabel && (
+                      <span className="text-[11px] text-slate-500 truncate">
+                        👤 {ownerLabel}
+                      </span>
+                    )}
+                  </div>
+                  <a
+                    href={whatsLink(l.phone, l.name)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label={`WhatsApp de ${l.name ?? l.phone}`}
+                    className="flex-shrink-0 inline-flex items-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-2 rounded-full text-xs font-semibold transition"
+                  >
+                    <svg
+                      viewBox="0 0 32 32"
+                      fill="currentColor"
+                      className="w-3.5 h-3.5"
+                      aria-hidden="true"
+                    >
+                      <path d="M16.003 3C9.376 3 4 8.376 4 15c0 2.353.689 4.546 1.873 6.405L4 28l6.764-1.834A12 12 0 0 0 16.003 27C22.63 27 28 21.624 28 15S22.63 3 16.003 3zm5.27 14.395c-.288-.144-1.704-.84-1.968-.936-.264-.096-.456-.144-.648.144-.192.288-.744.936-.912 1.128-.168.192-.336.216-.624.072-.288-.144-1.218-.45-2.32-1.43-.858-.765-1.437-1.71-1.605-1.998-.168-.288-.018-.443.126-.587.13-.13.288-.336.432-.504.144-.168.192-.288.288-.48.096-.192.048-.36-.024-.504-.072-.144-.648-1.56-.888-2.136-.234-.561-.471-.485-.648-.494-.168-.008-.36-.01-.552-.01s-.504.072-.768.36c-.264.288-1.008.984-1.008 2.4 0 1.416 1.032 2.784 1.176 2.976.144.192 2.032 3.103 4.92 4.354.688.297 1.224.475 1.642.608.69.219 1.318.188 1.814.114.553-.083 1.704-.696 1.944-1.368.24-.672.24-1.248.168-1.368-.072-.12-.264-.192-.552-.336z" />
+                    </svg>
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* ============ DESKTOP: tabela ============ */}
+      <section className="hidden md:block bg-white border border-slate-200 rounded-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500">
                 <Th>Nome</Th>
                 <Th>Entrada</Th>
-                <Th className="hidden md:table-cell">WhatsApp</Th>
+                <Th className="hidden md:table-cell">Telefone</Th>
                 <Th>Arquétipo</Th>
                 <Th className="hidden md:table-cell">Geo</Th>
                 <Th>Status</Th>
                 <Th className="hidden lg:table-cell">Próx. contato</Th>
                 <Th className="hidden lg:table-cell">Responsável</Th>
                 <Th className="hidden md:table-cell">Valor</Th>
-                <Th></Th>
+                <Th className="text-center">Ação</Th>
               </tr>
             </thead>
             <tbody>
@@ -260,7 +523,7 @@ export function PipelineView({
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 shrink-0" />
                       )}
-                      <span>{l.name ?? "—"}</span>
+                      <span>{l.name ?? "·"}</span>
                     </div>
                   </td>
                   <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
@@ -279,36 +542,80 @@ export function PipelineView({
                     )}
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell text-slate-600">
-                    {l.geo ?? "—"}
+                    {l.geo ?? "·"}
                   </td>
-                  <td className="px-3 py-3">
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_BADGE[l.status ?? "new"]}`}
+                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                    <select
+                      value={l.status ?? "new"}
+                      onChange={(e) => updateStatus(l.id, e.target.value)}
+                      aria-label={`Status de ${l.name ?? l.phone}`}
+                      className={`text-[11px] font-semibold rounded-full px-2.5 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${STATUS_BADGE[l.status ?? "new"]}`}
                     >
-                      {STATUS_LABEL[l.status ?? "new"]}
-                    </span>
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s} value={s}>
+                          {STATUS_LABEL[s]}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td className="px-3 py-3 hidden lg:table-cell text-slate-600 whitespace-nowrap">
                     {fmtDateBR(l.next_contact_at)}
                   </td>
-                  <td className="px-3 py-3 hidden lg:table-cell text-slate-600">
-                    {l.assigned_owner_id
-                      ? (usersById[l.assigned_owner_id]?.display_name ?? "—")
-                      : (l.assigned_to ?? "—")}
+                  <td
+                    className="px-3 py-3 hidden lg:table-cell"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isAdmin && salesUsers.length > 0 ? (
+                      <select
+                        value={l.assigned_owner_id ?? ""}
+                        onChange={(e) =>
+                          updateOwner(l.id, e.target.value || null)
+                        }
+                        aria-label={`Responsável por ${l.name ?? l.phone}`}
+                        className={`text-[11px] font-semibold rounded-full px-2.5 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${
+                          l.assigned_owner_id
+                            ? "bg-sky-100 text-sky-900"
+                            : "bg-slate-100 text-slate-500"
+                        }`}
+                      >
+                        <option value="">sem dono</option>
+                        {salesUsers.map((u) => (
+                          <option key={u.id} value={u.id}>
+                            {u.display_name}
+                          </option>
+                        ))}
+                      </select>
+                    ) : l.assigned_owner_id ? (
+                      <span className="inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-100 text-sky-900">
+                        {usersById[l.assigned_owner_id]?.display_name ?? "."}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">sem dono</span>
+                    )}
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell text-slate-600">
-                    {l.deal_value ? fmtBRL(Number(l.deal_value)) : "—"}
+                    {l.deal_value ? fmtBRL(Number(l.deal_value)) : "·"}
                   </td>
-                  <td className="px-3 py-3">
+                  <td
+                    className="px-3 py-3 text-center"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <a
                       href={whatsLink(l.phone, l.name)}
                       target="_blank"
                       rel="noreferrer noopener"
-                      onClick={(e) => e.stopPropagation()}
-                      className="text-green-600 hover:underline font-bold"
-                      title="Abrir WhatsApp"
+                      aria-label={`Abrir WhatsApp de ${l.name ?? l.phone}`}
+                      title={`WhatsApp ${l.phone}`}
+                      className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-sm hover:shadow"
                     >
-                      💬
+                      <svg
+                        viewBox="0 0 32 32"
+                        fill="currentColor"
+                        className="w-4 h-4"
+                        aria-hidden="true"
+                      >
+                        <path d="M16.003 3C9.376 3 4 8.376 4 15c0 2.353.689 4.546 1.873 6.405L4 28l6.764-1.834A12 12 0 0 0 16.003 27C22.63 27 28 21.624 28 15S22.63 3 16.003 3zm0 21.6a9.59 9.59 0 0 1-4.886-1.337l-.35-.21-3.965 1.076 1.06-3.872-.227-.367A9.6 9.6 0 1 1 25.6 15c0 5.293-4.305 9.6-9.597 9.6zm5.27-7.205c-.288-.144-1.704-.84-1.968-.936-.264-.096-.456-.144-.648.144-.192.288-.744.936-.912 1.128-.168.192-.336.216-.624.072-.288-.144-1.218-.45-2.32-1.43-.858-.765-1.437-1.71-1.605-1.998-.168-.288-.018-.443.126-.587.13-.13.288-.336.432-.504.144-.168.192-.288.288-.48.096-.192.048-.36-.024-.504-.072-.144-.648-1.56-.888-2.136-.234-.561-.471-.485-.648-.494-.168-.008-.36-.01-.552-.01s-.504.072-.768.36c-.264.288-1.008.984-1.008 2.4 0 1.416 1.032 2.784 1.176 2.976.144.192 2.032 3.103 4.92 4.354.688.297 1.224.475 1.642.608.69.219 1.318.188 1.814.114.553-.083 1.704-.696 1.944-1.368.24-.672.24-1.248.168-1.368-.072-.12-.264-.192-.552-.336z" />
+                      </svg>
                     </a>
                   </td>
                 </tr>
@@ -392,7 +699,7 @@ function Th({
 }
 
 function fmtDateBR(iso: string | null): string {
-  if (!iso) return "—";
+  if (!iso) return "·";
   const d = new Date(iso + (iso.length === 10 ? "T00:00:00" : ""));
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }

@@ -6,6 +6,7 @@ import { logEvent } from "@/lib/event-log";
 const PatchBody = z.object({
   status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost"]).optional(),
   assigned_to: z.string().nullable().optional(),
+  assigned_owner_id: z.string().uuid().nullable().optional(),
   next_contact_at: z.string().nullable().optional(), // ISO date 'YYYY-MM-DD'
   deal_value: z.number().nullable().optional(),
   pinned: z.boolean().optional(),
