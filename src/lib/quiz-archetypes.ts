@@ -15,11 +15,11 @@ export function isVariant(v: string): v is Variant {
   return (VARIANTS as readonly string[]).includes(v);
 }
 
-// Ancoragem de preço do Q8 — vem da tabela oferta-resina-porcelana.md
-// (implementacao-full-sales/fase-1). Range = piso PIX → valor cheio.
+// Ancoragem de preço do Q8 — range amplo pra qualificar capacidade financeira
+// sem cravar o ticket exato (que sai depois pelo closer).
 export const PRICE_ANCHOR: Record<Variant, { min: string; max: string }> = {
-  resina: { min: "R$ 17.500,00", max: "R$ 25.000,00" },
-  porcelana: { min: "R$ 25.000,00", max: "R$ 33.000,00" },
+  resina: { min: "R$ 8.000,00", max: "R$ 60.000,00" },
+  porcelana: { min: "R$ 25.000,00", max: "R$ 60.000,00" },
 };
 
 export const VARIANT_LABEL: Record<Variant, string> = {

@@ -94,13 +94,13 @@ export type QuizConfig = z.infer<typeof QuizConfigSchema>;
 export function DEFAULT_CONFIG_FOR(variant: Variant): QuizConfig {
   const planoLabel = variant === "resina" ? "Resina" : "Porcelana";
   const matLabel = VARIANT_LABEL[variant];
-  const anchor = PRICE_ANCHOR[variant];
   return {
     cover: {
       badge: `Avaliação · Plano ${planoLabel}`,
       headline: "Responda esse questionário rápido,",
       headline_highlight: `para iniciar sua avaliação de ${matLabel}`,
-      subtitle1: `Ao final, preenchendo os requisitos você será direcionado pro WhatsApp pra agendar sua avaliação do Plano ${planoLabel} (${anchor.min} a ${anchor.max}).`,
+      subtitle1:
+        "Ao final, preenchendo os requisitos você será direcionado pro WhatsApp pra agendar sua avaliação.",
       cta_label: "Começar →",
       legal: "Suas respostas são tratadas com sigilo (LGPD).",
       image_path: `/quiz/img_${variant}.jpeg`,
