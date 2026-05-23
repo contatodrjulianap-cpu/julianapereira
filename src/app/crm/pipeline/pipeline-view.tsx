@@ -20,40 +20,58 @@ export type CrmUser = { id: string; display_name: string; role: string };
 const ARCH_OPTIONS = ["all", "PRONTA", "ESPERANCOSA", "CETICA"] as const;
 const STATUS_FILTER_OPTIONS = ["all", ...STATUS_OPTIONS] as const;
 
-const ORIGIN_OPTIONS = ["all", "vendas", "kiwify", "quiz", "outros"] as const;
+// Origem unificada: granular o suficiente pra filtrar sem precisar de uma
+// linha extra "variant do quiz". quiz-resina/quiz-porcelana viram opções
+// próprias. WhatsApp = lead que entrou via webhook (source=NULL).
+const ORIGIN_OPTIONS = [
+  "all",
+  "quiz_resina",
+  "quiz_porcelana",
+  "whatsapp",
+  "kiwify",
+  "vendas",
+  "outros",
+] as const;
 type OriginGroup = (typeof ORIGIN_OPTIONS)[number];
 
 const ORIGIN_LABELS: Record<OriginGroup, string> = {
-  all: "Todas origens",
-  vendas: "Página de vendas",
+  all: "Todas",
+  quiz_resina: "Quiz·Resina",
+  quiz_porcelana: "Quiz·Porcelana",
+  whatsapp: "WhatsApp",
   kiwify: "Kiwify",
-  quiz: "Quiz",
+  vendas: "Página de vendas",
   outros: "Outros",
 };
 
-function originGroupOf(source: string | null | undefined): OriginGroup {
-  if (!source) return "outros";
-  const s = source.toLowerCase();
+// Badge curto pra coluna da tabela (compacto, sem quebrar linha)
+const ORIGIN_BADGE: Record<Exclude<OriginGroup, "all">, string> = {
+  quiz_resina: "bg-amber-100 text-amber-800",
+  quiz_porcelana: "bg-sky-100 text-sky-800",
+  whatsapp: "bg-emerald-100 text-emerald-800",
+  kiwify: "bg-violet-100 text-violet-800",
+  vendas: "bg-rose-100 text-rose-800",
+  outros: "bg-slate-100 text-slate-600",
+};
+
+function originGroupOf(
+  source: string | null | undefined,
+  quizVariant: string | null | undefined,
+): OriginGroup {
+  const s = (source ?? "").toLowerCase();
+  if (s === "quiz") {
+    if (quizVariant === "resina") return "quiz_resina";
+    if (quizVariant === "porcelana") return "quiz_porcelana";
+    return "outros";
+  }
   if (s === "kiwify" || s.startsWith("kiwify")) return "kiwify";
-  if (s === "quiz") return "quiz";
   if (s === "vlr-pagina-venda" || s.startsWith("lp-") || s.startsWith("vlr-")) {
     return "vendas";
   }
+  // Sem source explícito = chegou via webhook do WhatsApp (anúncio Meta → WPP direto)
+  if (!source) return "whatsapp";
   return "outros";
 }
-
-const VARIANT_OPTIONS = ["all", "resina", "porcelana"] as const;
-type VariantFilter = (typeof VARIANT_OPTIONS)[number];
-
-const VARIANT_LABEL: Record<"resina" | "porcelana", string> = {
-  resina: "Resina",
-  porcelana: "Porcelana",
-};
-
-const VARIANT_BADGE: Record<"resina" | "porcelana", string> = {
-  resina: "bg-amber-100 text-amber-800",
-  porcelana: "bg-sky-100 text-sky-800",
-};
 
 // ============================================================
 // Componente principal
@@ -84,7 +102,6 @@ export function PipelineView({
   const [filterStatus, setFilterStatus] =
     useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
   const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
-  const [filterVariant, setFilterVariant] = useState<VariantFilter>("all");
 
   // Inline save: PATCH /api/leads/[id] e otimista local
   const patchLead = useCallback(
@@ -176,10 +193,12 @@ export function PipelineView({
     return leads
       .filter((l) => {
         if (filterArch !== "all" && l.archetype !== filterArch) return false;
-        if (filterOrigin !== "all" && originGroupOf(l.source) !== filterOrigin) {
+        if (
+          filterOrigin !== "all" &&
+          originGroupOf(l.source, l.quiz_variant) !== filterOrigin
+        ) {
           return false;
         }
-        if (filterVariant !== "all" && l.quiz_variant !== filterVariant) return false;
         if (filterStatus !== "all" && (l.status ?? "new") !== filterStatus) return false;
         if (filterOwner !== "all" && l.assigned_owner_id !== filterOwner) return false;
         if (search) {
@@ -198,7 +217,7 @@ export function PipelineView({
         if (ao !== bo) return ao - bo;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin, filterVariant]);
+  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin]);
 
   // Contagem por status (pra pills de filtro)
   const countByStatus = useMemo(() => {
@@ -209,32 +228,21 @@ export function PipelineView({
     return map;
   }, [leads]);
 
-  // Contagem por origem
+  // Contagem por origem (já granular — inclui quiz_resina, quiz_porcelana,
+  // whatsapp, etc — então não precisa mais de um countByVariant separado).
   const countByOrigin = useMemo(() => {
     const map: Record<OriginGroup, number> = {
       all: leads.length,
-      vendas: 0,
+      quiz_resina: 0,
+      quiz_porcelana: 0,
+      whatsapp: 0,
       kiwify: 0,
-      quiz: 0,
+      vendas: 0,
       outros: 0,
     };
     leads.forEach((l) => {
-      const g = originGroupOf(l.source);
+      const g = originGroupOf(l.source, l.quiz_variant);
       map[g] = (map[g] ?? 0) + 1;
-    });
-    return map;
-  }, [leads]);
-
-  // Contagem por variant do quiz (resina/porcelana) — só conta quem tem variant.
-  const countByVariant = useMemo(() => {
-    const map: Record<VariantFilter, number> = {
-      all: leads.filter((l) => l.quiz_variant).length,
-      resina: 0,
-      porcelana: 0,
-    };
-    leads.forEach((l) => {
-      if (l.quiz_variant === "resina") map.resina += 1;
-      else if (l.quiz_variant === "porcelana") map.porcelana += 1;
     });
     return map;
   }, [leads]);
@@ -362,35 +370,6 @@ export function PipelineView({
         </div>
       </div>
 
-      {/* Quiz variant: pills com contagem (só faz sentido com origem Quiz ou all) */}
-      {(filterOrigin === "all" || filterOrigin === "quiz") && countByVariant.all > 0 && (
-        <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-2 overflow-x-auto md:overflow-visible">
-          <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
-              Quiz:
-            </span>
-            {VARIANT_OPTIONS.map((v) => (
-              <button
-                key={v}
-                onClick={() => setFilterVariant(v)}
-                className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
-                  filterVariant === v
-                    ? v === "resina"
-                      ? "bg-amber-600 text-white"
-                      : v === "porcelana"
-                        ? "bg-sky-600 text-white"
-                        : "bg-slate-900 text-white"
-                    : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
-                }`}
-              >
-                {v === "all" ? "Todos" : VARIANT_LABEL[v]}{" "}
-                <span className="opacity-70 ml-1">({countByVariant[v] ?? 0})</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Aba de status: pills com contagem (clica e filtra) */}
       <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-3 overflow-x-auto md:overflow-visible">
         <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
@@ -506,13 +485,17 @@ export function PipelineView({
                         {ARCH_LABEL[l.archetype]}
                       </span>
                     )}
-                    {l.quiz_variant && (
-                      <span
-                        className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${VARIANT_BADGE[l.quiz_variant]}`}
-                      >
-                        {VARIANT_LABEL[l.quiz_variant]}
-                      </span>
-                    )}
+                    {(() => {
+                      const og = originGroupOf(l.source, l.quiz_variant);
+                      if (og === "all") return null;
+                      return (
+                        <span
+                          className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${ORIGIN_BADGE[og]}`}
+                        >
+                          {ORIGIN_LABELS[og]}
+                        </span>
+                      );
+                    })()}
                     {ownerLabel && (
                       <span className="text-[11px] text-slate-500 truncate">
                         👤 {ownerLabel}
@@ -554,7 +537,7 @@ export function PipelineView({
                 <Th>Entrada</Th>
                 <Th className="hidden md:table-cell">Telefone</Th>
                 <Th>Arquétipo</Th>
-                <Th className="hidden lg:table-cell">Quiz</Th>
+                <Th className="hidden lg:table-cell">Origem</Th>
                 <Th className="hidden md:table-cell">Geo</Th>
                 <Th>Status</Th>
                 <Th className="hidden lg:table-cell">Próx. contato</Th>
@@ -607,14 +590,18 @@ export function PipelineView({
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-3 hidden lg:table-cell">
-                    {l.quiz_variant && (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${VARIANT_BADGE[l.quiz_variant]}`}
-                      >
-                        {VARIANT_LABEL[l.quiz_variant]}
-                      </span>
-                    )}
+                  <td className="px-3 py-3 hidden lg:table-cell whitespace-nowrap">
+                    {(() => {
+                      const og = originGroupOf(l.source, l.quiz_variant);
+                      if (og === "all") return null;
+                      return (
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${ORIGIN_BADGE[og]}`}
+                        >
+                          {ORIGIN_LABELS[og]}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-3 py-3 hidden md:table-cell text-slate-600">
                     {l.geo ?? "·"}
