@@ -6,6 +6,7 @@ import {
   AttendantPerformance,
   type AttendantStats,
 } from "./attendant-performance";
+import { UtmBreakdown, type UtmRow } from "./utm-breakdown";
 
 export const dynamic = "force-dynamic";
 
@@ -151,10 +152,50 @@ export default async function FunnelPage({
     };
   });
 
+  // Breakdown UTM: agrega leads do quiz com utm_source preenchido no período,
+  // agrupado por (source, campaign, medium). Métricas: total, distribuição por
+  // arquétipo e funil status (em negociação, fechou).
+  const { data: utmLeads } = await admin
+    .from("leads")
+    .select("utm_source, utm_medium, utm_campaign, archetype, status")
+    .not("utm_source", "is", null)
+    .gte("created_at", range.start_at)
+    .lt("created_at", range.end_at);
+
+  const utmMap = new Map<string, UtmRow>();
+  for (const l of utmLeads ?? []) {
+    const source = l.utm_source ?? "(none)";
+    const campaign = l.utm_campaign ?? null;
+    const medium = l.utm_medium ?? null;
+    const key = `${source}|${campaign ?? ""}|${medium ?? ""}`;
+    const cur =
+      utmMap.get(key) ??
+      ({
+        source,
+        medium,
+        campaign,
+        total: 0,
+        pronta: 0,
+        esperancosa: 0,
+        cetica: 0,
+        won: 0,
+        contacted: 0,
+      } as UtmRow);
+    cur.total += 1;
+    if (l.archetype === "PRONTA") cur.pronta += 1;
+    else if (l.archetype === "ESPERANCOSA") cur.esperancosa += 1;
+    else if (l.archetype === "CETICA") cur.cetica += 1;
+    if (l.status === "won") cur.won += 1;
+    if (["contacted", "qualified", "proposal"].includes(l.status ?? "")) cur.contacted += 1;
+    utmMap.set(key, cur);
+  }
+  const utmRows = Array.from(utmMap.values()).sort((a, b) => b.total - a.total);
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
       <FunnelView metrics={metrics} error={error?.message ?? null} range={range} />
       <AttendantPerformance stats={attendantStats} rangeLabel={range.label} />
+      <UtmBreakdown rows={utmRows} rangeLabel={range.label} />
     </CrmShell>
   );
 }
