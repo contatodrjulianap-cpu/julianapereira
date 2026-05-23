@@ -21,6 +21,7 @@ export type FunnelMetrics = {
   wa_clicks: number;
   phone_matched: number;
   by_step: { step: string; count: number }[];
+  by_archetype?: { archetype: "PRONTA" | "ESPERANCOSA" | "CETICA"; count: number }[];
 };
 
 const STEP_ORDER = [
@@ -121,13 +122,22 @@ export function FunnelView({
     dropoff: waCount > 0 ? ((waCount - matchCount) / waCount) * 100 : 0,
   });
 
+  // Conta por arquétipo vem direto da tabela leads (não de step_view do
+  // event_log), pra evitar sessões que pulam pro result sem chamar
+  // /api/quiz/submit (gerava count > leads_total → % >100%).
+  const archetypeMap = Object.fromEntries(
+    (metrics.by_archetype ?? []).map((a) => [a.archetype, a.count]),
+  );
   const resultBuckets = (
     ["result_PRONTA", "result_ESPERANCOSA", "result_CETICA"] as const
-  ).map((s) => ({
-    step: s,
-    label: STEP_LABEL[s],
-    count: stepMap[s] ?? 0,
-  }));
+  ).map((s) => {
+    const arch = s.replace("result_", "") as "PRONTA" | "ESPERANCOSA" | "CETICA";
+    return {
+      step: s,
+      label: STEP_LABEL[s],
+      count: archetypeMap[arch] ?? 0,
+    };
+  });
 
   const completion = pageviews > 0 ? (metrics.leads_total / pageviews) * 100 : 0;
   const waClickRate =
