@@ -42,6 +42,19 @@ function originGroupOf(source: string | null | undefined): OriginGroup {
   return "outros";
 }
 
+const VARIANT_OPTIONS = ["all", "resina", "porcelana"] as const;
+type VariantFilter = (typeof VARIANT_OPTIONS)[number];
+
+const VARIANT_LABEL: Record<"resina" | "porcelana", string> = {
+  resina: "Resina",
+  porcelana: "Porcelana",
+};
+
+const VARIANT_BADGE: Record<"resina" | "porcelana", string> = {
+  resina: "bg-amber-100 text-amber-800",
+  porcelana: "bg-sky-100 text-sky-800",
+};
+
 // ============================================================
 // Componente principal
 // ============================================================
@@ -71,6 +84,7 @@ export function PipelineView({
   const [filterStatus, setFilterStatus] =
     useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
   const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
+  const [filterVariant, setFilterVariant] = useState<VariantFilter>("all");
 
   // Inline save: PATCH /api/leads/[id] e otimista local
   const patchLead = useCallback(
@@ -165,6 +179,7 @@ export function PipelineView({
         if (filterOrigin !== "all" && originGroupOf(l.source) !== filterOrigin) {
           return false;
         }
+        if (filterVariant !== "all" && l.quiz_variant !== filterVariant) return false;
         if (filterStatus !== "all" && (l.status ?? "new") !== filterStatus) return false;
         if (filterOwner !== "all" && l.assigned_owner_id !== filterOwner) return false;
         if (search) {
@@ -183,7 +198,7 @@ export function PipelineView({
         if (ao !== bo) return ao - bo;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin]);
+  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin, filterVariant]);
 
   // Contagem por status (pra pills de filtro)
   const countByStatus = useMemo(() => {
@@ -206,6 +221,20 @@ export function PipelineView({
     leads.forEach((l) => {
       const g = originGroupOf(l.source);
       map[g] = (map[g] ?? 0) + 1;
+    });
+    return map;
+  }, [leads]);
+
+  // Contagem por variant do quiz (resina/porcelana) — só conta quem tem variant.
+  const countByVariant = useMemo(() => {
+    const map: Record<VariantFilter, number> = {
+      all: leads.filter((l) => l.quiz_variant).length,
+      resina: 0,
+      porcelana: 0,
+    };
+    leads.forEach((l) => {
+      if (l.quiz_variant === "resina") map.resina += 1;
+      else if (l.quiz_variant === "porcelana") map.porcelana += 1;
     });
     return map;
   }, [leads]);
@@ -333,6 +362,35 @@ export function PipelineView({
         </div>
       </div>
 
+      {/* Quiz variant: pills com contagem (só faz sentido com origem Quiz ou all) */}
+      {(filterOrigin === "all" || filterOrigin === "quiz") && countByVariant.all > 0 && (
+        <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-2 overflow-x-auto md:overflow-visible">
+          <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
+              Quiz:
+            </span>
+            {VARIANT_OPTIONS.map((v) => (
+              <button
+                key={v}
+                onClick={() => setFilterVariant(v)}
+                className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
+                  filterVariant === v
+                    ? v === "resina"
+                      ? "bg-amber-600 text-white"
+                      : v === "porcelana"
+                        ? "bg-sky-600 text-white"
+                        : "bg-slate-900 text-white"
+                    : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
+                }`}
+              >
+                {v === "all" ? "Todos" : VARIANT_LABEL[v]}{" "}
+                <span className="opacity-70 ml-1">({countByVariant[v] ?? 0})</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Aba de status: pills com contagem (clica e filtra) */}
       <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-3 overflow-x-auto md:overflow-visible">
         <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
@@ -440,12 +498,19 @@ export function PipelineView({
                 </div>
 
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
                     {l.archetype && (
                       <span
                         className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${ARCH_BADGE[l.archetype]}`}
                       >
                         {ARCH_LABEL[l.archetype]}
+                      </span>
+                    )}
+                    {l.quiz_variant && (
+                      <span
+                        className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${VARIANT_BADGE[l.quiz_variant]}`}
+                      >
+                        {VARIANT_LABEL[l.quiz_variant]}
                       </span>
                     )}
                     {ownerLabel && (
@@ -489,6 +554,7 @@ export function PipelineView({
                 <Th>Entrada</Th>
                 <Th className="hidden md:table-cell">Telefone</Th>
                 <Th>Arquétipo</Th>
+                <Th className="hidden lg:table-cell">Quiz</Th>
                 <Th className="hidden md:table-cell">Geo</Th>
                 <Th>Status</Th>
                 <Th className="hidden lg:table-cell">Próx. contato</Th>
@@ -500,7 +566,7 @@ export function PipelineView({
             <tbody>
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="text-center py-16 text-slate-400">
+                  <td colSpan={11} className="text-center py-16 text-slate-400">
                     <p className="font-semibold">Nenhum lead com esse filtro.</p>
                   </td>
                 </tr>
@@ -538,6 +604,15 @@ export function PipelineView({
                         className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${ARCH_BADGE[l.archetype]}`}
                       >
                         {ARCH_LABEL[l.archetype]}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 hidden lg:table-cell">
+                    {l.quiz_variant && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${VARIANT_BADGE[l.quiz_variant]}`}
+                      >
+                        {VARIANT_LABEL[l.quiz_variant]}
                       </span>
                     )}
                   </td>
@@ -725,6 +800,7 @@ function exportCsv(leads: PipelineLead[]) {
       "phone",
       "instagram",
       "archetype",
+      "quiz_variant",
       "geo",
       "case_type",
       "status",
@@ -744,6 +820,7 @@ function exportCsv(leads: PipelineLead[]) {
         csvEscape(l.phone),
         csvEscape(l.instagram),
         l.archetype ?? "",
+        l.quiz_variant ?? "",
         l.geo ?? "",
         csvEscape(l.case_type),
         l.status ?? "",

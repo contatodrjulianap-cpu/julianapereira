@@ -11,6 +11,7 @@ export type LeadFull = {
   phone: string;
   instagram: string | null;
   source: string | null;
+  quiz_variant: "resina" | "porcelana" | null;
   archetype: "PRONTA" | "ESPERANCOSA" | "CETICA" | null;
   geo: "SP" | "BR" | "INTL" | null;
   case_type: string | null;
