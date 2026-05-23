@@ -343,11 +343,17 @@ function CoverScreen({
           className="aspect-[613/732] mb-6 overflow-hidden"
           style={{ border: "1px solid var(--sakura-hairline)" }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element — image_path é
+              dinâmico (config builder), <Image> exigiria remotePatterns. Otimizado
+              com fetchPriority=high + decoding=async pra acelerar LCP. */}
           <img
             src={c.image_path ?? DEFAULT_COVER_IMAGE}
             alt="Antes e depois — paciente da Dra. Juliana Pereira"
             width={613}
             height={732}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
             className="w-full h-full object-cover"
             onError={(e) => {
               // Fallback se a imagem específica da variant ainda não foi subida
@@ -358,13 +364,24 @@ function CoverScreen({
           />
         </div>
       </div>
-      <PrimaryButton onClick={onStart}>{c.cta_label}</PrimaryButton>
-      <p
-        className="text-center text-xs mt-3"
-        style={{ color: "var(--sakura-cocoa-3)" }}
+      {/* Sticky no mobile pra garantir que o botão "Começar" SEMPRE aparece
+          na primeira dobra (fold). 99% do tráfego antes saía sem nem rolar.
+          No desktop volta pro fluxo normal (md:static). */}
+      <div
+        className="sticky bottom-0 -mx-5 px-5 pt-3 pb-4 md:static md:mx-0 md:px-0 md:pt-0 md:pb-0"
+        style={{
+          background:
+            "linear-gradient(to top, var(--sakura-cream) 70%, transparent)",
+        }}
       >
-        {c.legal}
-      </p>
+        <PrimaryButton onClick={onStart}>{c.cta_label}</PrimaryButton>
+        <p
+          className="text-center text-xs mt-3"
+          style={{ color: "var(--sakura-cocoa-3)" }}
+        >
+          {c.legal}
+        </p>
+      </div>
     </FadeUp>
   );
 }
