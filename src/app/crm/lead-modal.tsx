@@ -112,6 +112,26 @@ function detectSourceKey(src: string | null | undefined): string {
   return src ?? "";
 }
 
+// Origem legível textual pra header do modal — combina source+variant
+// igual o badge da coluna Origem do pipeline.
+function originLabel(
+  source: string | null | undefined,
+  quizVariant: string | null | undefined,
+): string | null {
+  const s = (source ?? "").toLowerCase();
+  if (s === "quiz") {
+    if (quizVariant === "resina") return "Quiz · Resina";
+    if (quizVariant === "porcelana") return "Quiz · Porcelana";
+    return "Quiz";
+  }
+  if (s === "kiwify" || s.startsWith("kiwify")) return "Kiwify";
+  if (s === "vlr-pagina-venda" || s.startsWith("lp-") || s.startsWith("vlr-")) {
+    return "Página de vendas";
+  }
+  if (!source) return null;
+  return source;
+}
+
 export function LeadModal({
   lead,
   onClose,
@@ -302,6 +322,11 @@ export function LeadModal({
             {lead.name ?? "(sem nome)"}
           </h2>
           <p className="text-sm text-slate-500 mt-1">{lead.phone}</p>
+          {originLabel(lead.source, lead.quiz_variant) && (
+            <p className="text-xs text-slate-600 mt-1 font-medium">
+              {originLabel(lead.source, lead.quiz_variant)}
+            </p>
+          )}
           {lead.instagram && (
             <a
               href={`https://instagram.com/${lead.instagram.replace(/^@/, "")}`}
