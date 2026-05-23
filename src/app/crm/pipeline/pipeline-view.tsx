@@ -480,7 +480,7 @@ export function PipelineView({
                   <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
                     {l.archetype && (
                       <span
-                        className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${ARCH_BADGE[l.archetype]}`}
+                        className={`flex-shrink-0 whitespace-nowrap px-2 py-1 rounded-full text-[10px] font-semibold ${ARCH_BADGE[l.archetype]}`}
                       >
                         {ARCH_LABEL[l.archetype]}
                       </span>
@@ -490,7 +490,7 @@ export function PipelineView({
                       if (og === "all") return null;
                       return (
                         <span
-                          className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold ${ORIGIN_BADGE[og]}`}
+                          className={`flex-shrink-0 whitespace-nowrap px-2 py-1 rounded-full text-[10px] font-semibold ${ORIGIN_BADGE[og]}`}
                         >
                           {ORIGIN_LABELS[og]}
                         </span>
@@ -584,7 +584,7 @@ export function PipelineView({
                   <td className="px-3 py-3">
                     {l.archetype && (
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${ARCH_BADGE[l.archetype]}`}
+                        className={`whitespace-nowrap px-2 py-0.5 rounded-full text-[11px] font-semibold ${ARCH_BADGE[l.archetype]}`}
                       >
                         {ARCH_LABEL[l.archetype]}
                       </span>
