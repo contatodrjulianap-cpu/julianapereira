@@ -6,7 +6,7 @@ import { sendCapiEvent } from "@/lib/facebook";
 import { logEvent } from "@/lib/event-log";
 import { renderGreeting } from "@/lib/integration-config";
 import { getIntegrationConfig } from "@/lib/integration-config-server";
-import { routeLeadToWa } from "@/lib/wa-router";
+import { routeLeadToWa, normalizePhone } from "@/lib/wa-router";
 
 const UtmSchema = z
   .object({
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   const {
     name,
-    phone,
+    phone: rawPhone,
     instagram,
     archetype,
     geo,
@@ -57,6 +57,9 @@ export async function POST(req: NextRequest) {
     variant,
     utm,
   } = parsed.data;
+  // Defesa server-side: mesmo que o front já normalize, garante phone canônico
+  // (impede duplicação de lead se cliente bypassa o normalize ou usa formato exótico).
+  const phone = normalizePhone(rawPhone);
 
   const integration = await getIntegrationConfig();
 

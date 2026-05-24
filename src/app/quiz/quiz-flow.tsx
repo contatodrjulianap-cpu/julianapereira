@@ -10,6 +10,7 @@ import {
 } from "@/lib/quiz-archetypes";
 import type { QuizConfig } from "@/lib/quiz-config";
 import { trackEvent, getUtm } from "@/lib/track";
+import { normalizePhone } from "@/lib/wa-router";
 
 const DEFAULT_COVER_IMAGE = "/quiz/case-antes-depois.jpg";
 
@@ -117,8 +118,8 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
   async function submitLead() {
     setSubmitError(null);
     setSubmitting(true);
-    const phone = lead.phone.replace(/\D/g, "");
-    const phoneFmt = phone.startsWith("55") ? phone : `55${phone}`;
+    // Usa normalizePhone (canônico) — cobre 0 do DDD, DDI duplicado, etc.
+    const phoneFmt = normalizePhone(lead.phone);
     const result = scoreAnswers(answers, QUESTIONS);
     go({ kind: "loading" });
 
