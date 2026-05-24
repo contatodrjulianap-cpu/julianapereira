@@ -99,13 +99,32 @@ export default async function FunnelPage({
   range.variant = variant;
 
   const admin = createServiceClient();
-  const { data, error } = await admin.rpc("quiz_funnel_metrics", {
-    start_at: range.start_at,
-    end_at: range.end_at,
-    variant,
-  });
 
-  const metrics: FunnelMetrics = (data as FunnelMetrics) ?? {
+  // 3 chamadas em paralelo: combinado (null) + quiz isolado + bot/typebot isolado.
+  // RPC nova aceita param surface; ver migration 20260524020000.
+  const [all, quizOnly, botOnly] = await Promise.all([
+    admin.rpc("quiz_funnel_metrics", {
+      start_at: range.start_at,
+      end_at: range.end_at,
+      variant,
+      surface: null,
+    }),
+    admin.rpc("quiz_funnel_metrics", {
+      start_at: range.start_at,
+      end_at: range.end_at,
+      variant,
+      surface: "quiz",
+    }),
+    admin.rpc("quiz_funnel_metrics", {
+      start_at: range.start_at,
+      end_at: range.end_at,
+      variant,
+      surface: "bot",
+    }),
+  ]);
+  const error = all.error ?? quizOnly.error ?? botOnly.error;
+
+  const emptyMetrics: FunnelMetrics = {
     start_at: range.start_at,
     end_at: range.end_at,
     pageviews: 0,
@@ -114,6 +133,11 @@ export default async function FunnelPage({
     phone_matched: 0,
     by_step: [],
   };
+  const metrics: FunnelMetrics = (all.data as FunnelMetrics) ?? emptyMetrics;
+  const metricsQuiz: FunnelMetrics =
+    (quizOnly.data as FunnelMetrics) ?? emptyMetrics;
+  const metricsBot: FunnelMetrics =
+    (botOnly.data as FunnelMetrics) ?? emptyMetrics;
 
   // Breakdown por atendente (admin only) — query simples, sem RPC novo.
   // Agrega leads atribuídos no período por owner_id.
@@ -199,7 +223,13 @@ export default async function FunnelPage({
 
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
-      <FunnelView metrics={metrics} error={error?.message ?? null} range={range} />
+      <FunnelView
+        metrics={metrics}
+        metricsQuiz={metricsQuiz}
+        metricsBot={metricsBot}
+        error={error?.message ?? null}
+        range={range}
+      />
       <AttendantPerformance stats={attendantStats} rangeLabel={range.label} />
       <UtmBreakdown rows={utmRows} rangeLabel={range.label} />
     </CrmShell>

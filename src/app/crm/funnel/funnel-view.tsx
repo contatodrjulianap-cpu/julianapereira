@@ -70,15 +70,19 @@ const PRESETS: { key: FunnelRange["preset"]; label: string }[] = [
   { key: "90d", label: "90d" },
 ];
 
-export function FunnelView({
-  metrics,
-  error,
-  range,
-}: {
+type SurfaceTone = "slate" | "indigo" | "violet";
+
+type SurfaceCard = {
+  key: "all" | "quiz" | "bot";
+  icon: string;
+  title: string;
+  subtitle: string;
+  tone: SurfaceTone;
   metrics: FunnelMetrics;
-  error: string | null;
-  range: FunnelRange;
-}) {
+};
+
+// Computa rows do funil pra um FunnelMetrics (extraído pra reuso nos 3 cards).
+function computeSteps(metrics: FunnelMetrics) {
   const stepMap = Object.fromEntries(
     metrics.by_step.map((s) => [s.step, s.count]),
   );
@@ -103,8 +107,6 @@ export function FunnelView({
     return { step: s, label: STEP_LABEL[s], count, pctOfTop, dropoff };
   });
 
-  // wa_click + phone_match vêm de metrics (eventos separados do quiz_step_view).
-  // Adicionados como últimas etapas do funil, com dropoff em cascata.
   const leadCount = stepMap["lead"] ?? 0;
   const waCount = metrics.wa_clicks;
   const matchCount = metrics.phone_matched;
@@ -123,9 +125,24 @@ export function FunnelView({
     dropoff: waCount > 0 ? ((waCount - matchCount) / waCount) * 100 : 0,
   });
 
-  // Conta por arquétipo vem direto da tabela leads (não de step_view do
-  // event_log), pra evitar sessões que pulam pro result sem chamar
-  // /api/quiz/submit (gerava count > leads_total → % >100%).
+  return { steps, pageviews, top };
+}
+
+export function FunnelView({
+  metrics,
+  metricsQuiz,
+  metricsBot,
+  error,
+  range,
+}: {
+  metrics: FunnelMetrics;
+  metricsQuiz: FunnelMetrics;
+  metricsBot: FunnelMetrics;
+  error: string | null;
+  range: FunnelRange;
+}) {
+  // Arquétipo: só faz sentido contar uma vez (combinado), porque é distribuição
+  // dos leads que completaram, independente do surface de entrada.
   const archetypeMap = Object.fromEntries(
     (metrics.by_archetype ?? []).map((a) => [a.archetype, a.count]),
   );
@@ -140,13 +157,32 @@ export function FunnelView({
     };
   });
 
-  const completion = pageviews > 0 ? (metrics.leads_total / pageviews) * 100 : 0;
-  const waClickRate =
-    metrics.leads_total > 0 ? (metrics.wa_clicks / metrics.leads_total) * 100 : 0;
-  const phoneMatchRate =
-    metrics.wa_clicks > 0
-      ? (metrics.phone_matched / metrics.wa_clicks) * 100
-      : 0;
+  const surfaceCards: SurfaceCard[] = [
+    {
+      key: "all",
+      icon: "📊",
+      title: "Todos os funis",
+      subtitle: "Quiz tradicional + Typebot somados",
+      tone: "slate",
+      metrics,
+    },
+    {
+      key: "quiz",
+      icon: "🧪",
+      title: "Quiz tradicional",
+      subtitle: "/quiz/[variant] · fluxo de tela cheia",
+      tone: "indigo",
+      metrics: metricsQuiz,
+    },
+    {
+      key: "bot",
+      icon: "🤖",
+      title: "Typebot (chat)",
+      subtitle: "/chat/[variant] · fluxo WhatsApp-style",
+      tone: "violet",
+      metrics: metricsBot,
+    },
+  ];
 
   return (
     <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-8 w-full">
@@ -177,53 +213,14 @@ export function FunnelView({
         </div>
       )}
 
-      {/* Cards macro */}
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Stat label="Pageviews" value={pageviews} sub="Visitantes únicos da capa" />
-        <Stat
-          label="Conclusão"
-          value={`${completion.toFixed(1)}%`}
-          sub={`${metrics.leads_total} de ${pageviews} preencheram`}
-          accent="indigo"
-        />
-        <Stat
-          label="Click WhatsApp"
-          value={`${waClickRate.toFixed(1)}%`}
-          sub={`${metrics.wa_clicks} de ${metrics.leads_total} clicaram`}
-          accent="violet"
-        />
-        <Stat
-          label="Número bateu"
-          value={`${phoneMatchRate.toFixed(1)}%`}
-          sub={`${metrics.phone_matched} de ${metrics.wa_clicks} mandaram msg`}
-          accent="emerald"
-        />
-      </section>
+      {/* 3 cards stacked: todos → quiz → typebot */}
+      <div className="space-y-6 mb-6">
+        {surfaceCards.map((card) => (
+          <SurfaceFunnelCard key={card.key} card={card} />
+        ))}
+      </div>
 
-      {/* Funil por step */}
-      <section className="bg-white rounded-xl ring-1 ring-slate-200/70 shadow-sm p-6 mb-6">
-        <div className="mb-6">
-          <h3 className="text-base font-semibold text-slate-900">
-            Funil por etapa
-          </h3>
-          <p className="text-sm text-slate-500 mt-0.5">
-            % sobre o topo do funil (capa). Drop-off é a queda entre etapas.
-          </p>
-        </div>
-        <div className="space-y-2.5">
-          {steps.map((s, i) => (
-            <FunnelBar
-              key={s.step}
-              label={s.label}
-              count={s.count}
-              pct={s.pctOfTop}
-              dropoff={i === 0 ? null : s.dropoff}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Distribuição por arquétipo */}
+      {/* Distribuição por arquétipo — única, agregada (não muda por surface) */}
       <section className="bg-white rounded-xl ring-1 ring-slate-200/70 shadow-sm p-6">
         <div className="mb-6">
           <h3 className="text-base font-semibold text-slate-900">
@@ -296,6 +293,142 @@ export function FunnelView({
         Tracking via <code className="font-mono">session_id</code> em
         sessionStorage · agregação por sessão única.
       </p>
+    </div>
+  );
+}
+
+function SurfaceFunnelCard({ card }: { card: SurfaceCard }) {
+  const { metrics } = card;
+  const { steps, pageviews } = computeSteps(metrics);
+
+  const completion = pageviews > 0 ? (metrics.leads_total / pageviews) * 100 : 0;
+  const waClickRate =
+    metrics.leads_total > 0
+      ? (metrics.wa_clicks / metrics.leads_total) * 100
+      : 0;
+  const phoneMatchRate =
+    metrics.wa_clicks > 0
+      ? (metrics.phone_matched / metrics.wa_clicks) * 100
+      : 0;
+
+  const toneRing =
+    card.tone === "indigo"
+      ? "ring-indigo-200/70"
+      : card.tone === "violet"
+        ? "ring-violet-200/70"
+        : "ring-slate-200/70";
+  const toneBar =
+    card.tone === "indigo"
+      ? "bg-indigo-500"
+      : card.tone === "violet"
+        ? "bg-violet-500"
+        : "bg-slate-700";
+
+  const empty =
+    metrics.pageviews === 0 &&
+    metrics.leads_total === 0 &&
+    metrics.wa_clicks === 0;
+
+  return (
+    <section
+      className={`bg-white rounded-xl ring-1 ${toneRing} shadow-sm overflow-hidden`}
+    >
+      {/* Header do card */}
+      <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-3 min-w-0">
+          <span
+            className={`flex items-center justify-center w-9 h-9 rounded-lg ${toneBar} text-white text-base shrink-0`}
+            aria-hidden
+          >
+            {card.icon}
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-base font-semibold text-slate-900 truncate">
+              {card.title}
+            </h3>
+            <p className="text-xs text-slate-500 truncate">{card.subtitle}</p>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-[11px] uppercase tracking-wider font-medium text-slate-400">
+            Pageviews
+          </p>
+          <p className="text-xl font-semibold text-slate-900 tabular-nums tracking-tight">
+            {pageviews}
+          </p>
+        </div>
+      </div>
+
+      {empty ? (
+        <div className="px-6 py-10 text-center text-sm text-slate-400">
+          Sem eventos nesse recorte.
+        </div>
+      ) : (
+        <>
+          {/* Macro stats compactos */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 px-6 py-4 bg-slate-50/40">
+            <MiniStat
+              label="Conclusão"
+              value={`${completion.toFixed(1)}%`}
+              sub={`${metrics.leads_total}/${pageviews} preencheram`}
+            />
+            <MiniStat
+              label="Click WhatsApp"
+              value={`${waClickRate.toFixed(1)}%`}
+              sub={`${metrics.wa_clicks}/${metrics.leads_total} clicaram`}
+            />
+            <MiniStat
+              label="Número bateu"
+              value={`${phoneMatchRate.toFixed(1)}%`}
+              sub={`${metrics.phone_matched}/${metrics.wa_clicks} mandaram msg`}
+            />
+            <MiniStat
+              label="Leads"
+              value={metrics.leads_total}
+              sub="completaram o funil"
+            />
+          </div>
+
+          {/* Funil por etapa */}
+          <div className="px-6 py-5">
+            <div className="space-y-2">
+              {steps.map((s, i) => (
+                <FunnelBar
+                  key={s.step}
+                  label={s.label}
+                  count={s.count}
+                  pct={s.pctOfTop}
+                  dropoff={i === 0 ? null : s.dropoff}
+                />
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function MiniStat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string | number;
+  sub?: string;
+}) {
+  return (
+    <div className="bg-white rounded-lg ring-1 ring-slate-200/70 px-3 py-2.5">
+      <p className="text-[10px] uppercase tracking-wider font-medium text-slate-500">
+        {label}
+      </p>
+      <p className="text-lg font-semibold text-slate-900 tabular-nums tracking-tight mt-0.5">
+        {value}
+      </p>
+      {sub && (
+        <p className="text-[11px] text-slate-500 mt-0.5 truncate">{sub}</p>
+      )}
     </div>
   );
 }
@@ -425,41 +558,6 @@ function VariantFilter({ range }: { range: FunnelRange }) {
           {p.label}
         </Link>
       ))}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  accent?: "indigo" | "violet" | "emerald";
-}) {
-  const dot =
-    accent === "indigo"
-      ? "bg-indigo-500"
-      : accent === "violet"
-        ? "bg-violet-500"
-        : accent === "emerald"
-          ? "bg-emerald-500"
-          : "bg-slate-400";
-  return (
-    <div className="bg-white rounded-xl ring-1 ring-slate-200/70 shadow-sm px-5 py-4">
-      <div className="flex items-center gap-2 mb-2">
-        <span className={`w-1.5 h-1.5 rounded-full ${dot}`} aria-hidden />
-        <p className="text-[11px] uppercase tracking-wider font-medium text-slate-500">
-          {label}
-        </p>
-      </div>
-      <p className="text-3xl font-semibold text-slate-900 tabular-nums tracking-tight">
-        {value}
-      </p>
-      {sub && <p className="text-xs text-slate-500 mt-1.5">{sub}</p>}
     </div>
   );
 }
