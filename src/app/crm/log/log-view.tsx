@@ -1,7 +1,18 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+
+export type LogDateRange = {
+  preset: "all" | "today" | "yesterday" | "3d" | "7d" | "custom";
+  start_at: string | null;
+  end_at: string | null;
+  label: string;
+  from?: string;
+  to?: string;
+};
 
 export type LogEvent = {
   id: string;
@@ -68,9 +79,11 @@ function getUtm(payload: Record<string, unknown> | null, key: UtmKey): string | 
 export function LogView({
   initialEvents,
   leads,
+  range,
 }: {
   initialEvents: LogEvent[];
   leads: LeadLite[];
+  range: LogDateRange;
 }) {
   const supabase = createClient();
   const [events, setEvents] = useState<LogEvent[]>(initialEvents);
@@ -89,7 +102,8 @@ export function LogView({
   });
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // Realtime: novos eventos
+  // Realtime: novos eventos. Filtra incoming por range pra não poluir a janela
+  // (ex: filtro "Ontem" não deve receber eventos novos chegando agora).
   useEffect(() => {
     const ch = supabase
       .channel("event-log-realtime")
@@ -97,14 +111,17 @@ export function LogView({
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "event_log" },
         (payload) => {
-          setEvents((prev) => [payload.new as LogEvent, ...prev].slice(0, 500));
+          const ev = payload.new as LogEvent;
+          if (range.start_at && ev.created_at < range.start_at) return;
+          if (range.end_at && ev.created_at >= range.end_at) return;
+          setEvents((prev) => [ev, ...prev].slice(0, 500));
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [supabase]);
+  }, [supabase, range.start_at, range.end_at]);
 
   const leadsById = useMemo(() => {
     const m = new Map<string, LeadLite>();
@@ -204,11 +221,11 @@ export function LogView({
 
   return (
     <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-6 w-full">
-      <div className="flex flex-wrap items-end justify-between gap-3 mb-5">
+      <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Log de eventos</h2>
           <p className="text-sm text-slate-500">
-            {filtered.length} de {events.length} · audit trail · realtime
+            {filtered.length} de {events.length} · {range.label} · realtime
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -218,6 +235,8 @@ export function LogView({
           </span>
         </div>
       </div>
+      <DateFilter range={range} />
+      <div className="mb-4" />
 
       {/* Métricas */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
@@ -563,4 +582,104 @@ function fmtRel(iso: string): string {
   if (h < 24) return `${h}h atrás`;
   const d = Math.floor(h / 24);
   return `${d}d atrás`;
+}
+
+const DATE_PRESETS: { key: LogDateRange["preset"]; label: string }[] = [
+  { key: "all", label: "Tudo" },
+  { key: "today", label: "Hoje" },
+  { key: "yesterday", label: "Ontem" },
+  { key: "3d", label: "Últimos 3 dias" },
+  { key: "7d", label: "Últimos 7 dias" },
+];
+
+function toIsoDate(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+function DateFilter({ range }: { range: LogDateRange }) {
+  const router = useRouter();
+  const [showCustom, setShowCustom] = useState(range.preset === "custom");
+  const [from, setFrom] = useState(range.from ?? toIsoDate(new Date()));
+  const [to, setTo] = useState(range.to ?? toIsoDate(new Date()));
+
+  function apply() {
+    if (!from || !to) return;
+    if (from > to) {
+      alert("Data 'de' não pode ser depois de 'até'");
+      return;
+    }
+    router.push(`/crm/log?from=${from}&to=${to}`);
+  }
+
+  function reset() {
+    const today = toIsoDate(new Date());
+    setFrom(today);
+    setTo(today);
+    setShowCustom(false);
+    router.push("/crm/log?preset=today");
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="inline-flex items-center bg-white rounded-lg ring-1 ring-slate-200 p-0.5 shadow-sm w-fit">
+        {DATE_PRESETS.map((p) => (
+          <Link
+            key={p.key}
+            href={`/crm/log?preset=${p.key}`}
+            onClick={() => setShowCustom(false)}
+            className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+              range.preset === p.key
+                ? "bg-slate-900 text-white"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            }`}
+          >
+            {p.label}
+          </Link>
+        ))}
+        <button
+          onClick={() => setShowCustom((v) => !v)}
+          className={`px-3 py-1.5 text-xs font-medium rounded-md transition ${
+            range.preset === "custom"
+              ? "bg-slate-900 text-white"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+          }`}
+        >
+          Personalizado
+        </button>
+      </div>
+      {showCustom && (
+        <div className="flex items-center gap-2 bg-white ring-1 ring-slate-200 shadow-sm rounded-lg px-3 py-2 text-xs w-fit">
+          <span className="text-slate-500">De</span>
+          <input
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => setFrom(e.target.value)}
+            className="px-2 py-1 text-xs ring-1 ring-slate-200 rounded outline-none focus:ring-slate-400"
+          />
+          <span className="text-slate-500">Até</span>
+          <input
+            type="date"
+            value={to}
+            min={from}
+            max={toIsoDate(new Date())}
+            onChange={(e) => setTo(e.target.value)}
+            className="px-2 py-1 text-xs ring-1 ring-slate-200 rounded outline-none focus:ring-slate-400"
+          />
+          <button
+            onClick={apply}
+            className="px-3 py-1 text-xs rounded-md bg-slate-900 text-white hover:bg-slate-700 font-medium"
+          >
+            Aplicar
+          </button>
+          <button
+            onClick={reset}
+            className="px-3 py-1 text-xs rounded-md ring-1 ring-slate-300 text-slate-700 hover:bg-slate-50 font-medium"
+          >
+            Reset
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
