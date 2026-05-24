@@ -1,5 +1,5 @@
 /**
- * Sakura Quiz — 8 perguntas canônicas (Funil-Quiz-Diagnostico.html)
+ * Sakura Quiz — 9 perguntas canônicas (Funil-Quiz-Diagnostico.html)
  * + score por arquétipo (PRONTA · ESPERANÇOSA · CÉTICA)
  * + roteamento geográfico (SP · BR · INTERNACIONAL)
  * + gates de knock-out (capacidade financeira / urgência baixa → CÉTICA)
@@ -117,8 +117,21 @@ export const QUESTIONS: Question[] = [
     ],
   },
   {
-    key: "q6_geo",
+    key: "q6_relacionamento",
     num: 6,
+    title: "Há quanto tempo você conhece a Dra. Juliana?",
+    subtitle: "Ajuda a equipe a entender seu momento — se chegou agora ou já acompanha há um tempo.",
+    options: [
+      { value: "agora_anuncio", label: "Conheci agora, por anúncio", weights: { ESPERANCOSA: 1 }, emoji: "👀" },
+      { value: "1_semana", label: "Há cerca de 1 semana", weights: { ESPERANCOSA: 1 }, emoji: "📅" },
+      { value: "1_mes", label: "Há cerca de 1 mês", weights: { ESPERANCOSA: 2 }, emoji: "🗓️" },
+      { value: "3_meses", label: "Há cerca de 3 meses", weights: { PRONTA: 2 }, emoji: "🔥" },
+      { value: "6_meses_mais", label: "Mais de 6 meses", weights: { PRONTA: 3 }, emoji: "💖" },
+    ],
+  },
+  {
+    key: "q6_geo",
+    num: 7,
     title: "Você mora em São Paulo ou consegue vir até a clínica?",
     subtitle: "Roteamento operacional — define o protocolo de atendimento.",
     options: [
@@ -130,7 +143,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     key: "q7_urgencia_temporal",
-    num: 7,
+    num: 8,
     title: "Em quanto tempo você gostaria de transformar seu sorriso?",
     subtitle: "Define a prioridade no funil.",
     options: [
@@ -142,7 +155,7 @@ export const QUESTIONS: Question[] = [
   },
   {
     key: "q8_orcamento",
-    num: 8,
+    num: 9,
     // Title genérico (sem preço). Cada variant injeta sua faixa via getQuestionsFor().
     title: "Cabe no seu orçamento atual?",
     subtitle:
@@ -255,9 +268,9 @@ export function whatsappMessageFor(
   const plano = variant ? ` (Plano ${variant === "resina" ? "Resina" : "Porcelana"})` : "";
   switch (archetype) {
     case "PRONTA":
-      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas${plano} e quero marcar uma avaliação com a equipe da Dra. Juliana ainda essa semana. Que horários têm?`;
+      return `Oi! Sou a/o ${nome}, respondi as 9 perguntas${plano} e quero marcar uma avaliação com a equipe da Dra. Juliana ainda essa semana. Que horários têm?`;
     case "ESPERANCOSA":
-      return `Oi! Sou a/o ${nome}, respondi as 8 perguntas do quiz da Dra. Juliana${plano}. Tenho interesse em fazer mas queria entender como funciona a avaliação e as opções de parcelamento antes. Pode me explicar?`;
+      return `Oi! Sou a/o ${nome}, respondi as 9 perguntas do quiz da Dra. Juliana${plano}. Tenho interesse em fazer mas queria entender como funciona a avaliação e as opções de parcelamento antes. Pode me explicar?`;
     case "CETICA":
       return `Oi! Sou a/o ${nome}, fiz o quiz da Dra. Juliana${plano} e quero conversar sobre minhas dúvidas antes de qualquer decisão.`;
   }

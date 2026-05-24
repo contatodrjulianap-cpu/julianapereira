@@ -40,7 +40,7 @@ const FB_TRIGGERS = [
   {
     key: "quiz_submit" as const,
     label: "Quiz submetido (lead criado)",
-    desc: "Dispara quando user finaliza as 8 perguntas + entrega contato.",
+    desc: "Dispara quando user finaliza as 9 perguntas + entrega contato.",
     suggested: "Lead",
     archetypeFilter: true,
   },

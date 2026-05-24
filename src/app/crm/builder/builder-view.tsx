@@ -612,8 +612,8 @@ function Field({
 // =================================================
 
 const DEFAULT_COVER: NonNullable<QuizConfig["cover"]> = {
-  badge: "8 perguntas · 3 minutos",
-  headline: "Responde 8 perguntas,",
+  badge: "9 perguntas · 3 minutos",
+  headline: "Responde 9 perguntas,",
   headline_highlight: "ganha uma avaliação",
   subtitle1: "Direto e sem rodeio.",
   subtitle2:

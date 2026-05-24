@@ -10,7 +10,7 @@ import {
 } from "@/lib/quiz-archetypes";
 import type { QuizConfig } from "@/lib/quiz-config";
 import { trackEvent, getUtm } from "@/lib/track";
-import { normalizePhone } from "@/lib/wa-router";
+import { normalizePhone } from "@/lib/phone";
 
 const DEFAULT_COVER_IMAGE = "/quiz/case-antes-depois.jpg";
 
@@ -472,7 +472,7 @@ function QuestionScreen({
         className="text-[10px] uppercase tracking-[2px] font-semibold font-mono mb-3"
         style={{ color: "var(--sakura-rose-2)" }}
       >
-        {String(question.num).padStart(2, "0")} / 08
+        {String(question.num).padStart(2, "0")} / 09
       </p>
       <h2
         className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-3"

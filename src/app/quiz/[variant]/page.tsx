@@ -14,7 +14,7 @@ export async function generateMetadata({
   const plano = variant === "porcelana" ? "Porcelana" : "Resina";
   return {
     title: `Avaliação Plano ${plano} — Dra. Juliana Pereira`,
-    description: `Responda 8 perguntas e a equipe da Dra. Juliana entra em contato pra agendar sua avaliação de Plano ${plano}.`,
+    description: `Responda 9 perguntas e a equipe da Dra. Juliana entra em contato pra agendar sua avaliação de Plano ${plano}.`,
   };
 }
 
