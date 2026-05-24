@@ -6,6 +6,7 @@ import { sendCapiEvent } from "@/lib/facebook";
 import { logEvent } from "@/lib/event-log";
 import { renderGreeting } from "@/lib/integration-config";
 import { getIntegrationConfig } from "@/lib/integration-config-server";
+import { routeLeadToWa } from "@/lib/wa-router";
 
 const UtmSchema = z
   .object({
@@ -98,6 +99,17 @@ export async function POST(req: NextRequest) {
   if (leadErr) {
     console.error("lead upsert", leadErr);
     return NextResponse.json({ error: leadErr.message }, { status: 500 });
+  }
+
+  // Atribui o lead a um atendente JÁ no submit do quiz (round-robin sticky)
+  // pra garantir wa_number_id/assigned_owner_id preenchidos mesmo se o lead
+  // não clicar no botão wa.me e não mandar 1ª msg pelo WhatsApp.
+  // Falha silenciosa: lead já está salvo, atribuição vira responsabilidade do
+  // webhook quando lead realmente interagir.
+  try {
+    await routeLeadToWa(phone);
+  } catch (e) {
+    console.error("routeLeadToWa failed (lead salvo, atribuição via webhook)", e);
   }
 
   await logEvent({
