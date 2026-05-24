@@ -101,15 +101,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: leadErr.message }, { status: 500 });
   }
 
-  // Atribui o lead a um atendente JÁ no submit do quiz (round-robin sticky)
-  // pra garantir wa_number_id/assigned_owner_id preenchidos mesmo se o lead
-  // não clicar no botão wa.me e não mandar 1ª msg pelo WhatsApp.
-  // Falha silenciosa: lead já está salvo, atribuição vira responsabilidade do
-  // webhook quando lead realmente interagir.
-  try {
-    await routeLeadToWa(phone);
-  } catch (e) {
-    console.error("routeLeadToWa failed (lead salvo, atribuição via webhook)", e);
+  // Atribui o lead a um atendente JÁ no submit do quiz (round-robin sticky).
+  // CETICA NÃO é atribuída — esse arquétipo vai pro Instagram, não tem
+  // potencial de venda imediata. Atender CETICA queima tempo das meninas
+  // sem ROI. Se um dia mandar msg via WhatsApp mesmo assim, o webhook
+  // atribui automaticamente (sticky attribution).
+  if (archetype !== "CETICA") {
+    try {
+      await routeLeadToWa(phone);
+    } catch (e) {
+      console.error("routeLeadToWa failed (lead salvo, atribuição via webhook)", e);
+    }
   }
 
   await logEvent({
