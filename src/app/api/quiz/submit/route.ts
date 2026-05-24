@@ -31,6 +31,10 @@ const Body = z.object({
   answers: z.record(z.string(), z.union([z.string(), z.array(z.string())])),
   selfie_path: z.string().nullable().optional(),
   variant: z.enum(["resina", "porcelana"]),
+  // surface: origem do lead. "bot" pula o greeting Z-API automático
+  // porque no chat-bot o lead é quem inicia a conversa (clicando no
+  // wa.me). Default "quiz" mantém o comportamento histórico.
+  surface: z.enum(["quiz", "bot"]).default("quiz"),
   utm: UtmSchema,
 });
 
@@ -55,6 +59,7 @@ export async function POST(req: NextRequest) {
     answers,
     selfie_path,
     variant,
+    surface,
     utm,
   } = parsed.data;
   // Defesa server-side: mesmo que o front já normalize, garante phone canônico
@@ -123,13 +128,16 @@ export async function POST(req: NextRequest) {
     target: "internal",
     lead_id: lead.id,
     status: "success",
-    payload: { archetype, geo, case_type, knockout, scores, variant },
+    payload: { archetype, geo, case_type, knockout, scores, variant, surface },
   });
 
   // Greeting WhatsApp — config-driven via /crm/integrations.
   // Por padrão CETICA é desligada (vai pro Instagram), mas pode ligar via UI.
+  // surface=="bot": chat-bot já mostra CTA pro lead mandar a primeira msg
+  // via wa.me — então pulamos o greeting automático pra evitar mensagem
+  // duplicada (clínica falando antes do lead clicar).
   const greetingCfg = integration.whatsapp.greetings[archetype];
-  if (greetingCfg.enabled) {
+  if (greetingCfg.enabled && surface !== "bot") {
     const greeting = renderGreeting(greetingCfg.message, name);
     try {
       const zapiRes = await sendText(

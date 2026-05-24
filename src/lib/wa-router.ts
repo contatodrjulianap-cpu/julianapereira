@@ -116,14 +116,8 @@ export async function ownerForInstance(
   return { waNumberId: data.id, ownerId: data.owner_id };
 }
 
-export function normalizePhone(raw: string): string {
-  let d = raw.replace(/\D+/g, "");
-  // Remove DDI 55 inicial (se 13+ dígitos) pra normalizar o core BR
-  while (d.length >= 13 && d.startsWith("55")) d = d.slice(2);
-  // Remove "0" inicial do DDD (formato nacional "0 11 9..." vira "11 9...")
-  // Cobre o bug histórico: lead digitava "0 11 95764-8606" → virava "55011..."
-  if ((d.length === 11 || d.length === 12) && d.startsWith("0")) d = d.slice(1);
-  // Adiciona DDI 55 se vier 10-11 dígitos sem
-  if (d.length === 10 || d.length === 11) d = "55" + d;
-  return d;
-}
+// Reexport pra back-compat — código existente que faz
+// `import { normalizePhone } from "@/lib/wa-router"` continua funcionando.
+// Em Client Components, importe direto de "@/lib/phone" pra evitar puxar
+// a cadeia Supabase/next-headers via tree-shake de Turbopack.
+export { normalizePhone } from "./phone";
