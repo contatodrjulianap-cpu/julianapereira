@@ -18,7 +18,7 @@ export function isVariant(v: string): v is Variant {
 // Ancoragem de preço do Q8 — range amplo pra qualificar capacidade financeira
 // sem cravar o ticket exato (que sai depois pelo closer).
 export const PRICE_ANCHOR: Record<Variant, { min: string; max: string }> = {
-  resina: { min: "R$ 8.000,00", max: "R$ 60.000,00" },
+  resina: { min: "R$ 7.000,00", max: "R$ 24.000,00" },
   porcelana: { min: "R$ 25.000,00", max: "R$ 60.000,00" },
 };
 
