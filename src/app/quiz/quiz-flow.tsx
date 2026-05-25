@@ -311,7 +311,7 @@ function CoverScreen({
           {c.badge}
         </span>
         <h1
-          className="font-[family-name:var(--font-cormorant)] font-medium leading-[1.15] mb-4"
+          className="font-[family-name:var(--font-newsreader)] font-medium leading-[1.15] mb-4"
           style={{
             fontSize: "clamp(34px, 7.2vw, 52px)",
             color: "var(--sakura-cocoa)",
@@ -408,7 +408,7 @@ function CommitmentScreen({
   return (
     <FadeUp className="flex-1 flex flex-col justify-center">
       <h2
-        className="font-[family-name:var(--font-cormorant)] mb-4 leading-[1.1]"
+        className="font-[family-name:var(--font-newsreader)] mb-4 leading-[1.1]"
         style={{
           fontSize: "clamp(28px, 6vw, 38px)",
           color: "var(--sakura-cocoa)",
@@ -424,7 +424,7 @@ function CommitmentScreen({
         {c.body}
       </p>
       <h3
-        className="font-[family-name:var(--font-cormorant)] mb-6"
+        className="font-[family-name:var(--font-newsreader)] mb-6"
         style={{ fontSize: "22px", fontWeight: 600 }}
       >
         {c.question}
@@ -476,7 +476,7 @@ function QuestionScreen({
         {String(question.num).padStart(2, "0")} / 09
       </p>
       <h2
-        className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-3"
+        className="font-[family-name:var(--font-newsreader)] leading-[1.15] mb-3"
         style={{
           fontSize: "clamp(24px, 5.4vw, 32px)",
           color: "var(--sakura-cocoa)",
@@ -487,7 +487,7 @@ function QuestionScreen({
       </h2>
       {question.subtitle && (
         <p
-          className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-cormorant)]"
+          className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-newsreader)]"
           style={{ color: "var(--sakura-cocoa-3)" }}
         >
           {question.subtitle}
@@ -579,7 +579,7 @@ function LeadScreen({
         Quase lá
       </p>
       <h2
-        className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-3"
+        className="font-[family-name:var(--font-newsreader)] leading-[1.15] mb-3"
         style={{
           fontSize: "clamp(26px, 5.4vw, 34px)",
           color: "var(--sakura-cocoa)",
@@ -589,7 +589,7 @@ function LeadScreen({
         Onde a equipe te chama?
       </h2>
       <p
-        className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-cormorant)]"
+        className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-newsreader)]"
         style={{ color: "var(--sakura-cocoa-3)" }}
       >
         Avaliação sem compromisso. A equipe responde no WhatsApp em horário comercial.
@@ -682,7 +682,7 @@ function SelfieScreen({
         Foto opcional
       </p>
       <h2
-        className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-3"
+        className="font-[family-name:var(--font-newsreader)] leading-[1.15] mb-3"
         style={{
           fontSize: "clamp(26px, 5.4vw, 34px)",
           color: "var(--sakura-cocoa)",
@@ -692,7 +692,7 @@ function SelfieScreen({
         Quer mandar uma foto do seu sorriso?
       </h2>
       <p
-        className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-cormorant)]"
+        className="text-sm italic leading-relaxed mb-7 font-[family-name:var(--font-newsreader)]"
         style={{ color: "var(--sakura-cocoa-3)" }}
       >
         A Dra. Juliana usa pra preparar sua avaliação e o orçamento antes do
@@ -772,7 +772,7 @@ function LoadingScreen() {
         Organizando pra equipe
       </p>
       <h2
-        className="font-[family-name:var(--font-cormorant)] leading-[1.15] mb-8"
+        className="font-[family-name:var(--font-newsreader)] leading-[1.15] mb-8"
         style={{
           fontSize: "clamp(26px, 5.4vw, 36px)",
           color: "var(--sakura-cocoa)",
@@ -860,7 +860,7 @@ function ResultScreen({
       </div>
 
       <h2
-        className="font-[family-name:var(--font-cormorant)] leading-[1.1] mb-5"
+        className="font-[family-name:var(--font-newsreader)] leading-[1.1] mb-5"
         style={{
           fontSize: "clamp(30px, 7vw, 46px)",
           color: "var(--sakura-cocoa)",
