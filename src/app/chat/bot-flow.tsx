@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   scoreAnswers,
+  shouldSkipQuestion,
   RESULT_COPY,
   INSTAGRAM_URL,
   VARIANT_LABEL,
@@ -233,11 +234,27 @@ export function BotFlow({
     sayQuestion(0);
   }
 
-  function advanceFromQuestion(idx: number) {
-    trackEvent("quiz_step_view", { step: `q${idx + 1}`, variant, surface: "bot" });
-    if (idx + 1 < QUESTIONS.length) {
-      setPhase({ kind: "question", idx: idx + 1, ready: false });
-      sayQuestion(idx + 1);
+  function advanceFromQuestion(
+    idx: number,
+    snapshot: Record<string, AnswerValue> = answers,
+  ) {
+    // Usa question.num pra manter o funil estável com perguntas condicionais
+    // (q6_geo_cidade compartilha num=7 com q6_geo).
+    trackEvent("quiz_step_view", {
+      step: `q${QUESTIONS[idx]?.num ?? idx + 1}`,
+      variant,
+      surface: "bot",
+    });
+    let nextIdx = idx + 1;
+    while (
+      nextIdx < QUESTIONS.length &&
+      shouldSkipQuestion(QUESTIONS[nextIdx], snapshot)
+    ) {
+      nextIdx++;
+    }
+    if (nextIdx < QUESTIONS.length) {
+      setPhase({ kind: "question", idx: nextIdx, ready: false });
+      sayQuestion(nextIdx);
     } else {
       trackEvent("quiz_step_view", { step: "selfie", variant, surface: "bot" });
       setPhase({ kind: "ask_image", ready: false });
@@ -247,8 +264,9 @@ export function BotFlow({
 
   function pickOption(idx: number, q: Question, opt: QuizOption) {
     pushUser(opt.label);
-    setAnswers((prev) => ({ ...prev, [q.key]: opt.value }));
-    setTimeout(() => advanceFromQuestion(idx), 320);
+    const next = { ...answers, [q.key]: opt.value };
+    setAnswers(next);
+    setTimeout(() => advanceFromQuestion(idx, next), 320);
   }
 
   function pickMulti(value: string) {
@@ -264,18 +282,20 @@ export function BotFlow({
       .filter(Boolean)
       .join(" · ");
     pushUser(labels);
-    setAnswers((prev) => ({ ...prev, [q.key]: multiPick }));
+    const next = { ...answers, [q.key]: multiPick };
+    setAnswers(next);
     setMultiPick([]);
-    setTimeout(() => advanceFromQuestion(idx), 320);
+    setTimeout(() => advanceFromQuestion(idx, next), 320);
   }
 
   function submitTextAnswer(idx: number, q: Question) {
     const value = textInput.trim();
     if (value.length < 2) return;
     pushUser(value);
-    setAnswers((prev) => ({ ...prev, [q.key]: value }));
+    const next = { ...answers, [q.key]: value };
+    setAnswers(next);
     setTextInput("");
-    setTimeout(() => advanceFromQuestion(idx), 320);
+    setTimeout(() => advanceFromQuestion(idx, next), 320);
   }
 
   function submitName() {

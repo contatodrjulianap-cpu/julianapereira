@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   scoreAnswers,
+  shouldSkipQuestion,
   type AnswerValue,
   type Question,
   type ScoreResult,
@@ -25,10 +26,13 @@ type Step =
 
 type Lead = { name: string; phone: string; instagram: string; lgpd: boolean };
 
-function stepNameOf(s: Step): string | null {
+function stepNameOf(s: Step, questions: Question[]): string | null {
   if (s.kind === "cover") return "cover";
   if (s.kind === "commitment") return "commitment";
-  if (s.kind === "question") return `q${s.index + 1}`;
+  // Usa question.num (canônico) em vez de index — pergunta condicional
+  // (q6_geo_cidade) compartilha num=7 com q6_geo, então o funil principal
+  // continua estável mesmo quando o array ganha/perde perguntas.
+  if (s.kind === "question") return `q${questions[s.index]?.num ?? s.index + 1}`;
   if (s.kind === "selfie") return "selfie";
   if (s.kind === "lead") return "lead";
   if (s.kind === "loading") return "loading";
@@ -75,7 +79,7 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
     setHistory((h) => [...h, next]);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
     // Tracking
-    const stepName = stepNameOf(next);
+    const stepName = stepNameOf(next, QUESTIONS);
     if (stepName) trackEvent("quiz_step_view", { step: stepName, variant });
   }
 
@@ -86,18 +90,29 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
     setStep(newHistory[newHistory.length - 1]);
   }
 
-  function advanceFrom(key: string) {
+  function advanceFrom(
+    key: string,
+    snapshot: Record<string, AnswerValue> = answers,
+  ) {
     const idx = QUESTIONS.findIndex((q) => q.key === key);
-    if (idx < QUESTIONS.length - 1) {
-      go({ kind: "question", index: idx + 1 });
+    let nextIdx = idx + 1;
+    while (
+      nextIdx < QUESTIONS.length &&
+      shouldSkipQuestion(QUESTIONS[nextIdx], snapshot)
+    ) {
+      nextIdx++;
+    }
+    if (nextIdx < QUESTIONS.length) {
+      go({ kind: "question", index: nextIdx });
     } else {
       go({ kind: "selfie" });
     }
   }
 
   function answerQuestion(key: string, value: string) {
-    setAnswers((prev) => ({ ...prev, [key]: value }));
-    setTimeout(() => advanceFrom(key), 240);
+    const next = { ...answers, [key]: value };
+    setAnswers(next);
+    setTimeout(() => advanceFrom(key, next), 240);
   }
 
   function setTextAnswer(key: string, value: string) {

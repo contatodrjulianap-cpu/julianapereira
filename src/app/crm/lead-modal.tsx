@@ -525,7 +525,7 @@ export function LeadModal({
 
           {/* Quiz */}
           {hasQuiz && (
-            <Card title={`📝 Quiz · ${Object.keys(lead.quiz_answers ?? {}).length}/8`}>
+            <Card title={`📝 Quiz · ${Object.keys(lead.quiz_answers ?? {}).length} respostas`}>
               <div className="space-y-2.5">
                 {QUESTIONS.map((q) => {
                   const ans = lead.quiz_answers?.[q.key];
