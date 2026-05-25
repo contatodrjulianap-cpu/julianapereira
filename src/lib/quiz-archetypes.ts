@@ -23,7 +23,7 @@ export const PRICE_ANCHOR: Record<Variant, { min: string; max: string }> = {
 };
 
 export const VARIANT_LABEL: Record<Variant, string> = {
-  resina: "lentes de resina",
+  resina: "lentes em resina",
   porcelana: "lentes de porcelana",
 };
 
@@ -141,6 +141,17 @@ export const QUESTIONS: Question[] = [
       { value: "internacional", label: "Fora do Brasil", geo: "INTL", weights: { ESPERANCOSA: 1 } },
     ],
   },
+  // Follow-up condicional: só aparece se q6_geo != "sp". Sem peso no score
+  // (inputType text é ignorado pelo scoreAnswers); contexto pro CRM/atendente.
+  {
+    key: "q6_geo_cidade",
+    num: 7,
+    title: "De onde você é? Cidade e estado.",
+    subtitle: "Pra equipe já entender sua região antes de te chamar.",
+    inputType: "text",
+    textPlaceholder: "Ex.: Curitiba/PR, Goiânia/GO, Lisboa/Portugal...",
+    options: [],
+  },
   {
     key: "q7_urgencia_temporal",
     num: 8,
@@ -193,6 +204,19 @@ export function getQuestionsFor(variant: Variant): Question[] {
 
 export type AnswerValue = string | string[];
 export type Answers = Record<QuestionKey, AnswerValue>;
+
+// Perguntas condicionais — só aparecem dado o estado de outras respostas.
+// Mapa centralizado pra quiz-flow e bot-flow consultarem do mesmo jeito.
+export function shouldSkipQuestion(
+  question: Question,
+  answers: Record<string, AnswerValue>,
+): boolean {
+  // q6_geo_cidade: só pra quem NÃO mora em SP. Quem mora em SP pula direto.
+  if (question.key === "q6_geo_cidade") {
+    return answers["q6_geo"] === "sp";
+  }
+  return false;
+}
 
 export type ScoreResult = {
   archetype: Archetype;
