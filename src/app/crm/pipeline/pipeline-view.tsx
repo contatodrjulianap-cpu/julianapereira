@@ -20,6 +20,39 @@ export type CrmUser = { id: string; display_name: string; role: string };
 const ARCH_OPTIONS = ["all", "PRONTA", "ESPERANCOSA", "CETICA"] as const;
 const STATUS_FILTER_OPTIONS = ["all", ...STATUS_OPTIONS] as const;
 
+const DATE_OPTIONS = ["all", "today", "yesterday", "7d", "30d", "90d"] as const;
+type DatePreset = (typeof DATE_OPTIONS)[number];
+const DATE_LABELS: Record<DatePreset, string> = {
+  all: "Tudo",
+  today: "Hoje",
+  yesterday: "Ontem",
+  "7d": "7 dias",
+  "30d": "30 dias",
+  "90d": "90 dias",
+};
+
+// Filtro por created_at do lead, comparando em horário local (browser).
+function inDateRange(createdAt: string, preset: DatePreset): boolean {
+  if (preset === "all") return true;
+  const t = new Date(createdAt).getTime();
+  const now = new Date();
+  if (preset === "today") {
+    const s = new Date(now);
+    s.setHours(0, 0, 0, 0);
+    return t >= s.getTime();
+  }
+  if (preset === "yesterday") {
+    const s = new Date(now);
+    s.setDate(s.getDate() - 1);
+    s.setHours(0, 0, 0, 0);
+    const e = new Date(s);
+    e.setDate(e.getDate() + 1);
+    return t >= s.getTime() && t < e.getTime();
+  }
+  const days = preset === "7d" ? 7 : preset === "30d" ? 30 : 90;
+  return t >= now.getTime() - days * 86_400_000;
+}
+
 // Origem unificada: granular o suficiente pra filtrar sem precisar de uma
 // linha extra "variant do quiz". quiz-resina/quiz-porcelana viram opções
 // próprias. WhatsApp = lead que entrou via webhook (source=NULL).
@@ -102,6 +135,7 @@ export function PipelineView({
   const [filterStatus, setFilterStatus] =
     useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
   const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
+  const [filterDate, setFilterDate] = useState<DatePreset>("all");
 
   // Inline save: PATCH /api/leads/[id] e otimista local
   const patchLead = useCallback(
@@ -201,6 +235,7 @@ export function PipelineView({
         }
         if (filterStatus !== "all" && (l.status ?? "new") !== filterStatus) return false;
         if (filterOwner !== "all" && l.assigned_owner_id !== filterOwner) return false;
+        if (!inDateRange(l.created_at, filterDate)) return false;
         if (search) {
           const t = search.toLowerCase();
           if (
@@ -217,7 +252,20 @@ export function PipelineView({
         if (ao !== bo) return ao - bo;
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       });
-  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin]);
+  }, [leads, search, filterArch, filterStatus, filterOwner, filterOrigin, filterDate]);
+
+  // Contagem por preset de data (pra mostrar (n) em cada pill)
+  const countByDate = useMemo(() => {
+    const map: Record<DatePreset, number> = {
+      all: 0, today: 0, yesterday: 0, "7d": 0, "30d": 0, "90d": 0,
+    };
+    for (const l of leads) {
+      for (const p of DATE_OPTIONS) {
+        if (inDateRange(l.created_at, p)) map[p]++;
+      }
+    }
+    return map;
+  }, [leads]);
 
   // Contagem por status (pra pills de filtro)
   const countByStatus = useMemo(() => {
@@ -365,6 +413,29 @@ export function PipelineView({
             >
               {ORIGIN_LABELS[g]}{" "}
               <span className="opacity-70 ml-1">({countByOrigin[g] ?? 0})</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Aba de data: filtro por created_at do lead (presets) */}
+      <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-2 overflow-x-auto md:overflow-visible">
+        <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
+            Data:
+          </span>
+          {DATE_OPTIONS.map((p) => (
+            <button
+              key={p}
+              onClick={() => setFilterDate(p)}
+              className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
+                filterDate === p
+                  ? "bg-sky-600 text-white"
+                  : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
+              }`}
+            >
+              {DATE_LABELS[p]}{" "}
+              <span className="opacity-70 ml-1">({countByDate[p]})</span>
             </button>
           ))}
         </div>
