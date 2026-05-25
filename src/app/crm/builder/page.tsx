@@ -20,6 +20,13 @@ export default async function BuilderPage({
     redirect("/crm/login");
   }
 
+  const { data: crmUser } = await supabase
+    .from("crm_users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (crmUser?.role !== "admin") redirect("/crm");
+
   const { variant: rawVariant } = await searchParams;
   const variant: Variant = isVariant(rawVariant ?? "") ? (rawVariant as Variant) : "resina";
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { CrmBottomNav } from "./crm-bottom-nav";
 
 export type CrmTab =
@@ -13,7 +14,7 @@ export type CrmTab =
   | "conversas"
   | "voce";
 
-export function CrmShell({
+export async function CrmShell({
   active,
   userEmail,
   children,
@@ -24,6 +25,20 @@ export function CrmShell({
   children: React.ReactNode;
   fullViewport?: boolean;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  let isAdmin = false;
+  if (user) {
+    const { data: crmUser } = await supabase
+      .from("crm_users")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+    isAdmin = crmUser?.role === "admin";
+  }
+
   return (
     <div
       className={`flex flex-col bg-slate-50/60 pb-14 md:pb-0 ${
@@ -50,21 +65,25 @@ export function CrmShell({
               <TabLink href="/crm/pipeline" active={active === "pipeline"}>
                 📊 Pipeline
               </TabLink>
-              <TabLink href="/crm/funnel" active={active === "funnel"}>
-                📈 Funil
-              </TabLink>
-              <TabLink href="/crm/log" active={active === "log"}>
-                🪵 Log
-              </TabLink>
-              <TabLink href="/crm/builder" active={active === "builder"}>
-                🛠️ Construtor
-              </TabLink>
-              <TabLink
-                href="/crm/integrations"
-                active={active === "integrations"}
-              >
-                🔌 Integrações
-              </TabLink>
+              {isAdmin && (
+                <>
+                  <TabLink href="/crm/funnel" active={active === "funnel"}>
+                    📈 Funil
+                  </TabLink>
+                  <TabLink href="/crm/log" active={active === "log"}>
+                    🪵 Log
+                  </TabLink>
+                  <TabLink href="/crm/builder" active={active === "builder"}>
+                    🛠️ Construtor
+                  </TabLink>
+                  <TabLink
+                    href="/crm/integrations"
+                    active={active === "integrations"}
+                  >
+                    🔌 Integrações
+                  </TabLink>
+                </>
+              )}
             </nav>
           </div>
           <form action="/api/auth/signout" method="POST" className="contents">

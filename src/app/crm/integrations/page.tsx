@@ -15,6 +15,13 @@ export default async function IntegrationsPage() {
     redirect("/crm/login");
   }
 
+  const { data: crmUser } = await supabase
+    .from("crm_users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (crmUser?.role !== "admin") redirect("/crm");
+
   const config = await getIntegrationConfig();
 
   return (

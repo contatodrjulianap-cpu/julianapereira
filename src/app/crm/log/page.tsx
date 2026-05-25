@@ -96,6 +96,13 @@ export default async function LogPage({
     redirect("/crm/login");
   }
 
+  const { data: crmUser } = await supabase
+    .from("crm_users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (crmUser?.role !== "admin") redirect("/crm");
+
   const params = await searchParams;
   const range = resolveRange(params);
 

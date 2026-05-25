@@ -5,12 +5,15 @@ import { CrmShell } from "../crm-shell";
 
 export const dynamic = "force-dynamic";
 
-const SECTIONS: Array<{
+type Section = {
   href: string;
   icon: string;
   label: string;
   description: string;
-}> = [
+  adminOnly?: boolean;
+};
+
+const SECTIONS: Section[] = [
   {
     href: "/crm/voce/guia",
     icon: "📖",
@@ -40,24 +43,28 @@ const SECTIONS: Array<{
     icon: "📈",
     label: "Funil",
     description: "Métricas e taxas de conversão por etapa",
+    adminOnly: true,
   },
   {
     href: "/crm/log",
     icon: "🪵",
     label: "Log",
     description: "Histórico de eventos do sistema",
+    adminOnly: true,
   },
   {
     href: "/crm/builder",
     icon: "🛠️",
     label: "Construtor do quiz",
     description: "Edita perguntas, copy e arquétipos do quiz",
+    adminOnly: true,
   },
   {
     href: "/crm/integrations",
     icon: "🔌",
     label: "Integrações",
     description: "WhatsApp, Facebook, mensagens de boas-vindas",
+    adminOnly: true,
   },
 ];
 
@@ -68,6 +75,14 @@ export default async function VocePage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/crm/login");
 
+  const { data: crmUser } = await supabase
+    .from("crm_users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  const isAdmin = crmUser?.role === "admin";
+  const visibleSections = SECTIONS.filter((s) => isAdmin || !s.adminOnly);
+
   return (
     <CrmShell active="voce" userEmail={user.email ?? ""}>
       <div className="flex-1 max-w-md w-full mx-auto px-4 py-6">
@@ -77,7 +92,7 @@ export default async function VocePage() {
         </header>
 
         <div className="space-y-2 mb-6">
-          {SECTIONS.map((s) => (
+          {visibleSections.map((s) => (
             <Link
               key={s.href}
               href={s.href}

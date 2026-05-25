@@ -90,6 +90,13 @@ export default async function FunnelPage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/crm/login");
 
+  const { data: crmUser } = await supabase
+    .from("crm_users")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (crmUser?.role !== "admin") redirect("/crm");
+
   const params = await searchParams;
   const range = resolveRange(params);
   const variant: "resina" | "porcelana" | null =
