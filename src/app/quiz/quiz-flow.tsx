@@ -311,15 +311,16 @@ function CoverScreen({
           {c.badge}
         </span>
         <h1
-          className="font-[family-name:var(--font-cormorant)] font-light leading-[1.04] mb-4"
+          className="font-[family-name:var(--font-cormorant)] font-medium leading-[1.15] mb-4"
           style={{
-            fontSize: "clamp(36px, 8vw, 56px)",
+            fontSize: "clamp(34px, 7.2vw, 52px)",
             color: "var(--sakura-cocoa)",
+            letterSpacing: "-0.01em",
           }}
         >
           {c.headline}{" "}
           <em
-            className="not-italic font-normal"
+            className="not-italic font-medium"
             style={{ color: "var(--sakura-rose-2)", fontStyle: "italic" }}
           >
             {c.headline_highlight}
