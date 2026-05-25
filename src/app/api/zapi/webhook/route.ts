@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { ZapiWebhookPayload } from "@/lib/zapi";
 import { logEvent } from "@/lib/event-log";
 import { ownerForInstance } from "@/lib/wa-router";
+import { normalizePhone } from "@/lib/phone";
 
 type ParsedContent = {
   text: string | null;
@@ -182,8 +183,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ignored: "group" });
   }
 
-  const phone = payload.phone;
-  if (!phone) {
+  const rawPhone = payload.phone;
+  if (!rawPhone) {
     await logEvent({
       type: "zapi_webhook",
       direction: "inbound",
@@ -196,6 +197,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "missing phone" }, { status: 400 });
   }
 
+  // Phone canônico: leads inbound vêm com phone real (normaliza pra 13 dígitos
+  // BR), echo outbound da atendente vem com chatLid "@lid" (privacidade do WPP).
+  const isLid = rawPhone.includes("@lid");
+  const phone = isLid ? rawPhone : normalizePhone(rawPhone);
+
   const supabase = createServiceClient();
 
   // Resolve owner pelo instance_id da Z-API (qual número/atendente recebeu).
@@ -203,6 +209,23 @@ export async function POST(req: NextRequest) {
   const owner = payload.instanceId
     ? await ownerForInstance(payload.instanceId)
     : null;
+
+  // Quando o echo outbound vem com phone=@lid, NÃO cria lead novo — procura
+  // primeiro lead existente cujo histórico contém o mesmo chatLid (sinal de
+  // que é a mesma conversa). Evita o bug em que mensagens da atendente
+  // criavam um lead "sem nome" paralelo ao lead real do paciente.
+  let existingLeadIdForLid: string | null = null;
+  if (isLid && isOutboundEcho && payload.chatLid) {
+    const { data: match } = await supabase
+      .from("messages")
+      .select("lead_id")
+      .eq("raw->>chatLid", payload.chatLid)
+      .neq("raw->>phone", rawPhone)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (match?.lead_id) existingLeadIdForLid = match.lead_id;
+  }
 
   // No echo outbound (fromMe=true), senderName/senderPhoto vêm da atendente,
   // não do lead — então não sobrescreve name/avatar do lead nesse caso.
@@ -215,11 +238,28 @@ export async function POST(req: NextRequest) {
     leadUpsertPayload.avatar_url = payload.senderPhoto ?? null;
   }
 
-  const { data: lead, error: leadErr } = await supabase
-    .from("leads")
-    .upsert(leadUpsertPayload, { onConflict: "phone" })
-    .select()
-    .single();
+  let lead: { id: string; name: string | null; assigned_owner_id: string | null } | null = null;
+  let leadErr: { message: string } | null = null;
+
+  if (existingLeadIdForLid) {
+    // Atualiza last_message_at no lead real (resolvido pelo chatLid)
+    const { data, error } = await supabase
+      .from("leads")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", existingLeadIdForLid)
+      .select("id, name, assigned_owner_id")
+      .single();
+    lead = data;
+    leadErr = error;
+  } else {
+    const { data, error } = await supabase
+      .from("leads")
+      .upsert(leadUpsertPayload, { onConflict: "phone" })
+      .select("id, name, assigned_owner_id")
+      .single();
+    lead = data;
+    leadErr = error;
+  }
 
   // Para leads @lid (privacidade do WhatsApp esconde o phone real), o
   // senderName em payload.fromMe=true é a atendente, não o destinatário.
@@ -255,17 +295,20 @@ export async function POST(req: NextRequest) {
       .eq("id", lead.id);
   }
 
-  if (leadErr) {
+  if (leadErr || !lead) {
     await logEvent({
       type: "zapi_webhook",
       direction: "inbound",
       target: "zapi",
       status: "failed",
       payload,
-      error: `lead upsert: ${leadErr.message}`,
+      error: `lead upsert: ${leadErr?.message ?? "no lead returned"}`,
       duration_ms: Date.now() - start,
     });
-    return NextResponse.json({ error: leadErr.message }, { status: 500 });
+    return NextResponse.json(
+      { error: leadErr?.message ?? "no lead returned" },
+      { status: 500 },
+    );
   }
 
   const parsed = await parseAndStoreMedia(payload, lead.id, supabase);
