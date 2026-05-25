@@ -296,7 +296,7 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
     badge: "Pronta pra avaliação",
     title: "Você está no momento certo.",
     description:
-      "Pelo que você respondeu, tá pronta pra avaliação. A equipe te chama no WhatsApp pra alinhar a agenda.",
+      "Pelo que você respondeu, tá pronta pra avaliação. Chama a equipe da Ju no WhatsApp pra alinhar a agenda.",
     tone: "rose",
     ctaPrimary: {
       label: "Falar com a equipe da Ju agora →",
@@ -308,7 +308,7 @@ export const RESULT_COPY: Record<Archetype, ResultCopy> = {
     badge: "Vale uma avaliação",
     title: "Tem caminho — começa por uma avaliação.",
     description:
-      "Você tem o desejo claro, mas ainda quer entender investimento e como funciona pro seu caso. A equipe te chama no WhatsApp pra tirar dúvida antes de qualquer agendamento — sem pressão pra fechar.",
+      "Você tem o desejo claro, mas ainda quer entender investimento e como funciona pro seu caso. Chama a equipe no WhatsApp pra tirar dúvida antes de qualquer agendamento, sem pressão pra fechar.",
     tone: "cream",
     ctaPrimary: {
       label: "Quero entender o caminho →",

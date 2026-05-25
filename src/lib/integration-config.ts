@@ -41,7 +41,7 @@ export const DEFAULT_INTEGRATION_CONFIG: IntegrationConfig = {
       PRONTA: {
         enabled: true,
         message:
-          "Oi {name}! 🌸 Recebi suas respostas aqui — você está pronta pra avaliação. A equipe da Ju vai te chamar nas próximas horas pra alinhar agenda. Se quiser adiantar, me responde aqui que já te passo os horários disponíveis.",
+          "Oi {name}! 🌸 Recebi suas respostas aqui — você está pronta pra avaliação. Tô aqui pra te alinhar a agenda, me responde que já te passo os horários disponíveis.",
       },
       ESPERANCOSA: {
         enabled: true,
