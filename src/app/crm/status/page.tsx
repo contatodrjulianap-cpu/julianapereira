@@ -20,6 +20,8 @@ type TaskLead = {
   archetype: string | null;
   follow_up_at: string;
   follow_up_note: string | null;
+  assigned_owner_id: string | null;
+  owner_name: string | null;
 };
 
 export default async function StatusPage() {
@@ -39,12 +41,20 @@ export default async function StatusPage() {
   let q = supabase
     .from("leads")
     .select(
-      "id, name, phone, status, archetype, next_contact_at, follow_up_at, follow_up_note, last_message_at, updated_at",
+      "id, name, phone, status, archetype, next_contact_at, follow_up_at, follow_up_note, last_message_at, updated_at, assigned_owner_id",
     )
     .limit(500);
   if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
   const { data: leadsRaw } = await q;
   const leads = leadsRaw ?? [];
+
+  // Mapa id → display_name pra mostrar quem é responsável de cada tarefa
+  // (só admin precisa, mas o overhead de 1 query extra é trivial).
+  const { data: usersRaw } = await supabase
+    .from("crm_users")
+    .select("id, display_name");
+  const ownerNameById = new Map<string, string>();
+  for (const u of usersRaw ?? []) ownerNameById.set(u.id, u.display_name);
 
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -107,6 +117,10 @@ export default async function StatusPage() {
         archetype: l.archetype,
         follow_up_at: l.follow_up_at,
         follow_up_note: l.follow_up_note,
+        assigned_owner_id: l.assigned_owner_id,
+        owner_name: l.assigned_owner_id
+          ? (ownerNameById.get(l.assigned_owner_id) ?? null)
+          : null,
       };
       if (fu <= endToday) tasksToday.push(task);
       else if (fu <= in7Days) tasksUpcoming.push(task);
@@ -219,7 +233,12 @@ export default async function StatusPage() {
           ) : (
             <ul className="space-y-2">
               {tasksToday.map((t) => (
-                <TaskRow key={t.id} task={t} variant="today" />
+                <TaskRow
+                  key={t.id}
+                  task={t}
+                  variant="today"
+                  showOwner={isAdmin}
+                />
               ))}
             </ul>
           )}
@@ -246,7 +265,12 @@ export default async function StatusPage() {
                   </h3>
                   <ul className="space-y-2">
                     {items.map((t) => (
-                      <TaskRow key={t.id} task={t} variant="upcoming" />
+                      <TaskRow
+                        key={t.id}
+                        task={t}
+                        variant="upcoming"
+                        showOwner={isAdmin}
+                      />
                     ))}
                   </ul>
                 </div>
@@ -268,9 +292,11 @@ export default async function StatusPage() {
 function TaskRow({
   task,
   variant,
+  showOwner = false,
 }: {
   task: TaskLead;
   variant: "today" | "upcoming";
+  showOwner?: boolean;
 }) {
   const fu = new Date(task.follow_up_at);
   const overdue = variant === "today" && fu < new Date(Date.now() - 86400_000);
@@ -308,6 +334,11 @@ function TaskRow({
         {!task.follow_up_note && (
           <p className="text-[11px] text-slate-400 italic mt-1">
             sem tarefa anotada
+          </p>
+        )}
+        {showOwner && (
+          <p className="text-[10px] font-semibold text-slate-500 mt-1.5">
+            👤 {task.owner_name ?? "sem responsável"}
           </p>
         )}
       </Link>
