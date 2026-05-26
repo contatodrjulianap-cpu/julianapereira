@@ -46,6 +46,7 @@ export default async function StatusPage() {
   const in3Days = new Date(startToday.getTime() + 3 * 86400_000);
   const in7Days = new Date(startToday.getTime() + 7 * 86400_000);
   const ago7 = new Date(startToday.getTime() - 7 * 86400_000);
+  const ago15min = new Date(now.getTime() - 15 * 60_000);
 
   // Query A: tarefas com follow_up_at <= +7d (lista + contadores hoje/vencidos/3d)
   const tasksReq = (() => {
@@ -88,17 +89,46 @@ export default async function StatusPage() {
   // Query D: crm_users pra exibir responsável
   const usersReq = supabase.from("crm_users").select("id, display_name");
 
-  const [tasksRes, friosRes, fechadosRes, usersRes] = await Promise.all([
-    tasksReq,
-    friosReq,
-    fechadosReq,
-    usersReq,
-  ]);
+  // Query E: PRONTAs aguardando atendimento há +15min (regra v2 playbook)
+  // Filtra por archetype=PRONTA + status=new + criado há +15min.
+  // O "sem msg outbound" é refinado em código (não-trivial no PostgREST puro).
+  const prontasReq = (() => {
+    let q = supabase
+      .from("leads")
+      .select(
+        "id, name, phone, quiz_variant, assigned_owner_id, created_at, last_message_at",
+      )
+      .eq("archetype", "PRONTA")
+      .eq("status", "new")
+      .lte("created_at", ago15min.toISOString())
+      .order("created_at", { ascending: true })
+      .limit(50);
+    if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
+    return q;
+  })();
+
+  const [tasksRes, friosRes, fechadosRes, usersRes, prontasRes] =
+    await Promise.all([tasksReq, friosReq, fechadosReq, usersReq, prontasReq]);
 
   const taskLeads = tasksRes.data ?? [];
+  const prontaCandidates = prontasRes.data ?? [];
   const ownerNameById = new Map<string, string>();
   for (const u of usersRes.data ?? [])
     ownerNameById.set(u.id, u.display_name);
+
+  // Refina PRONTAs: pega só as que NUNCA receberam outbound (= ninguém atendeu).
+  let prontasEsperando: typeof prontaCandidates = [];
+  if (prontaCandidates.length > 0) {
+    const ids = prontaCandidates.map((p) => p.id);
+    const { data: outMsgs } = await supabase
+      .from("messages")
+      .select("lead_id")
+      .in("lead_id", ids)
+      .eq("direction", "outbound")
+      .limit(500);
+    const atendidos = new Set((outMsgs ?? []).map((m) => m.lead_id));
+    prontasEsperando = prontaCandidates.filter((p) => !atendidos.has(p.id));
+  }
 
   const tasksToday: TaskLead[] = [];
   const tasksUpcoming: TaskLead[] = [];
@@ -201,10 +231,64 @@ export default async function StatusPage() {
           {isAdmin && (
             <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
               admin · {taskLeads.length} tarefas indexadas · hoje{" "}
-              {tasksToday.length} · próx 7d {tasksUpcoming.length}
+              {tasksToday.length} · próx 7d {tasksUpcoming.length} · prontas
+              aguardando {prontasEsperando.length}
             </p>
           )}
         </header>
+
+        {/* PRONTAs aguardando atendimento há +15min — regra v2 playbook */}
+        {prontasEsperando.length > 0 && (
+          <section className="mb-5 rounded-2xl border-2 border-red-300 bg-red-50 p-4">
+            <h2 className="text-sm font-bold text-red-900 mb-2 flex items-center gap-2">
+              🔥 PRONTA aguardando atendimento
+              <span className="text-[11px] font-normal bg-red-200 text-red-900 px-2 py-0.5 rounded-full">
+                {prontasEsperando.length} · &gt;15min
+              </span>
+            </h2>
+            <p className="text-[11px] text-red-800 mb-3">
+              Lead PRONTO do quiz que ainda não recebeu 1ª mensagem. Atender já
+              — cada minuto esfria.
+            </p>
+            <ul className="space-y-1.5">
+              {prontasEsperando.map((p) => {
+                const waited = Math.floor(
+                  (now.getTime() - new Date(p.created_at).getTime()) / 60_000,
+                );
+                const variant = p.quiz_variant
+                  ? p.quiz_variant === "resina"
+                    ? "🦷 resina"
+                    : "💎 porcelana"
+                  : "—";
+                return (
+                  <li key={p.id}>
+                    <Link
+                      href={`/crm/conversas/${p.id}`}
+                      className="block rounded-lg bg-white border border-red-200 px-3 py-2 active:bg-red-50"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-[13px] font-semibold text-slate-900 truncate">
+                          {p.name || p.phone}
+                        </p>
+                        <span className="shrink-0 text-[10px] font-bold text-red-700">
+                          ⏱️ {waited}min
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5">
+                        {variant}
+                        {isAdmin &&
+                          p.assigned_owner_id &&
+                          ` · 👤 ${
+                            ownerNameById.get(p.assigned_owner_id) ?? "?"
+                          }`}
+                      </p>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
 
         <div className="grid grid-cols-2 gap-2.5">
           {CARDS.map((c) => (

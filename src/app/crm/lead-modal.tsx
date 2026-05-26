@@ -251,6 +251,24 @@ export function LeadModal({
   }, [lead.id]);
 
   async function handleSave() {
+    // Validação anti-typo: valor de venda entre R$1 e R$500 quase sempre
+    // é dedo escorregando (queria R$15000 e digitou 15.5). Confirma antes.
+    const numericValue =
+      form.deal_value === "" ? null : Number(form.deal_value);
+    if (
+      numericValue !== null &&
+      numericValue > 0 &&
+      numericValue < 500 &&
+      form.status === "won"
+    ) {
+      const ok = window.confirm(
+        `R$${numericValue.toFixed(2)} parece baixo pra uma venda da clínica. ` +
+          `Quis dizer R$${(numericValue * 1000).toFixed(0)}? ` +
+          `Clica OK pra salvar mesmo assim, ou Cancelar pra revisar.`,
+      );
+      if (!ok) return;
+    }
+
     setSaving(true);
     setError(null);
     try {
