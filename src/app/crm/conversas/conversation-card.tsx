@@ -80,7 +80,7 @@ async function patchLead(id: string, payload: Record<string, unknown>) {
   return res.json();
 }
 
-const REVEAL_LEFT = 160; // arrasto pra esquerda revela 2 ações
+const REVEAL_LEFT = 240; // arrasto pra esquerda revela 3 ações (won/lost/disqualified)
 const REVEAL_RIGHT = 220; // arrasto pra direita revela 3 ações
 const SNAP = 70; // threshold pra snap-open
 
@@ -164,6 +164,12 @@ export function ConversationCard({
           label="Perdido"
           onClick={() => applyAction({ status: "lost" })}
         />
+        <ActionButton
+          color="#71717a"
+          icon="🚫"
+          label="Desqualif."
+          onClick={() => applyAction({ status: "disqualified" })}
+        />
       </motion.div>
 
       {/* Ações reveladas ao arrastar pra DIREITA (alinhadas à esquerda) */}
@@ -213,13 +219,17 @@ export function ConversationCard({
           dragging.current = true;
           if (longPressTimer.current) clearTimeout(longPressTimer.current);
         }}
-        onDragEnd={(_, info) => {
+        onDragEnd={(_, _info) => {
           setTimeout(() => (dragging.current = false), 50);
-          const v = info.offset.x;
-          // Snap diferentes pra esquerda (-REVEAL_LEFT) e direita (+REVEAL_RIGHT)
-          if (v < -SNAP)
+          // Snap pela POSIÇÃO ABSOLUTA final (x.get()), não pelo offset do drag.
+          // Bug antigo: usava info.offset.x (delta), então quando o card já
+          // estava aberto em -REVEAL_LEFT e o usuário arrastava pra direita
+          // só pra fechar, o delta passava +SNAP e o sistema entendia "abrir
+          // pro outro lado" — card oscilando entre extremos.
+          const current = x.get();
+          if (current < -SNAP)
             animate(x, -REVEAL_LEFT, { type: "spring", stiffness: 350, damping: 30 });
-          else if (v > SNAP)
+          else if (current > SNAP)
             animate(x, REVEAL_RIGHT, { type: "spring", stiffness: 350, damping: 30 });
           else close();
         }}
