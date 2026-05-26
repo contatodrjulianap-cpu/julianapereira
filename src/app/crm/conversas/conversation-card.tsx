@@ -21,11 +21,12 @@ function temperatureOf(lead: LeadCard): "🔥" | "☀️" | "❄️" | null {
   return "❄️";
 }
 
-// Status final (won/lost) substitui a temperatura — pra lead fechado
-// ou perdido, o tempo desde última msg não é mais relevante.
-function statusEmojiOf(status: string | null): "✅" | "❌" | null {
+// Status final (won/lost/disqualified) substitui a temperatura — pra lead
+// fechado, perdido ou desqualificado, o tempo desde última msg não é mais relevante.
+function statusEmojiOf(status: string | null): "✅" | "❌" | "🚫" | null {
   if (status === "won") return "✅";
   if (status === "lost") return "❌";
+  if (status === "disqualified") return "🚫";
   return null;
 }
 

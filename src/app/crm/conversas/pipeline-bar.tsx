@@ -8,7 +8,8 @@ export type Bucket =
   | "em_contato"
   | "follow_up"
   | "fechados"
-  | "perdidos";
+  | "perdidos"
+  | "desqualificados";
 
 const BUCKETS: Array<{ key: Bucket; label: string; emoji: string }> = [
   { key: "todos", label: "Todos", emoji: "💬" },
@@ -17,6 +18,7 @@ const BUCKETS: Array<{ key: Bucket; label: string; emoji: string }> = [
   { key: "follow_up", label: "Follow up", emoji: "⏰" },
   { key: "fechados", label: "Fechados", emoji: "✅" },
   { key: "perdidos", label: "Perdidos", emoji: "❌" },
+  { key: "desqualificados", label: "Desqualif.", emoji: "🚫" },
 ];
 
 // Pra Sakura, "Avaliação" e "Follow up" são a mesma fase: lead que recebeu
@@ -29,7 +31,8 @@ export function bucketOf(lead: {
   if (
     lead.follow_up_at &&
     lead.status !== "won" &&
-    lead.status !== "lost"
+    lead.status !== "lost" &&
+    lead.status !== "disqualified"
   ) {
     return "follow_up";
   }
@@ -45,6 +48,8 @@ export function bucketOf(lead: {
       return "fechados";
     case "lost":
       return "perdidos";
+    case "disqualified":
+      return "desqualificados";
     default:
       return "novos";
   }
@@ -105,6 +110,7 @@ export function countByBucket(leads: LeadFull[]): Record<Bucket, number> {
     follow_up: 0,
     fechados: 0,
     perdidos: 0,
+    desqualificados: 0,
   };
   for (const l of leads) counts[bucketOf(l)]++;
   return counts;

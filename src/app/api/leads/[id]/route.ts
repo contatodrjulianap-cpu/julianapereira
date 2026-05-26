@@ -4,7 +4,7 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/event-log";
 
 const PatchBody = z.object({
-  status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost"]).optional(),
+  status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost", "disqualified"]).optional(),
   assigned_to: z.string().nullable().optional(),
   assigned_owner_id: z.string().uuid().nullable().optional(),
   next_contact_at: z.string().nullable().optional(), // ISO date 'YYYY-MM-DD'

@@ -38,7 +38,8 @@ export default async function StatusPage() {
   const ago7 = new Date(startToday.getTime() - 7 * 86400_000);
   const todayYmd = toYmd(startToday);
 
-  const isFinal = (s: string | null) => s === "won" || s === "lost";
+  const isFinal = (s: string | null) =>
+    s === "won" || s === "lost" || s === "disqualified";
 
   let chamarHoje = 0;
   let vencidos = 0;

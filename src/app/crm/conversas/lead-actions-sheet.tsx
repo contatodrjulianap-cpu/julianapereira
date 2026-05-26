@@ -10,6 +10,7 @@ const PIPELINE = [
   { value: "proposal", emoji: "⏰", label: "Follow up" },
   { value: "won", emoji: "✅", label: "Fechado" },
   { value: "lost", emoji: "❌", label: "Perdido" },
+  { value: "disqualified", emoji: "🚫", label: "Desqualif." },
 ] as const;
 
 const SOURCES = [
@@ -60,7 +61,7 @@ export function LeadActionsSheet({
       </header>
 
       <Section title="Mover pipeline">
-        <div className="px-3 grid grid-cols-5 gap-1.5">
+        <div className="px-3 grid grid-cols-3 gap-1.5">
           {PIPELINE.map((p) => {
             const isCurrent = lead.status === p.value;
             return (

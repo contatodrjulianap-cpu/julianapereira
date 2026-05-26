@@ -336,9 +336,13 @@ export function ConversationThread({
               {currentLead.status === "lost" && (
                 <span className="ml-1.5 text-[12px]">❌</span>
               )}
+              {currentLead.status === "disqualified" && (
+                <span className="ml-1.5 text-[12px]">🚫</span>
+              )}
               {currentLead.follow_up_at &&
                 currentLead.status !== "won" &&
-                currentLead.status !== "lost" && (
+                currentLead.status !== "lost" &&
+                currentLead.status !== "disqualified" && (
                   <span className="ml-1.5 inline-flex items-baseline gap-1">
                     <span className="text-[12px]">⏰</span>
                     <span

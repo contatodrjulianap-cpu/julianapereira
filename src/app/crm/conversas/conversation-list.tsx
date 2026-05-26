@@ -36,7 +36,8 @@ function startOfToday(): Date {
 
 function matchesUrgency(lead: LeadCard, filter: UrgencyFilter): boolean {
   if (filter === "todos") return true;
-  const isFinal = lead.status === "won" || lead.status === "lost";
+  const isFinal =
+    lead.status === "won" || lead.status === "lost" || lead.status === "disqualified";
   if (isFinal) return false;
 
   const today = startOfToday();
