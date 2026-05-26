@@ -11,9 +11,9 @@ const VARIANT_TABS: { value: Variant; label: string }[] = [
 ];
 
 const ARCH_LABEL: Record<Archetype, string> = {
-  PRONTA: "🔥 Pronta",
-  ESPERANCOSA: "🟡 Esperançosa",
-  CETICA: "📍 Cética",
+  PRONTA: "🔥 Pronto",
+  ESPERANCOSA: "🟡 Esperançoso",
+  CETICA: "📍 Cético",
 };
 
 const TONE_OPTIONS: { value: "rose" | "cream" | "cocoa"; label: string }[] = [

@@ -56,9 +56,9 @@ const STEP_LABEL: Record<string, string> = {
   lead: "Captura (nome + WhatsApp)",
   wa_click: "💬 Clicou no WhatsApp",
   phone_match: "✅ Número bateu no WhatsApp",
-  result_PRONTA: "Resultado · Pronta",
-  result_ESPERANCOSA: "Resultado · Esperançosa",
-  result_CETICA: "Resultado · Cética",
+  result_PRONTA: "Resultado · Pronto",
+  result_ESPERANCOSA: "Resultado · Esperançoso",
+  result_CETICA: "Resultado · Cético",
   loading: "Loading",
 };
 

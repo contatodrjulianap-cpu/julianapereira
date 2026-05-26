@@ -8,9 +8,9 @@ type Archetype = "PRONTA" | "ESPERANCOSA" | "CETICA";
 const ARCH_LIST: Archetype[] = ["PRONTA", "ESPERANCOSA", "CETICA"];
 
 const ARCH_LABEL: Record<Archetype, string> = {
-  PRONTA: "🔥 Pronta",
-  ESPERANCOSA: "🟡 Esperançosa",
-  CETICA: "📍 Cética",
+  PRONTA: "🔥 Pronto",
+  ESPERANCOSA: "🟡 Esperançoso",
+  CETICA: "📍 Cético",
 };
 
 function fmtArchetypes(list: Archetype[] | undefined): string {

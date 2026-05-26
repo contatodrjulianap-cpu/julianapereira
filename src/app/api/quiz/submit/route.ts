@@ -122,6 +122,34 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // FIXME(2026-05-26): override temporário pedido pelo Lucas — PRONTA vai
+  // sempre pra Barbara (não round-robin) até nova ordem. Tirar este bloco
+  // quando ele pedir.
+  if (archetype === "PRONTA") {
+    const BARBARA_OWNER_ID = "6c0b2208-1806-4e89-bd08-2046895ab4f5";
+    const BARBARA_WA_NUMBER_ID = "53cd6090-9160-485a-9fda-c46276a4ad6a";
+    try {
+      await supabase
+        .from("leads")
+        .update({
+          assigned_owner_id: BARBARA_OWNER_ID,
+          wa_number_id: BARBARA_WA_NUMBER_ID,
+          assigned_at: new Date().toISOString(),
+        })
+        .eq("id", lead.id);
+      await logEvent({
+        type: "wa_router_override",
+        direction: "internal",
+        target: "supabase",
+        lead_id: lead.id,
+        status: "success",
+        payload: { reason: "pronta_to_barbara_fixed", owner_id: BARBARA_OWNER_ID },
+      });
+    } catch (e) {
+      console.error("PRONTA → Barbara override failed", e);
+    }
+  }
+
   await logEvent({
     type: "quiz_submit",
     direction: "inbound",

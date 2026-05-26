@@ -44,9 +44,9 @@ export type LeadFull = {
 export type NoteEntry = { at: string; by: string; text: string };
 
 export const ARCH_LABEL: Record<NonNullable<LeadFull["archetype"]>, string> = {
-  PRONTA: "🔥 Pronta",
-  ESPERANCOSA: "🟡 Esperançosa",
-  CETICA: "📍 Cética",
+  PRONTA: "🔥 Pronto",
+  ESPERANCOSA: "🟡 Esperançoso",
+  CETICA: "📍 Cético",
 };
 
 export const ARCH_BADGE: Record<NonNullable<LeadFull["archetype"]>, string> = {
@@ -605,19 +605,19 @@ export function LeadModal({
                 {lead.archetype_scores && (
                   <div className="pt-2 mt-2 border-t border-slate-100 flex gap-3 text-[11px] text-slate-500">
                     <span>
-                      🔥 Pronta:{" "}
+                      🔥 Pronto:{" "}
                       <strong className="text-slate-700">
                         {lead.archetype_scores.PRONTA ?? 0}
                       </strong>
                     </span>
                     <span>
-                      🟡 Esperançosa:{" "}
+                      🟡 Esperançoso:{" "}
                       <strong className="text-slate-700">
                         {lead.archetype_scores.ESPERANCOSA ?? 0}
                       </strong>
                     </span>
                     <span>
-                      📍 Cética:{" "}
+                      📍 Cético:{" "}
                       <strong className="text-slate-700">
                         {lead.archetype_scores.CETICA ?? 0}
                       </strong>

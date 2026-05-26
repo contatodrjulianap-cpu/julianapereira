@@ -54,7 +54,7 @@ export function UtmBreakdown({
                 <Th>Campanha</Th>
                 <Th>Medium</Th>
                 <Th align="right">Leads</Th>
-                <Th align="right">Pronta</Th>
+                <Th align="right">Pronto</Th>
                 <Th align="right">Esp.</Th>
                 <Th align="right">Cét.</Th>
                 <Th align="right">Em neg.</Th>

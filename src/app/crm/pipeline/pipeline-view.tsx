@@ -343,7 +343,7 @@ export function PipelineView({
       {/* Métricas */}
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
         <Stat label="Leads novos hoje" value={stats.novosHoje} />
-        <Stat label="Prontas pendentes" value={stats.prontasNovas} accent="green" />
+        <Stat label="Prontos pendentes" value={stats.prontasNovas} accent="green" />
         <Stat label="Em negociação" value={stats.negociacao} accent="amber" />
         <Stat label="Fechados no mês" value={stats.fechadosMes} accent="emerald" />
         <Stat
