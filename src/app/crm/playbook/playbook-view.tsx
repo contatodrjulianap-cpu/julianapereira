@@ -256,14 +256,38 @@ function POPTab() {
 }
 
 function PrintSlot({ src, label }: { src: string; label: string }) {
+  const [errored, setErrored] = useState(false);
+
+  if (errored) {
+    return (
+      <div className="aspect-video bg-slate-100 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-400 text-[11px] p-2">
+        <span className="text-2xl mb-1">📷</span>
+        <span className="font-semibold">{label}</span>
+        <span className="text-[10px] text-slate-400 mt-0.5 break-all text-center">
+          {src}
+        </span>
+      </div>
+    );
+  }
+
   return (
-    <div className="aspect-video bg-slate-100 border-2 border-dashed border-slate-300 rounded-md flex flex-col items-center justify-center text-slate-400 text-[11px] p-2">
-      <span className="text-2xl mb-1">📷</span>
-      <span className="font-semibold">{label}</span>
-      <span className="text-[10px] text-slate-400 mt-0.5 break-all text-center">
-        {src}
+    <a
+      href={src}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-md overflow-hidden border border-slate-200 hover:border-slate-300 transition relative group"
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={label}
+        onError={() => setErrored(true)}
+        className="w-full h-auto block bg-slate-50"
+      />
+      <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+        {label}
       </span>
-    </div>
+    </a>
   );
 }
 
