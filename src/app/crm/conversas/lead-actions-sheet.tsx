@@ -90,10 +90,10 @@ export function LeadActionsSheet({
             label={lead.pinned ? "Desfixar" : "Fixar"}
             onClick={() => onAction({ kind: "pin", value: !lead.pinned })}
           />
-          <QuickAction
-            emoji="⏰"
-            label="Lembrar amanhã"
-            onClick={() => onAction({ kind: "follow_up", days: 1 })}
+          <RememberTomorrowAction
+            onPick={(note) =>
+              onAction({ kind: "follow_up", days: 1, note })
+            }
           />
           <NextContactAction
             onPick={(date, note) =>
@@ -177,6 +177,86 @@ function QuickAction({
         {label}
       </span>
     </button>
+  );
+}
+
+function RememberTomorrowAction({
+  onPick,
+}: {
+  onPick: (note: string | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
+
+  const tomorrow = new Date(Date.now() + 86400_000);
+  const dd = tomorrow.getDate().toString().padStart(2, "0");
+  const mm = (tomorrow.getMonth() + 1).toString().padStart(2, "0");
+
+  function confirm() {
+    onPick(note.trim() || null);
+    setOpen(false);
+    setNote("");
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="flex flex-col items-center gap-1 py-2.5 rounded-lg active:bg-slate-100"
+      >
+        <span className="text-2xl">⏰</span>
+        <span className="text-[10px] font-semibold text-slate-700 leading-tight text-center">
+          Lembrar amanhã
+        </span>
+      </button>
+
+      {open && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/50 flex items-center justify-center px-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-5"
+          >
+            <h3 className="text-base font-semibold text-slate-900 mb-1">
+              ⏰ Lembrar amanhã
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              Vou agendar pra {dd}/{mm}. O que você precisa fazer?
+            </p>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+              Tarefa{" "}
+              <span className="font-normal text-slate-400">(opcional)</span>
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="O que falar/fazer? Ex: mandar foto antes/depois, confirmar agenda..."
+              rows={3}
+              maxLength={2000}
+              autoFocus
+              className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none"
+            />
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setOpen(false)}
+                className="flex-1 py-2.5 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirm}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-[var(--sakura-cocoa,#3b2d28)] rounded-lg"
+              >
+                Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
