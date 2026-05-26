@@ -24,6 +24,8 @@ type TaskLead = {
   owner_name: string | null;
 };
 
+const NON_FINAL_FILTER = "(won,lost,disqualified)";
+
 export default async function StatusPage() {
   const supabase = await createClient();
   const {
@@ -38,97 +40,98 @@ export default async function StatusPage() {
     .maybeSingle();
   const isAdmin = crmUser?.role === "admin";
 
-  let q = supabase
-    .from("leads")
-    .select(
-      "id, name, phone, status, archetype, next_contact_at, follow_up_at, follow_up_note, last_message_at, updated_at, assigned_owner_id",
-    )
-    .limit(500);
-  if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
-  const { data: leadsRaw } = await q;
-  const leads = leadsRaw ?? [];
-
-  // Mapa id → display_name pra mostrar quem é responsável de cada tarefa
-  // (só admin precisa, mas o overhead de 1 query extra é trivial).
-  const { data: usersRaw } = await supabase
-    .from("crm_users")
-    .select("id, display_name");
-  const ownerNameById = new Map<string, string>();
-  for (const u of usersRaw ?? []) ownerNameById.set(u.id, u.display_name);
-
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endToday = new Date(startToday.getTime() + 86400_000 - 1);
   const in3Days = new Date(startToday.getTime() + 3 * 86400_000);
   const in7Days = new Date(startToday.getTime() + 7 * 86400_000);
   const ago7 = new Date(startToday.getTime() - 7 * 86400_000);
-  const todayYmd = toYmd(startToday);
 
-  const isFinal = (s: string | null) =>
-    s === "won" || s === "lost" || s === "disqualified";
+  // Query A: tarefas com follow_up_at <= +7d (lista + contadores hoje/vencidos/3d)
+  const tasksReq = (() => {
+    let q = supabase
+      .from("leads")
+      .select(
+        "id, name, phone, status, archetype, follow_up_at, follow_up_note, assigned_owner_id",
+      )
+      .not("follow_up_at", "is", null)
+      .not("status", "in", NON_FINAL_FILTER)
+      .lte("follow_up_at", in7Days.toISOString())
+      .order("follow_up_at", { ascending: true })
+      .limit(500);
+    if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
+    return q;
+  })();
 
-  let chamarHoje = 0;
+  // Query B: frios (count) — sem msg há +7d, não final
+  const friosReq = (() => {
+    let q = supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .not("status", "in", NON_FINAL_FILTER)
+      .lt("last_message_at", ago7.toISOString());
+    if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
+    return q;
+  })();
+
+  // Query C: fechamentos hoje (count)
+  const fechadosReq = (() => {
+    let q = supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "won")
+      .gte("updated_at", startToday.toISOString());
+    if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
+    return q;
+  })();
+
+  // Query D: crm_users pra exibir responsável
+  const usersReq = supabase.from("crm_users").select("id, display_name");
+
+  const [tasksRes, friosRes, fechadosRes, usersRes] = await Promise.all([
+    tasksReq,
+    friosReq,
+    fechadosReq,
+    usersReq,
+  ]);
+
+  const taskLeads = tasksRes.data ?? [];
+  const ownerNameById = new Map<string, string>();
+  for (const u of usersRes.data ?? [])
+    ownerNameById.set(u.id, u.display_name);
+
+  const tasksToday: TaskLead[] = [];
+  const tasksUpcoming: TaskLead[] = [];
   let vencidos = 0;
   let proximos3dias = 0;
-  let frios = 0;
-  let fechadosHoje = 0;
 
-  // Listas agrupadas pra renderizar embaixo dos cards
-  const tasksToday: TaskLead[] = []; // follow_up_at <= fim de hoje (inclui vencidos)
-  const tasksUpcoming: TaskLead[] = []; // follow_up_at > hoje, <= +7d
+  for (const l of taskLeads) {
+    if (!l.follow_up_at) continue;
+    const fu = new Date(l.follow_up_at);
 
-  for (const l of leads) {
-    const final = isFinal(l.status);
+    if (fu < startToday) vencidos++;
+    if (fu > endToday && fu <= in3Days) proximos3dias++;
 
-    const nextHoje = l.next_contact_at === todayYmd;
-    const followHoje = l.follow_up_at && new Date(l.follow_up_at) <= endToday;
-    if (!final && (nextHoje || followHoje)) chamarHoje++;
-
-    if (!final && l.follow_up_at && new Date(l.follow_up_at) < startToday)
-      vencidos++;
-
-    const nextProximo =
-      l.next_contact_at &&
-      l.next_contact_at > todayYmd &&
-      new Date(l.next_contact_at) <= in3Days;
-    const followProximo =
-      l.follow_up_at &&
-      new Date(l.follow_up_at) > endToday &&
-      new Date(l.follow_up_at) <= in3Days;
-    if (!final && (nextProximo || followProximo)) proximos3dias++;
-
-    if (!final && l.last_message_at && new Date(l.last_message_at) < ago7)
-      frios++;
-
-    if (
-      l.status === "won" &&
-      l.updated_at &&
-      new Date(l.updated_at) >= startToday
-    )
-      fechadosHoje++;
-
-    if (!final && l.follow_up_at) {
-      const fu = new Date(l.follow_up_at);
-      const task: TaskLead = {
-        id: l.id,
-        name: l.name,
-        phone: l.phone,
-        status: l.status,
-        archetype: l.archetype,
-        follow_up_at: l.follow_up_at,
-        follow_up_note: l.follow_up_note,
-        assigned_owner_id: l.assigned_owner_id,
-        owner_name: l.assigned_owner_id
-          ? (ownerNameById.get(l.assigned_owner_id) ?? null)
-          : null,
-      };
-      if (fu <= endToday) tasksToday.push(task);
-      else if (fu <= in7Days) tasksUpcoming.push(task);
-    }
+    const task: TaskLead = {
+      id: l.id,
+      name: l.name,
+      phone: l.phone,
+      status: l.status,
+      archetype: l.archetype,
+      follow_up_at: l.follow_up_at,
+      follow_up_note: l.follow_up_note,
+      assigned_owner_id: l.assigned_owner_id,
+      owner_name: l.assigned_owner_id
+        ? (ownerNameById.get(l.assigned_owner_id) ?? null)
+        : null,
+    };
+    if (fu <= endToday) tasksToday.push(task);
+    else tasksUpcoming.push(task); // já filtrado <= in7Days no SQL
   }
 
-  tasksToday.sort((a, b) => a.follow_up_at.localeCompare(b.follow_up_at));
-  tasksUpcoming.sort((a, b) => a.follow_up_at.localeCompare(b.follow_up_at));
+  const chamarHoje = tasksToday.length;
+  const frios = friosRes.count ?? 0;
+  const fechadosHoje = fechadosRes.count ?? 0;
 
   // Agrupa próximos por dia (YYYY-MM-DD)
   const upcomingByDay = new Map<string, TaskLead[]>();
@@ -197,8 +200,8 @@ export default async function StatusPage() {
           </p>
           {isAdmin && (
             <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
-              admin · {leads.length} leads carregados · hoje {tasksToday.length}{" "}
-              · próx 7d {tasksUpcoming.length}
+              admin · {taskLeads.length} tarefas indexadas · hoje{" "}
+              {tasksToday.length} · próx 7d {tasksUpcoming.length}
             </p>
           )}
         </header>
@@ -284,12 +287,6 @@ export default async function StatusPage() {
             </div>
           )}
         </section>
-
-        {leads.length === 0 && (
-          <p className="text-center text-xs text-slate-400 mt-8">
-            Sem leads ainda.
-          </p>
-        )}
       </div>
     </CrmShell>
   );
