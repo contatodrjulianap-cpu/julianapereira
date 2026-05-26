@@ -30,6 +30,12 @@ const TABS: Tab[] = [
     label: "Conversas",
   },
   {
+    href: "/crm/playbook",
+    match: (p) => p.startsWith("/crm/playbook"),
+    icon: "📖",
+    label: "Playbook",
+  },
+  {
     href: "/crm/voce",
     match: (p) =>
       p.startsWith("/crm/voce") ||
