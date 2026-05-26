@@ -165,7 +165,20 @@ export async function POST(req: NextRequest) {
   // via wa.me — então pulamos o greeting automático pra evitar mensagem
   // duplicada (clínica falando antes do lead clicar).
   const greetingCfg = integration.whatsapp.greetings[archetype];
-  if (greetingCfg.enabled && surface !== "bot") {
+
+  // Anti dupla-greeting: se já houve qualquer outbound nesse lead nas
+  // últimas 24h (re-quiz, lead antigo, atendente já tocou), pula o auto.
+  // Evita "Olá Nome, bom dia" da Barbara seguido de greeting genérico.
+  const since24h = new Date(Date.now() - 24 * 3600_000).toISOString();
+  const { count: recentOutCount } = await supabase
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .eq("lead_id", lead.id)
+    .eq("direction", "outbound")
+    .gte("created_at", since24h);
+  const alreadyEngaged = (recentOutCount ?? 0) > 0;
+
+  if (greetingCfg.enabled && surface !== "bot" && !alreadyEngaged) {
     const greeting = renderGreeting(greetingCfg.message, name);
     try {
       const zapiRes = await sendText(
@@ -183,6 +196,15 @@ export async function POST(req: NextRequest) {
       console.error("zapi send failed", e);
       // não falha o quiz por isso — lead já foi salvo
     }
+  } else if (alreadyEngaged) {
+    await logEvent({
+      type: "greeting_skip",
+      direction: "internal",
+      target: "internal",
+      lead_id: lead.id,
+      status: "skipped",
+      payload: { reason: "already_engaged_24h", recent_out: recentOutCount },
+    });
   }
 
   // Facebook Conversions API — evento Lead.
