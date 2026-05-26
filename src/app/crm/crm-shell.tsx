@@ -65,6 +65,9 @@ export async function CrmShell({
               <TabLink href="/crm/pipeline" active={active === "pipeline"}>
                 📊 Pipeline
               </TabLink>
+              <TabLink href="/crm/status" active={active === "status"}>
+                ✨ Status
+              </TabLink>
               {isAdmin && (
                 <>
                   <TabLink href="/crm/funnel" active={active === "funnel"}>
