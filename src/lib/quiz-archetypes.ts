@@ -174,7 +174,8 @@ export const QUESTIONS: Question[] = [
     options: [
       { value: "cabe_avista", label: "Sim. Cabe no meu orçamento.", weights: { PRONTA: 4 }, emoji: "✅" },
       { value: "cabe_parcelado", label: "Sim. Cabe no meu orçamento, mas parcelado.", weights: { PRONTA: 2 }, emoji: "💳" },
-      { value: "nao_cabe", label: "Não. Não cabe no meu orçamento.", weights: { CETICA: 3 }, knockout: true, emoji: "🚫" },
+      { value: "aperta_mas_planeja", label: "Tô apertado, mas com parcelamento longo dá pra encaixar.", weights: { ESPERANCOSA: 3 }, emoji: "🕐" },
+      { value: "nao_cabe", label: "Hoje tá muito acima do que posso investir.", weights: { CETICA: 3 }, knockout: true, emoji: "🚫" },
       { value: "info", label: "Só estou buscando informações.", weights: { CETICA: 2 }, knockout: true, emoji: "🔍" },
     ],
   },
