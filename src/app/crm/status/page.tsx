@@ -195,6 +195,12 @@ export default async function StatusPage() {
           <p className="text-xs text-slate-500 mt-0.5">
             O que tá pendente, vencendo ou esfriando.
           </p>
+          {isAdmin && (
+            <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
+              admin · {leads.length} leads carregados · hoje {tasksToday.length}{" "}
+              · próx 7d {tasksUpcoming.length}
+            </p>
+          )}
         </header>
 
         <div className="grid grid-cols-2 gap-2.5">
