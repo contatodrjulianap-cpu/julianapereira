@@ -205,12 +205,14 @@ export function ConversationList({
                   follow_up_at: a.days
                     ? new Date(Date.now() + a.days * 86400_000).toISOString()
                     : null,
+                  follow_up_note: a.note ?? null,
                 }
               : a.kind === "next_contact"
                 ? {
                     follow_up_at: a.date
                       ? new Date(`${a.date}T12:00:00`).toISOString()
                       : null,
+                    follow_up_note: a.note ?? null,
                   }
                 : null;
     if (!payload) return;

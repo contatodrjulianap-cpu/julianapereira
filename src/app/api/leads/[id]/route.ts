@@ -11,6 +11,7 @@ const PatchBody = z.object({
   deal_value: z.number().nullable().optional(),
   pinned: z.boolean().optional(),
   follow_up_at: z.string().nullable().optional(),
+  follow_up_note: z.string().max(2000).nullable().optional(),
   source: z.string().nullable().optional(),
   tags: z.array(z.string().min(1).max(40)).optional(),
 });

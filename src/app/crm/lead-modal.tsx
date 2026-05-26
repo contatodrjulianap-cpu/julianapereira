@@ -29,6 +29,7 @@ export type LeadFull = {
   selfie_signed_url?: string | null;
   pinned: boolean;
   follow_up_at: string | null;
+  follow_up_note: string | null;
   archetype_scores: Record<Archetype, number> | null;
   utm_source: string | null;
   utm_medium: string | null;
@@ -148,7 +149,10 @@ export function LeadModal({
     status: lead.status ?? "new",
     assigned_to: lead.assigned_to ?? "",
     assigned_owner_id: lead.assigned_owner_id ?? "",
-    next_contact_at: lead.next_contact_at ?? "",
+    follow_up_date: lead.follow_up_at
+      ? new Date(lead.follow_up_at).toISOString().slice(0, 10)
+      : "",
+    follow_up_note: lead.follow_up_note ?? "",
     deal_value: lead.deal_value?.toString() ?? "",
     source: detectSourceKey(lead.source),
   });
@@ -257,7 +261,10 @@ export function LeadModal({
           status: form.status,
           assigned_to: form.assigned_to.trim() || null,
           assigned_owner_id: form.assigned_owner_id || null,
-          next_contact_at: form.next_contact_at || null,
+          follow_up_at: form.follow_up_date
+            ? new Date(`${form.follow_up_date}T12:00:00`).toISOString()
+            : null,
+          follow_up_note: form.follow_up_note.trim() || null,
           deal_value: form.deal_value === "" ? null : Number(form.deal_value),
           source: form.source || null,
         }),
@@ -455,11 +462,23 @@ export function LeadModal({
               <Field label="Próximo contato">
                 <input
                   type="date"
-                  value={form.next_contact_at}
+                  value={form.follow_up_date}
                   onChange={(e) =>
-                    setForm({ ...form, next_contact_at: e.target.value })
+                    setForm({ ...form, follow_up_date: e.target.value })
                   }
                   className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
+              <Field label="Tarefa do follow-up (o que falar/fazer)">
+                <textarea
+                  value={form.follow_up_note}
+                  onChange={(e) =>
+                    setForm({ ...form, follow_up_note: e.target.value })
+                  }
+                  placeholder="Ex: mandar foto antes/depois da Cintia, confirmar agenda..."
+                  rows={2}
+                  maxLength={2000}
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none"
                 />
               </Field>
               <Field label="Valor da venda (R$)">

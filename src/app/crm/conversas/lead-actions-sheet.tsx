@@ -27,8 +27,8 @@ export type LeadActionPayload =
   | { kind: "status"; value: (typeof PIPELINE)[number]["value"] }
   | { kind: "source"; value: string }
   | { kind: "pin"; value: boolean }
-  | { kind: "follow_up"; days: number | null }
-  | { kind: "next_contact"; date: string | null }
+  | { kind: "follow_up"; days: number | null; note?: string | null }
+  | { kind: "next_contact"; date: string | null; note?: string | null }
   | { kind: "copy_phone" };
 
 export function LeadActionsSheet({
@@ -96,7 +96,9 @@ export function LeadActionsSheet({
             onClick={() => onAction({ kind: "follow_up", days: 1 })}
           />
           <NextContactAction
-            onPick={(date) => onAction({ kind: "next_contact", date })}
+            onPick={(date, note) =>
+              onAction({ kind: "next_contact", date, note })
+            }
           />
           <QuickAction
             emoji="📋"
@@ -178,7 +180,11 @@ function QuickAction({
   );
 }
 
-function NextContactAction({ onPick }: { onPick: (date: string) => void }) {
+function NextContactAction({
+  onPick,
+}: {
+  onPick: (date: string, note: string | null) => void;
+}) {
   // iOS Safari move o sheet quando o input type=date dentro de um sheet ganha
   // foco. Workaround: abrir mini modal dedicado por cima (z-60) com input
   // visível + Confirmar/Cancelar.
@@ -187,10 +193,12 @@ function NextContactAction({ onPick }: { onPick: (date: string) => void }) {
   const tomorrow = new Date(today.getTime() + 86400_000);
   const ymd = (d: Date) => d.toISOString().slice(0, 10);
   const [value, setValue] = useState(ymd(tomorrow));
+  const [note, setNote] = useState("");
 
   function confirm() {
-    if (value) onPick(value);
+    if (value) onPick(value, note.trim() || null);
     setOpen(false);
+    setNote("");
   }
 
   return (
@@ -219,8 +227,11 @@ function NextContactAction({ onPick }: { onPick: (date: string) => void }) {
               📅 Próximo contato
             </h3>
             <p className="text-xs text-slate-500 mb-4">
-              Quando você quer falar com esse lead?
+              Quando e o que falar?
             </p>
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1">
+              Data
+            </label>
             <input
               type="date"
               value={value}
@@ -228,6 +239,18 @@ function NextContactAction({ onPick }: { onPick: (date: string) => void }) {
               onChange={(e) => setValue(e.target.value)}
               autoFocus
               className="w-full px-3 py-2.5 text-base bg-slate-50 border border-slate-200 rounded-lg outline-none"
+            />
+            <label className="block text-[11px] font-semibold text-slate-500 mt-3 mb-1">
+              Tarefa{" "}
+              <span className="font-normal text-slate-400">(opcional)</span>
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="O que falar/fazer? Ex: mandar foto antes/depois, confirmar agenda..."
+              rows={3}
+              maxLength={2000}
+              className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none resize-none"
             />
             <div className="flex gap-2 mt-5">
               <button

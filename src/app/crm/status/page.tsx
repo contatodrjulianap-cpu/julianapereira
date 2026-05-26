@@ -12,6 +12,16 @@ function toYmd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+type TaskLead = {
+  id: string;
+  name: string | null;
+  phone: string;
+  status: string | null;
+  archetype: string | null;
+  follow_up_at: string;
+  follow_up_note: string | null;
+};
+
 export default async function StatusPage() {
   const supabase = await createClient();
   const {
@@ -26,7 +36,12 @@ export default async function StatusPage() {
     .maybeSingle();
   const isAdmin = crmUser?.role === "admin";
 
-  let q = supabase.from("leads").select("id, status, next_contact_at, follow_up_at, last_message_at, updated_at").limit(500);
+  let q = supabase
+    .from("leads")
+    .select(
+      "id, name, phone, status, archetype, next_contact_at, follow_up_at, follow_up_note, last_message_at, updated_at",
+    )
+    .limit(500);
   if (!isAdmin) q = q.eq("assigned_owner_id", user.id);
   const { data: leadsRaw } = await q;
   const leads = leadsRaw ?? [];
@@ -35,6 +50,7 @@ export default async function StatusPage() {
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const endToday = new Date(startToday.getTime() + 86400_000 - 1);
   const in3Days = new Date(startToday.getTime() + 3 * 86400_000);
+  const in7Days = new Date(startToday.getTime() + 7 * 86400_000);
   const ago7 = new Date(startToday.getTime() - 7 * 86400_000);
   const todayYmd = toYmd(startToday);
 
@@ -47,29 +63,66 @@ export default async function StatusPage() {
   let frios = 0;
   let fechadosHoje = 0;
 
+  // Listas agrupadas pra renderizar embaixo dos cards
+  const tasksToday: TaskLead[] = []; // follow_up_at <= fim de hoje (inclui vencidos)
+  const tasksUpcoming: TaskLead[] = []; // follow_up_at > hoje, <= +7d
+
   for (const l of leads) {
     const final = isFinal(l.status);
 
-    // Chamar hoje: next_contact_at = hoje OU follow_up_at <= fim de hoje (status não final)
     const nextHoje = l.next_contact_at === todayYmd;
     const followHoje = l.follow_up_at && new Date(l.follow_up_at) <= endToday;
     if (!final && (nextHoje || followHoje)) chamarHoje++;
 
-    // Vencidos: follow_up_at < hoje (status não final)
-    if (!final && l.follow_up_at && new Date(l.follow_up_at) < startToday) vencidos++;
+    if (!final && l.follow_up_at && new Date(l.follow_up_at) < startToday)
+      vencidos++;
 
-    // Próximos 3 dias: next_contact_at OR follow_up_at entre amanhã e +3
     const nextProximo =
-      l.next_contact_at && l.next_contact_at > todayYmd && new Date(l.next_contact_at) <= in3Days;
+      l.next_contact_at &&
+      l.next_contact_at > todayYmd &&
+      new Date(l.next_contact_at) <= in3Days;
     const followProximo =
-      l.follow_up_at && new Date(l.follow_up_at) > endToday && new Date(l.follow_up_at) <= in3Days;
+      l.follow_up_at &&
+      new Date(l.follow_up_at) > endToday &&
+      new Date(l.follow_up_at) <= in3Days;
     if (!final && (nextProximo || followProximo)) proximos3dias++;
 
-    // Frios: sem msg há +7 dias (não final)
-    if (!final && l.last_message_at && new Date(l.last_message_at) < ago7) frios++;
+    if (!final && l.last_message_at && new Date(l.last_message_at) < ago7)
+      frios++;
 
-    // Fechados hoje: status=won e updated_at hoje
-    if (l.status === "won" && l.updated_at && new Date(l.updated_at) >= startToday) fechadosHoje++;
+    if (
+      l.status === "won" &&
+      l.updated_at &&
+      new Date(l.updated_at) >= startToday
+    )
+      fechadosHoje++;
+
+    if (!final && l.follow_up_at) {
+      const fu = new Date(l.follow_up_at);
+      const task: TaskLead = {
+        id: l.id,
+        name: l.name,
+        phone: l.phone,
+        status: l.status,
+        archetype: l.archetype,
+        follow_up_at: l.follow_up_at,
+        follow_up_note: l.follow_up_note,
+      };
+      if (fu <= endToday) tasksToday.push(task);
+      else if (fu <= in7Days) tasksUpcoming.push(task);
+    }
+  }
+
+  tasksToday.sort((a, b) => a.follow_up_at.localeCompare(b.follow_up_at));
+  tasksUpcoming.sort((a, b) => a.follow_up_at.localeCompare(b.follow_up_at));
+
+  // Agrupa próximos por dia (YYYY-MM-DD)
+  const upcomingByDay = new Map<string, TaskLead[]>();
+  for (const t of tasksUpcoming) {
+    const day = toYmd(new Date(t.follow_up_at));
+    const arr = upcomingByDay.get(day) ?? [];
+    arr.push(t);
+    upcomingByDay.set(day, arr);
   }
 
   const CARDS = [
@@ -151,6 +204,57 @@ export default async function StatusPage() {
           ))}
         </div>
 
+        {/* Tarefas hoje (inclui vencidos) */}
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold text-slate-900 mb-2.5 flex items-baseline gap-2">
+            📋 Tarefas hoje
+            <span className="text-xs font-normal text-slate-400">
+              ({tasksToday.length})
+            </span>
+          </h2>
+          {tasksToday.length === 0 ? (
+            <p className="text-xs text-slate-400 px-1 py-3">
+              Nenhum follow-up agendado pra hoje.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {tasksToday.map((t) => (
+                <TaskRow key={t.id} task={t} variant="today" />
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Próximos 7 dias agrupado por dia */}
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold text-slate-900 mb-2.5 flex items-baseline gap-2">
+            📅 Próximos 7 dias
+            <span className="text-xs font-normal text-slate-400">
+              ({tasksUpcoming.length})
+            </span>
+          </h2>
+          {tasksUpcoming.length === 0 ? (
+            <p className="text-xs text-slate-400 px-1 py-3">
+              Sem follow-ups agendados nos próximos dias.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              {Array.from(upcomingByDay.entries()).map(([day, items]) => (
+                <div key={day}>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                    {formatDayLabel(day)} · {items.length}
+                  </h3>
+                  <ul className="space-y-2">
+                    {items.map((t) => (
+                      <TaskRow key={t.id} task={t} variant="upcoming" />
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         {leads.length === 0 && (
           <p className="text-center text-xs text-slate-400 mt-8">
             Sem leads ainda.
@@ -159,4 +263,70 @@ export default async function StatusPage() {
       </div>
     </CrmShell>
   );
+}
+
+function TaskRow({
+  task,
+  variant,
+}: {
+  task: TaskLead;
+  variant: "today" | "upcoming";
+}) {
+  const fu = new Date(task.follow_up_at);
+  const overdue = variant === "today" && fu < new Date(Date.now() - 86400_000);
+  const hh = fu.getHours().toString().padStart(2, "0");
+  const mm = fu.getMinutes().toString().padStart(2, "0");
+  const time = `${hh}:${mm}`;
+
+  return (
+    <li>
+      <Link
+        href={`/crm/conversas/${task.id}`}
+        className={`block rounded-xl border px-3 py-2.5 active:bg-slate-50 ${
+          overdue
+            ? "border-amber-300 bg-amber-50/60"
+            : "border-slate-200 bg-white"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[13px] font-semibold text-slate-900 truncate">
+            {task.name || task.phone}
+          </p>
+          <span
+            className={`shrink-0 text-[10px] font-semibold ${
+              overdue ? "text-amber-700" : "text-slate-500"
+            }`}
+          >
+            {variant === "today" && overdue ? "⚠️ vencido" : time}
+          </span>
+        </div>
+        {task.follow_up_note && (
+          <p className="text-[12px] text-slate-600 mt-1 leading-snug line-clamp-2">
+            {task.follow_up_note}
+          </p>
+        )}
+        {!task.follow_up_note && (
+          <p className="text-[11px] text-slate-400 italic mt-1">
+            sem tarefa anotada
+          </p>
+        )}
+      </Link>
+    </li>
+  );
+}
+
+function formatDayLabel(ymd: string): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const today = new Date();
+  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffDays = Math.round(
+    (date.getTime() - startToday.getTime()) / 86400_000,
+  );
+  if (diffDays === 1) return "Amanhã";
+  const weekdays = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+  const wd = weekdays[date.getDay()];
+  const dd = d.toString().padStart(2, "0");
+  const mm = m.toString().padStart(2, "0");
+  return `${wd} ${dd}/${mm}`;
 }
