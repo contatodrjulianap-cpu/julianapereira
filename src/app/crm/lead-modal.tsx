@@ -147,6 +147,7 @@ export function LeadModal({
   const [form, setForm] = useState({
     status: lead.status ?? "new",
     assigned_to: lead.assigned_to ?? "",
+    assigned_owner_id: lead.assigned_owner_id ?? "",
     next_contact_at: lead.next_contact_at ?? "",
     deal_value: lead.deal_value?.toString() ?? "",
     source: detectSourceKey(lead.source),
@@ -154,6 +155,9 @@ export function LeadModal({
   const [noteText, setNoteText] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [crmUsers, setCrmUsers] = useState<
+    Array<{ id: string; display_name: string; role: string }>
+  >([]);
 
   const notes = lead.notes_log ?? [];
 
@@ -230,6 +234,12 @@ export function LeadModal({
       items.sort((a, b) => (a.ts < b.ts ? 1 : -1));
       setHistory(items);
       setLoadingHistory(false);
+
+      const { data: users } = await supabase
+        .from("crm_users")
+        .select("id, display_name, role")
+        .order("display_name");
+      if (active && users) setCrmUsers(users);
     })();
     return () => {
       active = false;
@@ -246,6 +256,7 @@ export function LeadModal({
         body: JSON.stringify({
           status: form.status,
           assigned_to: form.assigned_to.trim() || null,
+          assigned_owner_id: form.assigned_owner_id || null,
           next_contact_at: form.next_contact_at || null,
           deal_value: form.deal_value === "" ? null : Number(form.deal_value),
           source: form.source || null,
@@ -359,6 +370,13 @@ export function LeadModal({
                 {STATUS_LABEL[lead.status] ?? lead.status}
               </span>
             )}
+            {form.assigned_owner_id && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+                👤{" "}
+                {crmUsers.find((u) => u.id === form.assigned_owner_id)
+                  ?.display_name ?? "—"}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center justify-center gap-5 mt-6">
@@ -419,14 +437,20 @@ export function LeadModal({
                 </select>
               </Field>
               <Field label="Responsável">
-                <input
-                  value={form.assigned_to}
+                <select
+                  value={form.assigned_owner_id}
                   onChange={(e) =>
-                    setForm({ ...form, assigned_to: e.target.value })
+                    setForm({ ...form, assigned_owner_id: e.target.value })
                   }
-                  placeholder="—"
                   className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
+                >
+                  <option value="">— Sem responsável</option>
+                  {crmUsers.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.display_name}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="Próximo contato">
                 <input
