@@ -188,8 +188,11 @@ export const QUESTIONS: Question[] = [
     subtitle:
       "Honestidade total — direciona o atendimento certo, sem pressão.",
     options: [
+      // À vista = PRONTA "puro": tem o dinheiro AGORA, decisão imediata.
       { value: "cabe_avista", label: "Sim, à vista cabe no meu orçamento.", weights: { PRONTA: 4 }, emoji: "✅" },
-      { value: "cabe_parcelado", label: "Sim, em 12x no cartão a parcela mensal cabe no meu orçamento.", weights: { PRONTA: 2 }, emoji: "💳" },
+      // Parcelado em 12x = ESPERANCOSA: tem intenção, mas precisa planejar
+      // a parcela mensal. Decisão em 30-60d.
+      { value: "cabe_parcelado", label: "Sim, em 12x no cartão a parcela mensal cabe no meu orçamento.", weights: { ESPERANCOSA: 4 }, emoji: "💳" },
       { value: "aperta_mas_planeja", label: "A parcela em 12x vai apertar, mas com planejamento dá pra encaixar.", weights: { ESPERANCOSA: 2 }, emoji: "🕐" },
       { value: "nao_cabe", label: "Mesmo parcelado em 12x, está acima do que posso investir hoje.", weights: { CETICA: 3 }, knockout: true, emoji: "🚫" },
       { value: "info", label: "Só estou buscando informações.", weights: { CETICA: 2 }, knockout: true, emoji: "🔍" },

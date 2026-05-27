@@ -122,10 +122,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // FIXME(2026-05-26): override temporário pedido pelo Lucas — PRONTA vai
-  // sempre pra Barbara (não round-robin) até nova ordem. Tirar este bloco
-  // quando ele pedir.
-  if (archetype === "PRONTA") {
+  // FIXME(2026-05-26): override temporário pedido pelo Lucas — PRONTA e
+  // ESPERANCOSA (estendido 2026-05-27) vão sempre pra Barbara, não
+  // round-robin. CETICA continua sem atribuição. Tirar este bloco quando
+  // ele pedir.
+  if (archetype === "PRONTA" || archetype === "ESPERANCOSA") {
     const BARBARA_OWNER_ID = "6c0b2208-1806-4e89-bd08-2046895ab4f5";
     const BARBARA_WA_NUMBER_ID = "53cd6090-9160-485a-9fda-c46276a4ad6a";
     try {
@@ -143,10 +144,14 @@ export async function POST(req: NextRequest) {
         target: "supabase",
         lead_id: lead.id,
         status: "success",
-        payload: { reason: "pronta_to_barbara_fixed", owner_id: BARBARA_OWNER_ID },
+        payload: {
+          reason: "quente_to_barbara_fixed",
+          archetype,
+          owner_id: BARBARA_OWNER_ID,
+        },
       });
     } catch (e) {
-      console.error("PRONTA → Barbara override failed", e);
+      console.error("Quente → Barbara override failed", e);
     }
   }
 

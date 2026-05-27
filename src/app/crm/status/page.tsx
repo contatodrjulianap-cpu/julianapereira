@@ -89,16 +89,16 @@ export default async function StatusPage() {
   // Query D: crm_users pra exibir responsável
   const usersReq = supabase.from("crm_users").select("id, display_name");
 
-  // Query E: PRONTAs aguardando atendimento há +15min (regra v2 playbook)
-  // Filtra por archetype=PRONTA + status=new + criado há +15min.
+  // Query E: PRONTA/ESPERANCOSA aguardando atendimento há +15min (regra v2 playbook)
+  // Filtra por archetype quente (PRONTA ou ESPERANCOSA) + status=new + criado há +15min.
   // O "sem msg outbound" é refinado em código (não-trivial no PostgREST puro).
   const prontasReq = (() => {
     let q = supabase
       .from("leads")
       .select(
-        "id, name, phone, quiz_variant, assigned_owner_id, created_at, last_message_at",
+        "id, name, phone, archetype, quiz_variant, assigned_owner_id, created_at, last_message_at",
       )
-      .eq("archetype", "PRONTA")
+      .in("archetype", ["PRONTA", "ESPERANCOSA"])
       .eq("status", "new")
       .lte("created_at", ago15min.toISOString())
       .order("created_at", { ascending: true })
@@ -231,24 +231,24 @@ export default async function StatusPage() {
           {isAdmin && (
             <p className="text-[10px] text-slate-400 mt-1.5 font-mono">
               admin · {taskLeads.length} tarefas indexadas · hoje{" "}
-              {tasksToday.length} · próx 7d {tasksUpcoming.length} · prontas
+              {tasksToday.length} · próx 7d {tasksUpcoming.length} · quentes
               aguardando {prontasEsperando.length}
             </p>
           )}
         </header>
 
-        {/* PRONTAs aguardando atendimento há +15min — regra v2 playbook */}
+        {/* Leads quentes (PRONTA/ESPERANCOSA) aguardando atendimento há +15min — regra v2 */}
         {prontasEsperando.length > 0 && (
           <section className="mb-5 rounded-2xl border-2 border-red-300 bg-red-50 p-4">
             <h2 className="text-sm font-bold text-red-900 mb-2 flex items-center gap-2">
-              🔥 PRONTA aguardando atendimento
+              🔥 Lead quente aguardando
               <span className="text-[11px] font-normal bg-red-200 text-red-900 px-2 py-0.5 rounded-full">
                 {prontasEsperando.length} · &gt;15min
               </span>
             </h2>
             <p className="text-[11px] text-red-800 mb-3">
-              Lead PRONTO do quiz que ainda não recebeu 1ª mensagem. Atender já
-              — cada minuto esfria.
+              PRONTA ou ESPERANÇOSO do quiz que ainda não recebeu 1ª mensagem.
+              Atender já — cada minuto esfria.
             </p>
             <ul className="space-y-1.5">
               {prontasEsperando.map((p) => {
@@ -260,6 +260,8 @@ export default async function StatusPage() {
                     ? "🦷 resina"
                     : "💎 porcelana"
                   : "—";
+                const archBadge =
+                  p.archetype === "PRONTA" ? "🔥 PRONTO" : "🟡 ESPERANÇOSO";
                 return (
                   <li key={p.id}>
                     <Link
@@ -275,7 +277,7 @@ export default async function StatusPage() {
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {variant}
+                        {archBadge} · {variant}
                         {isAdmin &&
                           p.assigned_owner_id &&
                           ` · 👤 ${
