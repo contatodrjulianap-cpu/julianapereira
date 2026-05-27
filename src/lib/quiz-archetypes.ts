@@ -17,22 +17,33 @@ export function isVariant(v: string): v is Variant {
 
 // Ancoragem de preço do Q8 — range amplo pra qualificar capacidade financeira
 // sem cravar o ticket exato (que sai depois pelo closer).
-// min_12x / max_12x são derivados de min/max divididos por 12 (parcelamento
-// padrão da clínica). Servem pra o lead ver a parcela mensal mínima e
-// se filtrar antes de marcar "cabe" sem saber o que vai pagar.
+// min_6x / max_6x = sem juros (condição da clínica).
+// min_12x / max_12x = com juros do cartão.
+// Servem pra o lead ver a parcela mensal e se filtrar antes de marcar "cabe".
 export const PRICE_ANCHOR: Record<
   Variant,
-  { min: string; max: string; min_12x: string; max_12x: string }
+  {
+    min: string;
+    max: string;
+    min_6x: string;
+    max_6x: string;
+    min_12x: string;
+    max_12x: string;
+  }
 > = {
   resina: {
     min: "R$ 7.000,00",
     max: "R$ 24.000,00",
+    min_6x: "R$ 1.166,00",
+    max_6x: "R$ 4.000,00",
     min_12x: "R$ 583,00",
     max_12x: "R$ 2.000,00",
   },
   porcelana: {
     min: "R$ 25.000,00",
     max: "R$ 60.000,00",
+    min_6x: "R$ 4.166,00",
+    max_6x: "R$ 10.000,00",
     min_12x: "R$ 2.083,00",
     max_12x: "R$ 5.000,00",
   },
@@ -190,8 +201,11 @@ export const QUESTIONS: Question[] = [
     options: [
       // À vista = PRONTA "puro": tem o dinheiro AGORA, decisão imediata.
       { value: "cabe_avista", label: "Sim, à vista cabe no meu orçamento.", weights: { PRONTA: 4 }, emoji: "✅" },
-      // Parcelado em 12x = ESPERANCOSA: tem intenção, mas precisa planejar
-      // a parcela mensal. Decisão em 30-60d.
+      // 6x sem juros = quase PRONTA: tem cash flow forte, paga em 6 meses
+      // sem custo extra. Decisão em ≤30d.
+      { value: "cabe_6x_sem_juros", label: "Sim, em 6x sem juros a parcela cabe no meu orçamento.", weights: { PRONTA: 3 }, emoji: "💰" },
+      // Parcelado em 12x (com juros do cartão) = ESPERANCOSA: tem intenção,
+      // mas precisa planejar a parcela mensal. Decisão em 30-60d.
       { value: "cabe_parcelado", label: "Sim, em 12x no cartão a parcela mensal cabe no meu orçamento.", weights: { ESPERANCOSA: 4 }, emoji: "💳" },
       { value: "aperta_mas_planeja", label: "A parcela em 12x vai apertar, mas com planejamento dá pra encaixar.", weights: { ESPERANCOSA: 2 }, emoji: "🕐" },
       { value: "nao_cabe", label: "Mesmo parcelado em 12x, está acima do que posso investir hoje.", weights: { CETICA: 3 }, knockout: true, emoji: "🚫" },
@@ -214,7 +228,7 @@ export function getQuestionsFor(variant: Variant): Question[] {
     return {
       ...q,
       title: `O tratamento de ${variantLabel} com a Dra. Juliana vai de ${anchor.min} a ${anchor.max} à vista.`,
-      subtitle: `Em até 12x no cartão a parcela mensal fica de ${anchor.min_12x} a ${anchor.max_12x}. Cabe no seu orçamento atual? Honestidade total — direciona o atendimento certo, sem pressão.`,
+      subtitle: `Em até 6x sem juros (parcela de ${anchor.min_6x} a ${anchor.max_6x}/mês) ou em até 12x no cartão com juros (parcela de ${anchor.min_12x} a ${anchor.max_12x}/mês). Cabe no seu orçamento atual? Honestidade total — direciona o atendimento certo, sem pressão.`,
     };
   });
 }
