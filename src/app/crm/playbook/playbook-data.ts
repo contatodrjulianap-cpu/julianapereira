@@ -188,9 +188,9 @@ export const SEQUENCIA: Bloco[] = [
         nota: 'Volta pra B3 se aparecer objeção concreta. Senão agenda follow_up D+7.',
       },
       {
-        titulo: 'Resposta 0-4 (frio)',
-        texto: 'Sem problema. Te procuro daqui uns 15 dias então, sem pressão.\nSe antes disso bater a vontade, me chama 🌸',
-        nota: 'Agendar follow_up_at D+15. Tag "lead frio".',
+        titulo: 'Resposta 0-4 (frio / incubação)',
+        texto: 'Sem problema, {primeiro_nome}. Posso te procurar daqui 1 mês então, sem pressão.\n\nSe antes disso bater a vontade, me chama 🌸',
+        nota: 'Agendar follow_up_at D+30. Lead entra no ciclo de incubação longa (D+30 → D+45 → D+75 → D+90). Lead high-ticket odonto leva 2-3 meses pra decidir — não pressionar.',
       },
       {
         titulo: 'Decisor (cônjuge) presente',
@@ -242,6 +242,7 @@ export type FollowUpToque = {
 };
 
 export const FOLLOWUP: FollowUpToque[] = [
+  // --- CADÊNCIA CURTA: lead em decisão ativa (1-15 dias) ---
   {
     dia: 'D+1',
     titulo: 'Recap quente',
@@ -265,12 +266,43 @@ export const FOLLOWUP: FollowUpToque[] = [
     titulo: 'Oferta condicional / variante',
     texto: '{primeiro_nome}, voltei aqui. Sei que da última vez o investimento ficou apertado.\n\nA gente abriu uma condição agora pra quem fechar essa semana: [desconto / parcelamento estendido / variante resina].\n\nCabe pra você dar uma olhada?',
   },
+
+  // --- CADÊNCIA LONGA: ciclo real de decisão odonto high-ticket (1-3 meses) ---
+  // Barbara confirmou: lead que diz "vou me organizar" leva 2-3 meses pra decidir.
+  // Esses toques são pra incubação, não pra fechar urgência.
   {
     dia: 'D+30',
-    titulo: 'Sales farming (último toque ativo)',
-    texto: '{primeiro_nome}, faz um tempinho que a gente não fala.\nComo você tá em relação ao seu sorriso?\n\nSe ainda fizer sentido, tô aqui. Se não fizer mais, sem problema também, só me avisa pra eu não te incomodar mais 🌸',
-    nota: 'Se não responde após D+30: arquivar com tag "lost-sem-resposta-5-toques".',
+    titulo: 'Check-in 1 mês',
+    texto: 'Oi {primeiro_nome}! Faz mais ou menos 1 mês desde a gente se falou.\n\nComo você tá em relação ao seu sorriso? Mudou algo no planejamento ou ainda tá considerando?\n\nTô por aqui sem pressão 🌸',
+    nota: 'Tom: lembrança casual + abre porta sem cobrar. Lead high-ticket precisa de tempo, não de pressão.',
   },
+  {
+    dia: 'D+45',
+    titulo: 'Caso novo + lembrança',
+    texto: '{primeiro_nome}, lembrei de você essa semana porque atendemos uma paciente com perfil parecido 👇\n\n[anexar antes/depois ou vídeo curto]\n\nO resultado ficou exatamente no estilo que você comentou que queria. Se quiser ver mais detalhes ou conversar sobre o seu caso, é só me chamar 💜',
+    nota: 'Toque com VALOR NOVO (não "alguma novidade?"). Sempre carregando um caso que conecta com a dor original dela.',
+  },
+  {
+    dia: 'D+75',
+    titulo: 'Janela financeira (gatilho real)',
+    texto: 'Oi {primeiro_nome}! Tô passando porque [próximo 13º / fim do semestre / restituição IR / final de ano] é uma janela boa pra quem tá planejando o tratamento.\n\nVocê chegou a se planejar pra essa janela? Se quiser, posso reservar uma avaliação pra gente conversar com calma.',
+    nota: 'Ancora em evento financeiro REAL do calendário (13º, restituição, férias) — funciona porque é genuíno, não pressão fake.',
+  },
+  {
+    dia: 'D+90',
+    titulo: 'Último toque + porta aberta',
+    texto: '{primeiro_nome}, faz uns 3 meses que a gente conversou e quero ser direta:\n\nSe ainda fizer sentido, tô aqui — sem pressão, sem cobrança. Se não fizer mais, sem problema, só me avisa pra eu não te incomodar.\n\nFoi muito bom trocar com você 🙏',
+    nota: 'ÚLTIMO toque ativo. Sem resposta após D+90: arquivar com tag "lost-ciclo-completo-90d". Se responder positivo, recomeçar do D+1.',
+  },
+];
+
+// Sugestão de qual toque agendar baseado na nota 0-10 do Pacto Final (Bloco 4)
+// — Barbara usa isso ao agendar follow_up_at depois de "vou pensar"
+export const FOLLOWUP_NOTA_SUGGESTION = [
+  { nota: '8-10', proximo: 'D+1 ou D+3', razao: 'Lead quente, decide nos próximos dias' },
+  { nota: '5-7', proximo: 'D+7 a D+15', razao: 'Lead morno, precisa de 1-2 semanas pra maturar' },
+  { nota: '3-4', proximo: 'D+30', razao: 'Lead em incubação, começa ciclo longo' },
+  { nota: '0-2', proximo: 'D+45 ou D+90', razao: 'Lead frio, mantém contato sem pressionar' },
 ];
 
 // Regras operacionais
@@ -328,8 +360,8 @@ export const REGRAS: Regra[] = [
     severidade: 'alta',
   },
   {
-    titulo: 'Mínimo 5 follow-ups antes de "lost"',
-    descricao: 'Cadência D+1 → D+3 → D+7 → D+15 → D+30. Só arquiva como lost depois desses 5 toques com VALOR NOVO em cada um.',
+    titulo: 'Mínimo 8 follow-ups antes de "lost" — ciclo de 90 dias',
+    descricao: 'Cadência curta (decisão ativa): D+1 → D+3 → D+7 → D+15. Cadência longa (incubação de 1-3 meses, ciclo real high-ticket odonto): D+30 → D+45 → D+75 → D+90. Só arquiva como lost depois desses 8 toques com VALOR NOVO em cada um. Lead high-ticket leva 2-3 meses pra decidir — desistir antes é dinheiro na mesa.',
     severidade: 'alta',
   },
 ];
