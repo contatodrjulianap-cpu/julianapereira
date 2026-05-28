@@ -5,9 +5,11 @@ import { CrmShell } from "../crm-shell";
 import {
   getSakCampaigns,
   getPrincipalSummary,
-  dateRangeForDays,
+  resolveDateRange,
   type AdObject,
 } from "@/lib/utimify";
+import { DateFilter } from "./date-filter";
+import { AdsTabs } from "./tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,7 @@ type LeadAgg = {
 export default async function AdsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>;
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -42,9 +44,7 @@ export default async function AdsPage({
   if (crmUser?.role !== "admin") redirect("/crm");
 
   const sp = await searchParams;
-  const daysParam = Number(sp.range ?? 1);
-  const days = [1, 3, 7, 14, 30].includes(daysParam) ? daysParam : 1;
-  const range = dateRangeForDays(days);
+  const { range, mode, days, from, to } = resolveDateRange(sp);
 
   // 1. Utimify: campanhas SAK no Principal
   let campaigns: AdObject[] = [];
@@ -197,31 +197,18 @@ export default async function AdsPage({
   const fmtR = (cents: number) =>
     `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  // Querystring base pra preservar período entre as abas
+  const qsBase =
+    mode === "custom" && from
+      ? `from=${from}&to=${to ?? from}`
+      : `range=${days}`;
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
       <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+        <AdsTabs active="campaigns" qs={qsBase} />
         <header className="mb-5">
-          <Link
-            href="/crm/funnel"
-            className="text-xs text-slate-500 inline-flex items-center gap-1"
-          >
-            ← Funil
-          </Link>
-          <div className="flex gap-3 items-center mt-2">
-            <Link
-              href={`/crm/ads?range=${days}`}
-              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-900 text-white"
-            >
-              📊 Campanhas
-            </Link>
-            <Link
-              href={`/crm/ads/all?range=${days}`}
-              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              🎯 Ads (todos)
-            </Link>
-          </div>
-          <h1 className="text-xl font-semibold text-slate-900 mt-3">
+          <h1 className="text-xl font-semibold text-slate-900 mt-1">
             📊 Ads · Sakura (SAK no dashboard Principal)
           </h1>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
@@ -229,21 +216,7 @@ export default async function AdsPage({
             entrando). CPL real considera leads do Supabase, não apenas lead
             events do FB CAPI.
           </p>
-          <div className="mt-3 flex gap-2">
-            {[1, 3, 7, 14, 30].map((n) => (
-              <Link
-                key={n}
-                href={`/crm/ads?range=${n}`}
-                className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
-                  days === n
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {n === 1 ? "Hoje" : `${n}d`}
-              </Link>
-            ))}
-          </div>
+          <DateFilter mode={mode} days={days} from={from} to={to} />
           <p className="text-[10px] text-slate-400 mt-2 font-mono">
             {range.from.slice(0, 10)} → {range.to.slice(0, 10)} · dashboard
             Principal · nameContains SAK

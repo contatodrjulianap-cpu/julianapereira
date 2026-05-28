@@ -94,6 +94,38 @@ export function dateRangeForDays(days: number): DateRange {
   };
 }
 
+// Range custom a partir de duas datas YYYY-MM-DD (formato do input type=date).
+// Aceita só a 'from' se 'to' não vier (assume mesmo dia).
+const isYmd = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s);
+export function dateRangeFromYmd(fromYmd: string, toYmd?: string): DateRange {
+  if (!isYmd(fromYmd)) throw new Error(`from inválido: ${fromYmd}`);
+  const to = toYmd && isYmd(toYmd) ? toYmd : fromYmd;
+  return {
+    from: `${fromYmd}T00:00:00-03:00`,
+    to: `${to}T23:59:59-03:00`,
+  };
+}
+
+// Resolve range a partir dos searchParams (preset 'range' OU custom 'from'/'to')
+export function resolveDateRange(sp: {
+  range?: string;
+  from?: string;
+  to?: string;
+}): { range: DateRange; mode: "preset" | "custom"; days: number; from?: string; to?: string } {
+  if (sp.from && isYmd(sp.from)) {
+    return {
+      range: dateRangeFromYmd(sp.from, sp.to),
+      mode: "custom",
+      days: 0,
+      from: sp.from,
+      to: sp.to || sp.from,
+    };
+  }
+  const daysParam = Number(sp.range ?? 1);
+  const days = [1, 3, 7, 14, 30].includes(daysParam) ? daysParam : 1;
+  return { range: dateRangeForDays(days), mode: "preset", days };
+}
+
 // Lista campanhas SAK do dashboard Principal pro período
 export async function getSakCampaigns(range: DateRange): Promise<AdObject[]> {
   type Result = { results?: AdObject[] };

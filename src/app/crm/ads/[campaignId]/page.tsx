@@ -5,9 +5,11 @@ import { CrmShell } from "../../crm-shell";
 import {
   getCampaignById,
   getCampaignChildren,
-  dateRangeForDays,
+  resolveDateRange,
   type AdObject,
 } from "@/lib/utimify";
+import { DateFilter } from "../date-filter";
+import { AdsTabs } from "../tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +28,12 @@ export default async function CampaignDrilldownPage({
   searchParams,
 }: {
   params: Promise<{ campaignId: string }>;
-  searchParams: Promise<{ range?: string; level?: string }>;
+  searchParams: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+    level?: string;
+  }>;
 }) {
   const supabase = await createClient();
   const {
@@ -43,10 +50,12 @@ export default async function CampaignDrilldownPage({
 
   const { campaignId } = await params;
   const sp = await searchParams;
-  const daysParam = Number(sp.range ?? 7);
-  const days = [1, 3, 7, 14, 30].includes(daysParam) ? daysParam : 7;
+  const { range, mode, days, from, to } = resolveDateRange({
+    range: sp.range ?? "7", // default 7d no drilldown
+    from: sp.from,
+    to: sp.to,
+  });
   const levelParam = sp.level === "adset" ? "adset" : "ad";
-  const range = dateRangeForDays(days);
 
   // Utimify: campanha + adsets/ads
   let campaign: AdObject | null = null;
@@ -158,35 +167,33 @@ export default async function CampaignDrilldownPage({
   const fmtR = (cents: number) =>
     `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const qsBase = (() => {
+    const parts: string[] = [];
+    if (mode === "custom" && from) {
+      parts.push(`from=${from}`);
+      parts.push(`to=${to ?? from}`);
+    } else {
+      parts.push(`range=${days}`);
+    }
+    return parts.join("&");
+  })();
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
       <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+        <AdsTabs
+          active="drilldown"
+          campaignName={campaign?.name}
+          campaignId={campaignId}
+          qs={qsBase}
+        />
         <header className="mb-5">
-          <Link
-            href={`/crm/ads?range=${days}`}
-            className="text-xs text-slate-500 inline-flex items-center gap-1"
-          >
-            ← Ads
-          </Link>
-          <h1 className="text-xl font-semibold text-slate-900 mt-2">
-            📊 {campaign?.name ?? `Campanha ${campaignId.slice(0, 12)}`}
+          <h1 className="text-xl font-semibold text-slate-900 mt-1">
+            📋 {campaign?.name ?? `Campanha ${campaignId.slice(0, 12)}`}
           </h1>
+          <DateFilter mode={mode} days={days} from={from} to={to} />
           <div className="mt-2 flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] text-slate-500">Período:</span>
-            {[1, 3, 7, 14, 30].map((n) => (
-              <Link
-                key={n}
-                href={`/crm/ads/${campaignId}?range=${n}&level=${levelParam}`}
-                className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
-                  days === n
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {n === 1 ? "Hoje" : `${n}d`}
-              </Link>
-            ))}
-            <span className="text-[11px] text-slate-500 ml-3">Nível:</span>
+            <span className="text-[11px] text-slate-500">Nível:</span>
             {(["adset", "ad"] as const).map((lv) => (
               <Link
                 key={lv}

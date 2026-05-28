@@ -5,9 +5,11 @@ import { CrmShell } from "../../crm-shell";
 import {
   getSakAds,
   getSakCampaigns,
-  dateRangeForDays,
+  resolveDateRange,
   type AdObject,
 } from "@/lib/utimify";
+import { DateFilter } from "../date-filter";
+import { AdsTabs } from "../tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,12 @@ type LeadAgg = {
 export default async function AdsAllPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; sort?: string }>;
+  searchParams: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+    sort?: string;
+  }>;
 }) {
   const supabase = await createClient();
   const {
@@ -41,10 +48,8 @@ export default async function AdsAllPage({
   if (crmUser?.role !== "admin") redirect("/crm");
 
   const sp = await searchParams;
-  const daysParam = Number(sp.range ?? 1);
-  const days = [1, 3, 7, 14, 30].includes(daysParam) ? daysParam : 1;
+  const { range, mode, days, from, to } = resolveDateRange(sp);
   const sort = sp.sort ?? "spend";
-  const range = dateRangeForDays(days);
 
   // Utimify
   let ads: AdObject[] = [];
@@ -203,47 +208,32 @@ export default async function AdsAllPage({
     { id: "cpl_pronta", label: "Menor CPL PRONTA" },
   ];
 
+  // Querystring base pra preservar período (+sort) entre abas
+  const qsBase = (() => {
+    const parts: string[] = [];
+    if (mode === "custom" && from) {
+      parts.push(`from=${from}`);
+      parts.push(`to=${to ?? from}`);
+    } else {
+      parts.push(`range=${days}`);
+    }
+    if (sort !== "spend") parts.push(`sort=${sort}`);
+    return parts.join("&");
+  })();
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
       <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
+        <AdsTabs active="ads" qs={qsBase} />
         <header className="mb-5">
-          <div className="flex gap-3 items-center">
-            <Link
-              href="/crm/ads"
-              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              📊 Campanhas
-            </Link>
-            <Link
-              href="/crm/ads/all"
-              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-900 text-white"
-            >
-              🎯 Ads (todos)
-            </Link>
-          </div>
-          <h1 className="text-xl font-semibold text-slate-900 mt-3">
+          <h1 className="text-xl font-semibold text-slate-900 mt-1">
             🎯 Ads SAK · ranqueados por performance
           </h1>
           <p className="text-xs text-slate-500 mt-1">
             Todos os ads do prefixo SAK no dashboard Principal, sem precisar
             entrar campanha por campanha.
           </p>
-          <div className="mt-3 flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] text-slate-500">Período:</span>
-            {[1, 3, 7, 14, 30].map((n) => (
-              <Link
-                key={n}
-                href={`/crm/ads/all?range=${n}&sort=${sort}`}
-                className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
-                  days === n
-                    ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {n === 1 ? "Hoje" : `${n}d`}
-              </Link>
-            ))}
-          </div>
+          <DateFilter mode={mode} days={days} from={from} to={to} />
           <div className="mt-2 flex gap-2 flex-wrap items-center">
             <span className="text-[11px] text-slate-500">Ordenar por:</span>
             {sortOptions.map((s) => (
