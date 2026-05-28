@@ -106,6 +106,40 @@ export async function getSakCampaigns(range: DateRange): Promise<AdObject[]> {
   return res.results ?? [];
 }
 
+// Lista adsets/ads de uma campanha específica (drilldown).
+// Filtra TODOS os objetos do level desejado e mantém só os que pertencem à campaignId.
+// Não dá pra filtrar direto por campaignId na API do Utimify — fazemos client-side.
+export async function getCampaignChildren(
+  campaignId: string,
+  range: DateRange,
+  level: "adset" | "ad",
+): Promise<AdObject[]> {
+  type Result = { results?: AdObject[] };
+  const res = await callMcp<Result>("get_meta_ad_objects", {
+    dashboardId: DASHBOARD_PRINCIPAL_ID,
+    dateRange: range,
+    level,
+    nameContains: "SAK", // ainda filtra por SAK pra reduzir payload
+  });
+  const all = res.results ?? [];
+  return all.filter((a) => a.campaignId === campaignId);
+}
+
+// Detalhe de uma campanha específica
+export async function getCampaignById(
+  campaignId: string,
+  range: DateRange,
+): Promise<AdObject | null> {
+  type Result = { results?: AdObject[] };
+  const res = await callMcp<Result>("get_meta_ad_objects", {
+    dashboardId: DASHBOARD_PRINCIPAL_ID,
+    dateRange: range,
+    level: "campaign",
+    nameContains: "SAK",
+  });
+  return (res.results ?? []).find((c) => (c.campaignId ?? c.id) === campaignId) ?? null;
+}
+
 // Summary do dashboard Principal pro período
 export type DashboardSummary = {
   ads?: {

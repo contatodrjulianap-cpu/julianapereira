@@ -69,14 +69,14 @@ export default async function AdsPage({
     .not("utm_campaign", "is", null)
     .limit(5000);
 
-  // Normaliza: utm_campaign vem "SAK-QUIZZ1-RESINA-EE50-...|120246..." → corta no |
-  // e tenta casar com o name da campanha do Utimify.
-  const leadsByCampaign = new Map<string, LeadAgg>();
-  for (const l of leadsRaw ?? []) {
-    const raw = (l.utm_campaign as string | null) ?? "";
-    const key = raw.split("|")[0].trim();
-    if (!key) continue;
-    const agg = leadsByCampaign.get(key) ?? {
+  // utm_campaign vem como "SAK-QUIZZ1-RESINA-EE50-...|120246837027350304"
+  // onde a parte depois do `|` é o campaignId real do Meta.
+  // Match por ID > match por nome (Meta pode renomear sem mudar o ID).
+  // Fallback pra nome quando UTM legado não tem `|`.
+  const leadsByCampaignId = new Map<string, LeadAgg>();
+  const leadsByName = new Map<string, LeadAgg>();
+  function bumpAgg(map: Map<string, LeadAgg>, key: string, l: { archetype: string | null; status: string | null }) {
+    const agg = map.get(key) ?? {
       total: 0,
       pronta: 0,
       esperancosa: 0,
@@ -94,26 +94,44 @@ export default async function AdsPage({
       ["contacted", "qualified", "proposal", "won"].includes(l.status)
     )
       agg.contacted += 1;
-    leadsByCampaign.set(key, agg);
+    map.set(key, agg);
+  }
+  for (const l of leadsRaw ?? []) {
+    const raw = (l.utm_campaign as string | null) ?? "";
+    const [name, id] = raw.split("|").map((s) => s.trim());
+    if (id) bumpAgg(leadsByCampaignId, id, l as { archetype: string | null; status: string | null });
+    else if (name) bumpAgg(leadsByName, name, l as { archetype: string | null; status: string | null });
+  }
+  // Helper: tenta primeiro por id, depois nome (case-insensitive)
+  function getLeadsFor(c: AdObject): LeadAgg {
+    const empty: LeadAgg = {
+      total: 0, pronta: 0, esperancosa: 0, cetica: 0, won: 0, contacted: 0,
+    };
+    const byId = c.campaignId ? leadsByCampaignId.get(c.campaignId) : null;
+    if (byId) return byId;
+    const byName = leadsByName.get(c.name);
+    if (byName) return byName;
+    return empty;
   }
 
   // 3. Cruza: pra cada campanha do Utimify, busca leads no Supabase
   type Row = AdObject & {
     leads_supabase: LeadAgg;
-    cpl_real_cents: number | null;
+    cpl_real_cents: number | null; // spend / total leads
+    cpl_pronta_cents: number | null; // spend / PRONTA (lead "quente puro")
+    cpl_esperancosa_cents: number | null; // spend / ESPERANCOSA
+    cpa_won_cents: number | null; // spend / Won (custo por venda)
     quente_pct: number;
   };
   const rows: Row[] = campaigns.map((c) => {
-    const supa = leadsByCampaign.get(c.name) ?? {
-      total: 0,
-      pronta: 0,
-      esperancosa: 0,
-      cetica: 0,
-      won: 0,
-      contacted: 0,
-    };
+    const supa = getLeadsFor(c);
     const cpl_real_cents =
       supa.total > 0 ? Math.round(c.spend / supa.total) : null;
+    const cpl_pronta_cents =
+      supa.pronta > 0 ? Math.round(c.spend / supa.pronta) : null;
+    const cpl_esperancosa_cents =
+      supa.esperancosa > 0 ? Math.round(c.spend / supa.esperancosa) : null;
+    const cpa_won_cents = supa.won > 0 ? Math.round(c.spend / supa.won) : null;
     const quente = supa.total > 0
       ? Math.round(((supa.pronta + supa.esperancosa) / supa.total) * 100)
       : 0;
@@ -121,6 +139,9 @@ export default async function AdsPage({
       ...c,
       leads_supabase: supa,
       cpl_real_cents,
+      cpl_pronta_cents,
+      cpl_esperancosa_cents,
+      cpa_won_cents,
       quente_pct: quente,
     };
   });
@@ -163,6 +184,11 @@ export default async function AdsPage({
 
   const totalCplReal =
     totals.leads_supa > 0 ? totals.spend / totals.leads_supa : 0;
+  const totalCplPronta =
+    totals.pronta > 0 ? totals.spend / totals.pronta : 0;
+  const totalCplEsperancosa =
+    totals.esperancosa > 0 ? totals.spend / totals.esperancosa : 0;
+  const totalCpa = totals.won > 0 ? totals.spend / totals.won : 0;
   const totalQuentePct =
     totals.leads_supa > 0
       ? ((totals.pronta + totals.esperancosa) / totals.leads_supa) * 100
@@ -258,7 +284,19 @@ export default async function AdsPage({
                     Leads<br />
                     <span className="text-[9px] text-slate-400">(supa)</span>
                   </th>
-                  <th className="px-2 py-2 font-semibold text-right">CPL</th>
+                  <th className="px-2 py-2 font-semibold text-right">CPL geral</th>
+                  <th className="px-2 py-2 font-semibold text-right text-emerald-700">
+                    CPL<br />
+                    <span className="text-[9px]">🔥 quente</span>
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right text-amber-700">
+                    CPL<br />
+                    <span className="text-[9px]">🟡 esperançoso</span>
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right text-purple-700">
+                    CPA<br />
+                    <span className="text-[9px]">💰 Won</span>
+                  </th>
                   <th className="px-2 py-2 font-semibold text-right">% quente</th>
                   <th className="px-2 py-2 font-semibold text-right">PRO</th>
                   <th className="px-2 py-2 font-semibold text-right">ESP</th>
@@ -267,15 +305,34 @@ export default async function AdsPage({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r) => (
+                {rows.map((r) => {
+                  // Warning: ACTIVE + gastou +R$200 + 0 wons + período >= 3 dias.
+                  // Sinaliza "candidata a pausar". Período = days da URL.
+                  const isWarning =
+                    r.effectiveStatus === "ACTIVE" &&
+                    r.spend > 20000 && // R$200 em centavos
+                    r.leads_supabase.won === 0 &&
+                    days >= 3;
+                  const cid = r.campaignId ?? r.id;
+                  return (
                   <tr
                     key={r.id}
                     className={`border-t border-slate-100 ${
-                      r.effectiveStatus !== "ACTIVE" ? "opacity-50" : ""
-                    }`}
+                      isWarning ? "bg-red-50" : ""
+                    } ${r.effectiveStatus !== "ACTIVE" ? "opacity-50" : ""}`}
                   >
                     <td className="px-3 py-2 font-medium text-slate-900">
-                      {r.name}
+                      <Link
+                        href={`/crm/ads/${cid}?range=${days}`}
+                        className="hover:underline hover:text-rose-700"
+                      >
+                        {isWarning && (
+                          <span title="Gastou +R$200 sem fechar, candidata a pausar">
+                            ⚠️{" "}
+                          </span>
+                        )}
+                        {r.name}
+                      </Link>
                     </td>
                     <td className="px-2 py-2 text-[10px]">
                       <span
@@ -300,6 +357,21 @@ export default async function AdsPage({
                     <td className="px-2 py-2 text-right tabular-nums">
                       {r.cpl_real_cents !== null
                         ? fmtR(r.cpl_real_cents)
+                        : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-emerald-700 font-semibold">
+                      {r.cpl_pronta_cents !== null
+                        ? fmtR(r.cpl_pronta_cents)
+                        : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-amber-700 font-semibold">
+                      {r.cpl_esperancosa_cents !== null
+                        ? fmtR(r.cpl_esperancosa_cents)
+                        : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-purple-700 font-bold">
+                      {r.cpa_won_cents !== null
+                        ? fmtR(r.cpa_won_cents)
                         : "—"}
                     </td>
                     <td
@@ -330,7 +402,8 @@ export default async function AdsPage({
                       {r.leads_supabase.won || ""}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
               {rows.length > 0 && (
                 <tfoot className="bg-slate-50 font-semibold">
@@ -348,6 +421,19 @@ export default async function AdsPage({
                     </td>
                     <td className="px-2 py-2 text-right tabular-nums">
                       {fmtR(Math.round(totalCplReal))}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-emerald-700">
+                      {totals.pronta > 0
+                        ? fmtR(Math.round(totalCplPronta))
+                        : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-amber-700">
+                      {totals.esperancosa > 0
+                        ? fmtR(Math.round(totalCplEsperancosa))
+                        : "—"}
+                    </td>
+                    <td className="px-2 py-2 text-right tabular-nums text-purple-700">
+                      {totals.won > 0 ? fmtR(Math.round(totalCpa)) : "—"}
                     </td>
                     <td className="px-2 py-2 text-right tabular-nums">
                       {totalQuentePct.toFixed(0)}%
