@@ -3,15 +3,16 @@ import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { CrmShell } from "../../crm-shell";
 import {
-  getCampaignById,
-  getCampaignChildren,
+  getSakAds,
+  getSakCampaigns,
   dateRangeForDays,
   type AdObject,
 } from "@/lib/utimify";
 
 export const dynamic = "force-dynamic";
 
-// Drilldown: clica numa campanha em /crm/ads → abre aqui detalhe + adsets + ads.
+// Visão global de TODOS os ads SAK ranqueados (sem precisar entrar campanha
+// por campanha). Match Supabase via utm_content → adId.
 
 type LeadAgg = {
   total: number;
@@ -21,12 +22,10 @@ type LeadAgg = {
   won: number;
 };
 
-export default async function CampaignDrilldownPage({
-  params,
+export default async function AdsAllPage({
   searchParams,
 }: {
-  params: Promise<{ campaignId: string }>;
-  searchParams: Promise<{ range?: string; level?: string }>;
+  searchParams: Promise<{ range?: string; sort?: string }>;
 }) {
   const supabase = await createClient();
   const {
@@ -41,55 +40,43 @@ export default async function CampaignDrilldownPage({
     .maybeSingle();
   if (crmUser?.role !== "admin") redirect("/crm");
 
-  const { campaignId } = await params;
   const sp = await searchParams;
-  const daysParam = Number(sp.range ?? 7);
-  const days = [1, 3, 7, 14, 30].includes(daysParam) ? daysParam : 7;
-  const levelParam = sp.level === "adset" ? "adset" : "ad";
+  const daysParam = Number(sp.range ?? 1);
+  const days = [1, 3, 7, 14, 30].includes(daysParam) ? daysParam : 1;
+  const sort = sp.sort ?? "spend";
   const range = dateRangeForDays(days);
 
-  // Utimify: campanha + adsets/ads
-  let campaign: AdObject | null = null;
-  let children: AdObject[] = [];
+  // Utimify
+  let ads: AdObject[] = [];
+  let campaigns: AdObject[] = [];
   let utimifyError: string | null = null;
   try {
-    [campaign, children] = await Promise.all([
-      getCampaignById(campaignId, range),
-      getCampaignChildren(campaignId, range, levelParam),
+    [ads, campaigns] = await Promise.all([
+      getSakAds(range),
+      getSakCampaigns(range),
     ]);
   } catch (e) {
     utimifyError = e instanceof Error ? e.message : "erro";
   }
 
-  // Supabase: leads dessa campanha no período (match por campaignId no | do utm_campaign)
+  // Mapa campaignId → name pra exibir contexto
+  const campaignNameById = new Map(
+    campaigns.map((c) => [c.campaignId ?? c.id, c.name]),
+  );
+
+  // Supabase: leads SAK no período. Match por utm_content (adId).
   const admin = createServiceClient();
   const { data: leadsRaw } = await admin
     .from("leads")
-    .select("utm_campaign, utm_content, archetype, status")
+    .select("utm_content, archetype, status")
     .gte("created_at", range.from)
     .lt("created_at", range.to)
-    .like("utm_campaign", `%|${campaignId}`)
-    .limit(5000);
+    .not("utm_content", "is", null)
+    .limit(10000);
 
-  const leads = leadsRaw ?? [];
-  const totalLeads: LeadAgg = {
-    total: leads.length,
-    pronta: leads.filter((l) => l.archetype === "PRONTA").length,
-    esperancosa: leads.filter((l) => l.archetype === "ESPERANCOSA").length,
-    cetica: leads.filter((l) => l.archetype === "CETICA").length,
-    won: leads.filter((l) => l.status === "won").length,
-  };
-
-  // Agrupa leads por utm_content (= ad name ou ad id) — pra drilldown por ad
-  // utm_content vem tipo "SAK-ZAP-S1-MAI-AD2-sorriso-sem-desgaste|120246..."
-  const leadsByContentId = new Map<string, LeadAgg>();
-  const leadsByContentName = new Map<string, LeadAgg>();
-  for (const l of leads) {
-    const raw = (l.utm_content as string | null) ?? "";
-    const [name, id] = raw.split("|").map((s) => s.trim());
-    const target = id ? [leadsByContentId, id] : name ? [leadsByContentName, name] : null;
-    if (!target) continue;
-    const [map, key] = target as [Map<string, LeadAgg>, string];
+  const leadsByAdId = new Map<string, LeadAgg>();
+  const leadsByAdName = new Map<string, LeadAgg>();
+  function bump(map: Map<string, LeadAgg>, key: string, l: { archetype: string | null; status: string | null }) {
     const agg = map.get(key) ?? {
       total: 0,
       pronta: 0,
@@ -104,6 +91,12 @@ export default async function CampaignDrilldownPage({
     if (l.status === "won") agg.won += 1;
     map.set(key, agg);
   }
+  for (const l of leadsRaw ?? []) {
+    const raw = (l.utm_content as string | null) ?? "";
+    const [name, id] = raw.split("|").map((s) => s.trim());
+    if (id) bump(leadsByAdId, id, l as { archetype: string | null; status: string | null });
+    else if (name) bump(leadsByAdName, name, l as { archetype: string | null; status: string | null });
+  }
 
   type Row = AdObject & {
     leads_supa: LeadAgg;
@@ -112,71 +105,135 @@ export default async function CampaignDrilldownPage({
     cpl_esp_cents: number | null;
     cpa_won_cents: number | null;
     quente_pct: number;
+    campaign_name: string;
   };
-  const rows: Row[] = children.map((c) => {
-    let supa: LeadAgg = {
+  const rows: Row[] = ads.map((c) => {
+    const empty: LeadAgg = {
       total: 0,
       pronta: 0,
       esperancosa: 0,
       cetica: 0,
       won: 0,
     };
-    if (levelParam === "ad") {
-      const byId = c.adId ? leadsByContentId.get(c.adId) : null;
-      const byName = leadsByContentName.get(c.name);
-      supa = byId ?? byName ?? supa;
-    } else {
-      // adsets — não tem utm_content por adset facilmente. Deixar 0 nessa coluna.
-      // (Pode evoluir cruzando pela campanha + somando children futuramente.)
-    }
+    const byId = c.adId ? leadsByAdId.get(c.adId) : null;
+    const byName = leadsByAdName.get(c.name);
+    const supa = byId ?? byName ?? empty;
     return {
       ...c,
       leads_supa: supa,
-      cpl_real_cents:
-        supa.total > 0 ? Math.round(c.spend / supa.total) : null,
+      cpl_real_cents: supa.total > 0 ? Math.round(c.spend / supa.total) : null,
       cpl_pronta_cents:
         supa.pronta > 0 ? Math.round(c.spend / supa.pronta) : null,
       cpl_esp_cents:
         supa.esperancosa > 0 ? Math.round(c.spend / supa.esperancosa) : null,
-      cpa_won_cents:
-        supa.won > 0 ? Math.round(c.spend / supa.won) : null,
+      cpa_won_cents: supa.won > 0 ? Math.round(c.spend / supa.won) : null,
       quente_pct:
         supa.total > 0
           ? Math.round(((supa.pronta + supa.esperancosa) / supa.total) * 100)
           : 0,
+      campaign_name: c.campaignId
+        ? (campaignNameById.get(c.campaignId) ?? "—")
+        : "—",
     };
   });
 
+  // Sort
   rows.sort((a, b) => {
     if (a.effectiveStatus !== b.effectiveStatus) {
       if (a.effectiveStatus === "ACTIVE") return -1;
       if (b.effectiveStatus === "ACTIVE") return 1;
     }
-    return b.spend - a.spend;
+    switch (sort) {
+      case "leads":
+        return b.leads_supa.total - a.leads_supa.total;
+      case "pronta":
+        return b.leads_supa.pronta - a.leads_supa.pronta;
+      case "quente":
+        return b.quente_pct - a.quente_pct;
+      case "won":
+        return b.leads_supa.won - a.leads_supa.won;
+      case "cpl_pronta":
+        // null vai pro final
+        if (a.cpl_pronta_cents === null && b.cpl_pronta_cents === null) return 0;
+        if (a.cpl_pronta_cents === null) return 1;
+        if (b.cpl_pronta_cents === null) return -1;
+        return a.cpl_pronta_cents - b.cpl_pronta_cents; // menor CPL = melhor
+      default:
+        return b.spend - a.spend;
+    }
   });
+
+  // Totais
+  const totals = rows.reduce(
+    (acc, r) => {
+      acc.spend += r.spend;
+      acc.clicks += r.inlineLinkClicks;
+      acc.leads += r.leads_supa.total;
+      acc.pronta += r.leads_supa.pronta;
+      acc.esperancosa += r.leads_supa.esperancosa;
+      acc.cetica += r.leads_supa.cetica;
+      acc.won += r.leads_supa.won;
+      return acc;
+    },
+    {
+      spend: 0,
+      clicks: 0,
+      leads: 0,
+      pronta: 0,
+      esperancosa: 0,
+      cetica: 0,
+      won: 0,
+    },
+  );
+  const totalCpl = totals.leads > 0 ? totals.spend / totals.leads : 0;
+  const totalCplPro = totals.pronta > 0 ? totals.spend / totals.pronta : 0;
+  const totalCplEsp =
+    totals.esperancosa > 0 ? totals.spend / totals.esperancosa : 0;
+  const totalCpa = totals.won > 0 ? totals.spend / totals.won : 0;
 
   const fmtR = (cents: number) =>
     `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
+  const sortOptions = [
+    { id: "spend", label: "Maior gasto" },
+    { id: "leads", label: "Mais leads" },
+    { id: "pronta", label: "Mais PRONTAs" },
+    { id: "won", label: "Mais wons" },
+    { id: "quente", label: "% quente" },
+    { id: "cpl_pronta", label: "Menor CPL PRONTA" },
+  ];
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
-      <div className="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+      <div className="flex-1 max-w-7xl w-full mx-auto px-4 py-6">
         <header className="mb-5">
-          <Link
-            href={`/crm/ads?range=${days}`}
-            className="text-xs text-slate-500 inline-flex items-center gap-1"
-          >
-            ← Ads
-          </Link>
-          <h1 className="text-xl font-semibold text-slate-900 mt-2">
-            📊 {campaign?.name ?? `Campanha ${campaignId.slice(0, 12)}`}
+          <div className="flex gap-3 items-center">
+            <Link
+              href="/crm/ads"
+              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              📊 Campanhas
+            </Link>
+            <Link
+              href="/crm/ads/all"
+              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-900 text-white"
+            >
+              🎯 Ads (todos)
+            </Link>
+          </div>
+          <h1 className="text-xl font-semibold text-slate-900 mt-3">
+            🎯 Ads SAK · ranqueados por performance
           </h1>
-          <div className="mt-2 flex gap-2 flex-wrap items-center">
+          <p className="text-xs text-slate-500 mt-1">
+            Todos os ads do prefixo SAK no dashboard Principal, sem precisar
+            entrar campanha por campanha.
+          </p>
+          <div className="mt-3 flex gap-2 flex-wrap items-center">
             <span className="text-[11px] text-slate-500">Período:</span>
             {[1, 3, 7, 14, 30].map((n) => (
               <Link
                 key={n}
-                href={`/crm/ads/${campaignId}?range=${n}&level=${levelParam}`}
+                href={`/crm/ads/all?range=${n}&sort=${sort}`}
                 className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
                   days === n
                     ? "bg-slate-900 text-white"
@@ -186,94 +243,73 @@ export default async function CampaignDrilldownPage({
                 {n === 1 ? "Hoje" : `${n}d`}
               </Link>
             ))}
-            <span className="text-[11px] text-slate-500 ml-3">Nível:</span>
-            {(["adset", "ad"] as const).map((lv) => (
+          </div>
+          <div className="mt-2 flex gap-2 flex-wrap items-center">
+            <span className="text-[11px] text-slate-500">Ordenar por:</span>
+            {sortOptions.map((s) => (
               <Link
-                key={lv}
-                href={`/crm/ads/${campaignId}?range=${days}&level=${lv}`}
+                key={s.id}
+                href={`/crm/ads/all?range=${days}&sort=${s.id}`}
                 className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
-                  levelParam === lv
+                  sort === s.id
                     ? "bg-rose-600 text-white"
                     : "bg-slate-100 text-slate-700 hover:bg-slate-200"
                 }`}
               >
-                {lv === "adset" ? "Adsets" : "Ads"}
+                {s.label}
               </Link>
             ))}
           </div>
           <p className="text-[10px] text-slate-400 mt-2 font-mono">
-            {range.from.slice(0, 10)} → {range.to.slice(0, 10)} · campaignId={" "}
-            {campaignId}
+            {range.from.slice(0, 10)} → {range.to.slice(0, 10)} · ads
+            encontrados: {rows.length}
           </p>
         </header>
 
         {utimifyError && (
           <div className="rounded-xl border-2 border-red-200 bg-red-50 p-3 mb-4">
-            <p className="text-xs font-semibold text-red-900">Utimify falhou</p>
+            <p className="text-xs font-semibold text-red-900">
+              Utimify falhou
+            </p>
             <p className="text-[11px] text-red-800 mt-1 font-mono">
               {utimifyError}
             </p>
           </div>
         )}
 
-        {/* Resumo da campanha + leads totais Supabase */}
-        {campaign && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
-            <Stat
-              label="Spend"
-              value={fmtR(campaign.spend)}
-              fg="text-rose-700"
-            />
-            <Stat
-              label="Leads Supabase"
-              value={totalLeads.total.toString()}
-              sub={`Meta CAPI: ${campaign.leads}`}
-              fg="text-emerald-700"
-            />
-            <Stat
-              label="CPL real"
-              value={
-                totalLeads.total > 0
-                  ? fmtR(Math.round(campaign.spend / totalLeads.total))
-                  : "—"
-              }
-              fg="text-amber-700"
-            />
-            <Stat
-              label="CPL 🔥 PRONTA"
-              value={
-                totalLeads.pronta > 0
-                  ? fmtR(Math.round(campaign.spend / totalLeads.pronta))
-                  : "—"
-              }
-              sub={`${totalLeads.pronta} PRO`}
-              fg="text-emerald-800"
-            />
-            <Stat
-              label="CPA 💰 Won"
-              value={
-                totalLeads.won > 0
-                  ? fmtR(Math.round(campaign.spend / totalLeads.won))
-                  : "—"
-              }
-              sub={`${totalLeads.won} won`}
-              fg="text-purple-700"
-            />
-          </div>
-        )}
+        {/* Stats agregados */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+          <Stat label="Spend total" value={fmtR(totals.spend)} fg="text-rose-700" />
+          <Stat
+            label="Leads Supa"
+            value={totals.leads.toString()}
+            sub={`${totals.pronta} PRO · ${totals.esperancosa} ESP · ${totals.cetica} CET`}
+            fg="text-emerald-700"
+          />
+          <Stat
+            label="CPL 🔥 PRONTA"
+            value={totals.pronta > 0 ? fmtR(Math.round(totalCplPro)) : "—"}
+            sub={`CPL geral: ${totals.leads > 0 ? fmtR(Math.round(totalCpl)) : "—"}`}
+            fg="text-emerald-800"
+          />
+          <Stat
+            label="CPA 💰 Won"
+            value={totals.won > 0 ? fmtR(Math.round(totalCpa)) : "—"}
+            sub={`${totals.won} wons`}
+            fg="text-purple-700"
+          />
+        </div>
 
-        {/* Tabela adsets/ads */}
+        {/* Tabela */}
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr className="text-left">
-                  <th className="px-3 py-2 font-semibold">
-                    {levelParam === "adset" ? "Adset" : "Ad"}
-                  </th>
+                  <th className="px-3 py-2 font-semibold">Ad</th>
                   <th className="px-2 py-2 font-semibold">Status</th>
+                  <th className="px-2 py-2 font-semibold">Campanha</th>
                   <th className="px-2 py-2 font-semibold text-right">Spend</th>
-                  <th className="px-2 py-2 font-semibold text-right">Cliques</th>
                   <th className="px-2 py-2 font-semibold text-right">Leads</th>
                   <th className="px-2 py-2 font-semibold text-right">CPL</th>
                   <th className="px-2 py-2 font-semibold text-right text-emerald-700">
@@ -285,6 +321,7 @@ export default async function CampaignDrilldownPage({
                   <th className="px-2 py-2 font-semibold text-right text-purple-700">
                     CPA 💰
                   </th>
+                  <th className="px-2 py-2 font-semibold text-right">% qte</th>
                   <th className="px-2 py-2 font-semibold text-right">PRO</th>
                   <th className="px-2 py-2 font-semibold text-right">ESP</th>
                   <th className="px-2 py-2 font-semibold text-right">CET</th>
@@ -295,7 +332,7 @@ export default async function CampaignDrilldownPage({
                 {rows.map((r) => {
                   const isWarning =
                     r.effectiveStatus === "ACTIVE" &&
-                    r.spend > 20000 &&
+                    r.spend > 10000 && // R$100 (limite menor pra ad individual)
                     r.leads_supa.won === 0 &&
                     days >= 3;
                   return (
@@ -305,8 +342,8 @@ export default async function CampaignDrilldownPage({
                         isWarning ? "bg-red-50" : ""
                       } ${r.effectiveStatus !== "ACTIVE" ? "opacity-50" : ""}`}
                     >
-                      <td className="px-3 py-2 font-medium text-slate-900">
-                        {isWarning && <span>⚠️ </span>}
+                      <td className="px-3 py-2 font-medium text-slate-900 max-w-[280px] truncate">
+                        {isWarning && <span title="Spend +R$100 sem Won">⚠️ </span>}
                         {r.name}
                       </td>
                       <td className="px-2 py-2 text-[10px]">
@@ -320,11 +357,20 @@ export default async function CampaignDrilldownPage({
                           {r.effectiveStatus}
                         </span>
                       </td>
-                      <td className="px-2 py-2 text-right tabular-nums">
-                        {fmtR(r.spend)}
+                      <td className="px-2 py-2 text-[11px] text-slate-500 max-w-[200px] truncate">
+                        {r.campaignId ? (
+                          <Link
+                            href={`/crm/ads/${r.campaignId}?range=${days}&level=ad`}
+                            className="hover:underline hover:text-rose-700"
+                          >
+                            {r.campaign_name}
+                          </Link>
+                        ) : (
+                          "—"
+                        )}
                       </td>
                       <td className="px-2 py-2 text-right tabular-nums">
-                        {r.inlineLinkClicks}
+                        {fmtR(r.spend)}
                       </td>
                       <td className="px-2 py-2 text-right tabular-nums font-semibold">
                         {r.leads_supa.total}
@@ -349,6 +395,19 @@ export default async function CampaignDrilldownPage({
                           ? fmtR(r.cpa_won_cents)
                           : "—"}
                       </td>
+                      <td
+                        className={`px-2 py-2 text-right tabular-nums font-semibold ${
+                          r.quente_pct >= 30
+                            ? "text-emerald-700"
+                            : r.quente_pct >= 15
+                              ? "text-amber-700"
+                              : r.quente_pct > 0
+                                ? "text-slate-500"
+                                : "text-slate-400"
+                        }`}
+                      >
+                        {r.leads_supa.total > 0 ? `${r.quente_pct}%` : "—"}
+                      </td>
                       <td className="px-2 py-2 text-right tabular-nums text-emerald-700">
                         {r.leads_supa.pronta || ""}
                       </td>
@@ -371,17 +430,9 @@ export default async function CampaignDrilldownPage({
 
         {rows.length === 0 && !utimifyError && (
           <p className="text-center text-sm text-slate-400 mt-8">
-            Nenhum {levelParam} encontrado nessa campanha no período.
+            Nenhum ad SAK encontrado no período.
           </p>
         )}
-
-        <div className="mt-4 text-[10px] text-slate-400 leading-relaxed">
-          <p>
-            <strong>Adsets:</strong> match com Supabase ainda não disponível
-            (UTM do lead não carrega adsetId). Use o nível <em>Ads</em> pra ver
-            performance por criativo.
-          </p>
-        </div>
       </div>
     </CrmShell>
   );

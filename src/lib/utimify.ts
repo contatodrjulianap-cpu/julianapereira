@@ -125,6 +125,19 @@ export async function getCampaignChildren(
   return all.filter((a) => a.campaignId === campaignId);
 }
 
+// Lista TODOS os ads SAK do dashboard Principal pro período (visão global,
+// sem precisar entrar campanha por campanha)
+export async function getSakAds(range: DateRange): Promise<AdObject[]> {
+  type Result = { results?: AdObject[] };
+  const res = await callMcp<Result>("get_meta_ad_objects", {
+    dashboardId: DASHBOARD_PRINCIPAL_ID,
+    dateRange: range,
+    level: "ad",
+    nameContains: "SAK",
+  });
+  return res.results ?? [];
+}
+
 // Detalhe de uma campanha específica
 export async function getCampaignById(
   campaignId: string,

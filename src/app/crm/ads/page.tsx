@@ -207,8 +207,22 @@ export default async function AdsPage({
           >
             ← Funil
           </Link>
-          <h1 className="text-xl font-semibold text-slate-900 mt-2">
-            📈 Ads · Sakura (SAK no dashboard Principal)
+          <div className="flex gap-3 items-center mt-2">
+            <Link
+              href={`/crm/ads?range=${days}`}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-900 text-white"
+            >
+              📊 Campanhas
+            </Link>
+            <Link
+              href={`/crm/ads/all?range=${days}`}
+              className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200"
+            >
+              🎯 Ads (todos)
+            </Link>
+          </div>
+          <h1 className="text-xl font-semibold text-slate-900 mt-3">
+            📊 Ads · Sakura (SAK no dashboard Principal)
           </h1>
           <p className="text-xs text-slate-500 mt-1 leading-relaxed">
             Cruzamento Utimify (gasto/cliques Meta Ads) × Supabase (leads reais
@@ -323,7 +337,7 @@ export default async function AdsPage({
                   >
                     <td className="px-3 py-2 font-medium text-slate-900">
                       <Link
-                        href={`/crm/ads/${cid}?range=${days}`}
+                        href={`/crm/ads/${cid}?range=${days}&level=ad`}
                         className="hover:underline hover:text-rose-700"
                       >
                         {isWarning && (
