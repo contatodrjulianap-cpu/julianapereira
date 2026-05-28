@@ -10,6 +10,7 @@ import {
 } from "@/lib/utimify";
 import { DateFilter } from "./date-filter";
 import { AdsTabs } from "./tabs";
+import { SortableHeader, compareValues } from "./sortable-header";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,13 @@ type LeadAgg = {
 export default async function AdsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
+  searchParams: Promise<{
+    range?: string;
+    from?: string;
+    to?: string;
+    sort?: string;
+    dir?: string;
+  }>;
 }) {
   const supabase = await createClient();
   const {
@@ -146,13 +153,33 @@ export default async function AdsPage({
     };
   });
 
-  // Ordena: ACTIVE primeiro, depois por spend desc
+  // Ordena: ACTIVE primeiro, depois por coluna escolhida (sort+dir).
+  const sortKey = sp.sort ?? "spend";
+  const sortDir: "asc" | "desc" = sp.dir === "asc" ? "asc" : "desc";
+  function valFor(r: Row): number | string | null {
+    switch (sortKey) {
+      case "name": return r.name;
+      case "status": return r.effectiveStatus;
+      case "clicks": return r.inlineLinkClicks;
+      case "leads": return r.leads_supabase.total;
+      case "cpl": return r.cpl_real_cents;
+      case "cpl_pronta": return r.cpl_pronta_cents;
+      case "cpl_esp": return r.cpl_esperancosa_cents;
+      case "cpa": return r.cpa_won_cents;
+      case "quente": return r.quente_pct;
+      case "pronta": return r.leads_supabase.pronta;
+      case "esp": return r.leads_supabase.esperancosa;
+      case "cetica": return r.leads_supabase.cetica;
+      case "won": return r.leads_supabase.won;
+      default: return r.spend;
+    }
+  }
   rows.sort((a, b) => {
     if (a.effectiveStatus !== b.effectiveStatus) {
       if (a.effectiveStatus === "ACTIVE") return -1;
       if (b.effectiveStatus === "ACTIVE") return 1;
     }
-    return b.spend - a.spend;
+    return compareValues(valFor(a), valFor(b), sortDir);
   });
 
   // Totais
@@ -263,32 +290,48 @@ export default async function AdsPage({
             <table className="w-full text-[12px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr className="text-left">
-                  <th className="px-3 py-2 font-semibold">Campanha</th>
-                  <th className="px-2 py-2 font-semibold">Status</th>
-                  <th className="px-2 py-2 font-semibold text-right">Spend</th>
-                  <th className="px-2 py-2 font-semibold text-right">Cliques</th>
-                  <th className="px-2 py-2 font-semibold text-right">
-                    Leads<br />
-                    <span className="text-[9px] text-slate-400">(supa)</span>
+                  <th className="px-3 py-2 font-semibold">
+                    <SortableHeader id="name" label="Campanha" defaultDir="asc" />
                   </th>
-                  <th className="px-2 py-2 font-semibold text-right">CPL geral</th>
+                  <th className="px-2 py-2 font-semibold">
+                    <SortableHeader id="status" label="Status" defaultDir="asc" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="spend" label="Spend" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="clicks" label="Cliques" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="leads" label="Leads" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="cpl" label="CPL geral" align="right" defaultDir="asc" />
+                  </th>
                   <th className="px-2 py-2 font-semibold text-right text-emerald-700">
-                    CPL<br />
-                    <span className="text-[9px]">🔥 quente</span>
+                    <SortableHeader id="cpl_pronta" label="CPL 🔥" align="right" defaultDir="asc" />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-amber-700">
-                    CPL<br />
-                    <span className="text-[9px]">🟡 esperançoso</span>
+                    <SortableHeader id="cpl_esp" label="CPL 🟡" align="right" defaultDir="asc" />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-purple-700">
-                    CPA<br />
-                    <span className="text-[9px]">💰 Won</span>
+                    <SortableHeader id="cpa" label="CPA 💰" align="right" defaultDir="asc" />
                   </th>
-                  <th className="px-2 py-2 font-semibold text-right">% quente</th>
-                  <th className="px-2 py-2 font-semibold text-right">PRO</th>
-                  <th className="px-2 py-2 font-semibold text-right">ESP</th>
-                  <th className="px-2 py-2 font-semibold text-right">CET</th>
-                  <th className="px-2 py-2 font-semibold text-right">Won</th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="quente" label="% qte" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="pronta" label="PRO" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="esp" label="ESP" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="cetica" label="CET" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="won" label="Won" align="right" />
+                  </th>
                 </tr>
               </thead>
               <tbody>

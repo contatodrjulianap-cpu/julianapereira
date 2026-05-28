@@ -10,6 +10,7 @@ import {
 } from "@/lib/utimify";
 import { DateFilter } from "../date-filter";
 import { AdsTabs } from "../tabs";
+import { SortableHeader, compareValues } from "../sortable-header";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,7 @@ export default async function AdsAllPage({
     from?: string;
     to?: string;
     sort?: string;
+    dir?: string;
   }>;
 }) {
   const supabase = await createClient();
@@ -49,7 +51,8 @@ export default async function AdsAllPage({
 
   const sp = await searchParams;
   const { range, mode, days, from, to } = resolveDateRange(sp);
-  const sort = sp.sort ?? "spend";
+  const sortKey = sp.sort ?? "spend";
+  const sortDir: "asc" | "desc" = sp.dir === "asc" ? "asc" : "desc";
 
   // Utimify
   let ads: AdObject[] = [];
@@ -142,30 +145,30 @@ export default async function AdsAllPage({
     };
   });
 
-  // Sort
+  function valFor(r: Row): number | string | null {
+    switch (sortKey) {
+      case "name": return r.name;
+      case "status": return r.effectiveStatus;
+      case "campaign": return r.campaign_name;
+      case "leads": return r.leads_supa.total;
+      case "cpl": return r.cpl_real_cents;
+      case "cpl_pronta": return r.cpl_pronta_cents;
+      case "cpl_esp": return r.cpl_esp_cents;
+      case "cpa": return r.cpa_won_cents;
+      case "quente": return r.quente_pct;
+      case "pronta": return r.leads_supa.pronta;
+      case "esp": return r.leads_supa.esperancosa;
+      case "cetica": return r.leads_supa.cetica;
+      case "won": return r.leads_supa.won;
+      default: return r.spend;
+    }
+  }
   rows.sort((a, b) => {
     if (a.effectiveStatus !== b.effectiveStatus) {
       if (a.effectiveStatus === "ACTIVE") return -1;
       if (b.effectiveStatus === "ACTIVE") return 1;
     }
-    switch (sort) {
-      case "leads":
-        return b.leads_supa.total - a.leads_supa.total;
-      case "pronta":
-        return b.leads_supa.pronta - a.leads_supa.pronta;
-      case "quente":
-        return b.quente_pct - a.quente_pct;
-      case "won":
-        return b.leads_supa.won - a.leads_supa.won;
-      case "cpl_pronta":
-        // null vai pro final
-        if (a.cpl_pronta_cents === null && b.cpl_pronta_cents === null) return 0;
-        if (a.cpl_pronta_cents === null) return 1;
-        if (b.cpl_pronta_cents === null) return -1;
-        return a.cpl_pronta_cents - b.cpl_pronta_cents; // menor CPL = melhor
-      default:
-        return b.spend - a.spend;
-    }
+    return compareValues(valFor(a), valFor(b), sortDir);
   });
 
   // Totais
@@ -199,15 +202,6 @@ export default async function AdsAllPage({
   const fmtR = (cents: number) =>
     `R$ ${(cents / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const sortOptions = [
-    { id: "spend", label: "Maior gasto" },
-    { id: "leads", label: "Mais leads" },
-    { id: "pronta", label: "Mais PRONTAs" },
-    { id: "won", label: "Mais wons" },
-    { id: "quente", label: "% quente" },
-    { id: "cpl_pronta", label: "Menor CPL PRONTA" },
-  ];
-
   // Querystring base pra preservar período (+sort) entre abas
   const qsBase = (() => {
     const parts: string[] = [];
@@ -217,7 +211,8 @@ export default async function AdsAllPage({
     } else {
       parts.push(`range=${days}`);
     }
-    if (sort !== "spend") parts.push(`sort=${sort}`);
+    if (sortKey !== "spend") parts.push(`sort=${sortKey}`);
+    if (sortDir !== "desc") parts.push(`dir=${sortDir}`);
     return parts.join("&");
   })();
 
@@ -234,22 +229,9 @@ export default async function AdsAllPage({
             entrar campanha por campanha.
           </p>
           <DateFilter mode={mode} days={days} from={from} to={to} />
-          <div className="mt-2 flex gap-2 flex-wrap items-center">
-            <span className="text-[11px] text-slate-500">Ordenar por:</span>
-            {sortOptions.map((s) => (
-              <Link
-                key={s.id}
-                href={`/crm/ads/all?range=${days}&sort=${s.id}`}
-                className={`px-3 py-1 rounded-full text-[11px] font-semibold ${
-                  sort === s.id
-                    ? "bg-rose-600 text-white"
-                    : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                }`}
-              >
-                {s.label}
-              </Link>
-            ))}
-          </div>
+          <p className="text-[10px] text-slate-400 mt-2 italic">
+            💡 Clica nos títulos das colunas pra ordenar (▲▼).
+          </p>
           <p className="text-[10px] text-slate-400 mt-2 font-mono">
             {range.from.slice(0, 10)} → {range.to.slice(0, 10)} · ads
             encontrados: {rows.length}
@@ -296,26 +278,48 @@ export default async function AdsAllPage({
             <table className="w-full text-[12px]">
               <thead className="bg-slate-50 text-slate-600">
                 <tr className="text-left">
-                  <th className="px-3 py-2 font-semibold">Ad</th>
-                  <th className="px-2 py-2 font-semibold">Status</th>
-                  <th className="px-2 py-2 font-semibold">Campanha</th>
-                  <th className="px-2 py-2 font-semibold text-right">Spend</th>
-                  <th className="px-2 py-2 font-semibold text-right">Leads</th>
-                  <th className="px-2 py-2 font-semibold text-right">CPL</th>
+                  <th className="px-3 py-2 font-semibold">
+                    <SortableHeader id="name" label="Ad" defaultDir="asc" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold">
+                    <SortableHeader id="status" label="Status" defaultDir="asc" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold">
+                    <SortableHeader id="campaign" label="Campanha" defaultDir="asc" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="spend" label="Spend" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="leads" label="Leads" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="cpl" label="CPL" align="right" defaultDir="asc" />
+                  </th>
                   <th className="px-2 py-2 font-semibold text-right text-emerald-700">
-                    CPL 🔥
+                    <SortableHeader id="cpl_pronta" label="CPL 🔥" align="right" defaultDir="asc" />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-amber-700">
-                    CPL 🟡
+                    <SortableHeader id="cpl_esp" label="CPL 🟡" align="right" defaultDir="asc" />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-purple-700">
-                    CPA 💰
+                    <SortableHeader id="cpa" label="CPA 💰" align="right" defaultDir="asc" />
                   </th>
-                  <th className="px-2 py-2 font-semibold text-right">% qte</th>
-                  <th className="px-2 py-2 font-semibold text-right">PRO</th>
-                  <th className="px-2 py-2 font-semibold text-right">ESP</th>
-                  <th className="px-2 py-2 font-semibold text-right">CET</th>
-                  <th className="px-2 py-2 font-semibold text-right">Won</th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="quente" label="% qte" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="pronta" label="PRO" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="esp" label="ESP" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="cetica" label="CET" align="right" />
+                  </th>
+                  <th className="px-2 py-2 font-semibold text-right">
+                    <SortableHeader id="won" label="Won" align="right" />
+                  </th>
                 </tr>
               </thead>
               <tbody>
