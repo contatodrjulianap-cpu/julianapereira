@@ -51,7 +51,25 @@ export default async function AdsPage({
   if (crmUser?.role !== "admin") redirect("/crm");
 
   const sp = await searchParams;
-  const { range, mode, days, from, to } = resolveDateRange(sp);
+
+  let range: { from: string; to: string };
+  let mode: "preset" | "custom" = "preset";
+  let days = 1;
+  let from: string | undefined;
+  let to: string | undefined;
+  try {
+    const r = resolveDateRange(sp);
+    range = r.range;
+    mode = r.mode;
+    days = r.days;
+    from = r.from;
+    to = r.to;
+  } catch (e) {
+    console.error("[/crm/ads] resolveDateRange failed:", e);
+    throw new Error(
+      `Falha em resolveDateRange (sp=${JSON.stringify(sp)}): ${e instanceof Error ? e.message : "?"}`,
+    );
+  }
 
   // 1. Utimify: campanhas SAK no Principal
   let campaigns: AdObject[] = [];
@@ -63,18 +81,33 @@ export default async function AdsPage({
       getPrincipalSummary(range),
     ]);
   } catch (e) {
-    utimifyError = e instanceof Error ? e.message : "erro";
+    console.error("[/crm/ads] Utimify falhou:", e);
+    utimifyError = e instanceof Error ? e.message : "erro Utimify";
   }
 
   // 2. Supabase: leads no mesmo range agrupados por utm_campaign
-  const admin = createServiceClient();
-  const { data: leadsRaw } = await admin
-    .from("leads")
-    .select("utm_campaign, archetype, status")
-    .gte("created_at", range.from)
-    .lt("created_at", range.to)
-    .not("utm_campaign", "is", null)
-    .limit(5000);
+  let leadsRaw: Array<{
+    utm_campaign: string | null;
+    archetype: string | null;
+    status: string | null;
+  }> | null = null;
+  try {
+    const admin = createServiceClient();
+    const res = await admin
+      .from("leads")
+      .select("utm_campaign, archetype, status")
+      .gte("created_at", range.from)
+      .lt("created_at", range.to)
+      .not("utm_campaign", "is", null)
+      .limit(5000);
+    if (res.error) throw new Error(`Supabase: ${res.error.message}`);
+    leadsRaw = res.data ?? [];
+  } catch (e) {
+    console.error("[/crm/ads] Supabase falhou:", e);
+    throw new Error(
+      `Supabase leads query falhou: ${e instanceof Error ? e.message : "?"}`,
+    );
+  }
 
   // utm_campaign vem como "SAK-QUIZZ1-RESINA-EE50-...|120246837027350304"
   // onde a parte depois do `|` é o campaignId real do Meta.
