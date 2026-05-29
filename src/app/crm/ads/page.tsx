@@ -307,18 +307,24 @@ export default async function AdsPage({
         )}
 
         {/* Cards de totais */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
           <Stat label="Gasto Meta (SAK)" value={fmtR(totals.spend)} fg="text-rose-700" />
           <Stat
-            label="Leads Supabase"
+            label="Leads"
             value={totals.leads_supa.toString()}
             sub={`Meta CAPI: ${totals.leads_meta}`}
             fg="text-emerald-700"
           />
           <Stat
+            label="MQL (PRO+ESP)"
+            value={(totals.pronta + totals.esperancosa).toString()}
+            sub={`${totals.pronta} PRO · ${totals.esperancosa} ESP`}
+            fg="text-emerald-800"
+          />
+          <Stat
             label="CPL real"
             value={fmtR(Math.round(totalCplReal))}
-            sub="gasto / leads Supabase"
+            sub="gasto / leads"
             fg="text-amber-700"
           />
           <Stat

@@ -255,17 +255,23 @@ export default async function CampaignDrilldownPage({
 
         {/* Resumo da campanha + leads totais Supabase */}
         {campaign && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-5">
             <Stat
               label="Spend"
               value={fmtR(campaign.spend)}
               fg="text-rose-700"
             />
             <Stat
-              label="Leads Supabase"
+              label="Leads"
               value={totalLeads.total.toString()}
               sub={`Meta CAPI: ${campaign.leads}`}
               fg="text-emerald-700"
+            />
+            <Stat
+              label="MQL (PRO+ESP)"
+              value={(totalLeads.pronta + totalLeads.esperancosa).toString()}
+              sub={`${totalLeads.pronta} PRO · ${totalLeads.esperancosa} ESP`}
+              fg="text-emerald-800"
             />
             <Stat
               label="CPL real"

@@ -257,13 +257,19 @@ export default async function AdsAllPage({
         )}
 
         {/* Stats agregados */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
           <Stat label="Spend total" value={fmtR(totals.spend)} fg="text-rose-700" />
           <Stat
-            label="Leads Supa"
+            label="Leads"
             value={totals.leads.toString()}
-            sub={`${totals.pronta} PRO · ${totals.esperancosa} ESP · ${totals.cetica} CET`}
+            sub={`${totals.cetica} CET`}
             fg="text-emerald-700"
+          />
+          <Stat
+            label="MQL (PRO+ESP)"
+            value={(totals.pronta + totals.esperancosa).toString()}
+            sub={`${totals.pronta} PRO · ${totals.esperancosa} ESP`}
+            fg="text-emerald-800"
           />
           <Stat
             label="CPL 🔥 PRONTA"
