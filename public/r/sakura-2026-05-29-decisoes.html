@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Sakura — Menu de decisão · 29/05/2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+:root{--bg:#fffaf3;--bg-card:#ffffff;--ink:#3a2418;--ink-soft:#6b4a3a;--rose:#c98a82;--gold:#b08a3e;--green:#5a7a3a;--red:#a04545;--border:#ebe1d3;--muted:#f3ead9}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:'Inter',system-ui,sans-serif;font-size:16px;line-height:1.65}
+.wrap{max-width:860px;margin:0 auto;padding:48px 24px 96px}
+.brand{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);padding-bottom:24px;margin-bottom:40px}
+.brand .mark{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#d4a373,#b08a3e);display:grid;place-items:center;color:#fff;font-weight:700}
+.brand .meta{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--ink-soft)}.brand .meta strong{color:var(--ink);font-weight:600}
+.tag{display:inline-block;background:var(--muted);color:var(--ink-soft);font-size:11px;padding:4px 10px;border-radius:999px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;font-weight:500}
+h1{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:600;line-height:1.15;margin:8px 0 8px}
+h2{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;margin:56px 0 16px;border-bottom:1px solid var(--border);padding-bottom:12px}
+h3{font-size:18px;font-weight:600;margin:32px 0 8px}
+p{margin:0 0 16px}strong{color:var(--ink);font-weight:600}em{color:var(--ink-soft);font-style:italic}
+hr{border:0;border-top:1px solid var(--border);margin:48px 0}
+blockquote{border-left:3px solid var(--gold);background:var(--muted);margin:20px 0;padding:14px 18px;color:var(--ink-soft);border-radius:0 6px 6px 0}blockquote p{margin:0}
+ul,ol{padding-left:22px;margin:0 0 16px}li{margin:6px 0}
+code{background:var(--muted);padding:2px 6px;border-radius:4px;font-size:.92em}
+table{width:100%;border-collapse:collapse;margin:20px 0;font-size:14px;background:var(--bg-card);border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(58,36,24,.08)}
+th{background:var(--ink);color:#fffaf3;font-weight:600;text-align:left;padding:12px 14px;font-size:12px;text-transform:uppercase;letter-spacing:.5px}
+td{padding:10px 14px;border-top:1px solid var(--border);vertical-align:top}
+tr:nth-child(even) td{background:#fbf6ec}
+.frentes{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:20px 0}
+.frentes .c{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:18px}
+.frentes .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink-soft);margin-bottom:8px;font-weight:600}
+.frentes .ttl{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--ink);line-height:1.2;margin-bottom:10px}
+.frentes p{font-size:14px;margin:0;color:var(--ink-soft)}
+.frentes .sta{display:inline-block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:999px;font-weight:600;margin-bottom:8px}
+.sta-ok{background:#e3eddc;color:var(--green)}
+.sta-warn{background:#f5ebd0;color:var(--gold)}
+.sta-bad{background:#f0dada;color:var(--red)}
+.opt{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin:14px 0}
+.opt .head{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.opt .letra{font-family:'Cormorant Garamond',serif;font-size:36px;color:var(--gold);font-weight:600;line-height:1}
+.opt .tit{font-size:17px;font-weight:600;color:var(--ink);flex:1}
+.opt .met{display:flex;gap:8px;flex-wrap:wrap}
+.opt .badge{font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:3px 9px;border-radius:999px;font-weight:600}
+.b-low{background:#e3eddc;color:var(--green)}
+.b-mid{background:#f5ebd0;color:var(--gold)}
+.b-hi{background:#f0dada;color:var(--red)}
+.opt .corpo{font-size:14px;color:var(--ink-soft)}
+.opt .corpo strong{color:var(--ink)}
+.rec{background:linear-gradient(135deg,#fef8ec,#fdf0d8);border:1px solid var(--gold);border-radius:10px;padding:24px;margin:32px 0}
+.rec h3{margin-top:0;color:var(--ink);font-family:'Cormorant Garamond',serif;font-size:24px}
+.footer{margin-top:80px;padding-top:24px;border-top:1px solid var(--border);font-size:13px;color:var(--ink-soft);text-align:center}
+@media (max-width:640px){.wrap{padding:32px 16px 64px}h1{font-size:30px}h2{font-size:24px}.frentes{grid-template-columns:1fr}table{font-size:13px}th,td{padding:8px 10px}.opt .letra{font-size:28px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="brand"><div class="mark">S</div><div class="meta"><strong>Clínica Sakura</strong> · Menu de decisão</div></div>
+<span class="tag">Confidencial — uso interno</span>
+<h1>Onde investir esforço esta semana</h1>
+<blockquote><p>O relatório semanal 23-29/05 já mostrou onde estamos. Este documento traduz o diagnóstico em <strong>5 movimentos concretos</strong> — cada um com esforço estimado e impacto esperado — pra você escolher qual atacar primeiro. Tradeoff explícito, sem mais análise.</p></blockquote>
+
+<h2>1. Onde estamos (resumo das 3 frentes)</h2>
+<div class="frentes">
+  <div class="c">
+    <div class="sta sta-ok">funcionando</div>
+    <div class="lbl">Qualificação do quiz</div>
+    <div class="ttl">Reclassificação PRONTA / ESPERANCOSA</div>
+    <p>Override estendido pra Barbara funcionou. <strong>24 PRONTAs + 17 ESPs</strong> na semana. CPL MQL <strong>R$ 145</strong>, dentro da meta R$ 100-200.</p>
+  </div>
+  <div class="c">
+    <div class="sta sta-warn">implementado, sub-utilizado</div>
+    <div class="lbl">Playbook v2 + cadência 90d</div>
+    <div class="ttl">Estrutura pronta, execução abaixo</div>
+    <p>Barbara mediana de resposta <strong>92min</strong> (6x acima meta). Gabi: <strong>99.8% dos leads dela em <code>new</code></strong>. O processo existe — o uso não.</p>
+  </div>
+  <div class="c">
+    <div class="sta sta-ok">visibilidade total</div>
+    <div class="lbl">Painel /crm/ads (Meta × Supabase)</div>
+    <div class="ttl">Sabemos onde queima e onde escala</div>
+    <p>3 telas com sort, custom date, drilldown por adset/ad. Decisões pendentes de execução no Gerenciador.</p>
+  </div>
+</div>
+
+<h2>2. O gargalo real</h2>
+<blockquote><p>Tráfego <strong>não é o problema</strong> (CPL ok). Telas e métricas <strong>não são o problema</strong> (entregues). O gargalo é <strong>comportamento das atendentes</strong>: Barbara responde tarde demais nos quentes, Gabi não atualiza CRM. Cada movimento abaixo ataca uma camada disso.</p></blockquote>
+
+<h2>3. Cinco movimentos possíveis</h2>
+
+<div class="opt">
+  <div class="head"><div class="letra">A</div><div class="tit">Push notification quando lead PRONTA / ESPERANCOSA chega pra Barbara</div></div>
+  <div class="met"><span class="badge b-mid">Esforço médio</span><span class="badge b-hi">Impacto alto</span></div>
+  <div class="corpo">
+    <p><strong>Problema que resolve:</strong> mediana de 92 minutos pra responder lead quente — 6x acima da meta de 15min do Playbook v2. Cada minuto além disso = lead esfriando.</p>
+    <p><strong>Como:</strong> webhook → notificação push no celular da Barbara assim que arquétipo PRONTA ou ESPERANCOSA é classificado pelo quiz. Som diferenciado (alarme), não ignorável.</p>
+    <p><strong>Ganho esperado:</strong> se mediana cai de 92min pra ≤15min, taxa de fechamento dos quentes deve subir 15-25% (literatura inside sales).</p>
+  </div>
+</div>
+
+<div class="opt">
+  <div class="head"><div class="letra">B</div><div class="tit">Tela <code>/crm/gabi</code> mobile-first que força Gabi a marcar status por swipe</div></div>
+  <div class="met"><span class="badge b-mid">Esforço médio-alto</span><span class="badge b-hi">Impacto alto</span></div>
+  <div class="corpo">
+    <p><strong>Problema que resolve:</strong> 433 de 434 leads atendidos pela Gabi estão parados em <code>new</code>. Zero won registrado dela. Zero disqualified. <strong>~60% do funil é cego</strong> por causa disso.</p>
+    <p><strong>Como:</strong> tela dedicada com fila visual (cards estilo Tinder), swipe direita = qualificado, swipe esquerda = disqualified, tap = abrir conversa. Atrito mínimo, gesto natural.</p>
+    <p><strong>Ganho esperado:</strong> pela 1ª vez vamos saber se Gabi fecha vendas. Sem isso, <strong>impossível pagar comissão correta</strong> ou diagnosticar lacuna real dela.</p>
+  </div>
+</div>
+
+<div class="opt">
+  <div class="head"><div class="letra">C</div><div class="tit">Corrigir 2 wons com typo no valor (Cláudia e Gilvanice)</div></div>
+  <div class="met"><span class="badge b-low">Esforço baixo</span><span class="badge b-mid">Impacto médio</span></div>
+  <div class="corpo">
+    <p><strong>Problema que resolve:</strong> Cláudia registrada R$ 25,55 (provável R$ 25k) e Gilvanice R$ 15,50 (provável R$ 15k). Receita real da semana sobe de <strong>R$ 39.641</strong> pra <strong>~R$ 79.591</strong>.</p>
+    <p><strong>Como:</strong> 5 minutos de UPDATE manual no Supabase + confirmação dos valores com a Barbara.</p>
+    <p><strong>Ganho esperado:</strong> número correto pra avaliar ROAS e tomar decisão de escala. Sem isso, projeção mensal está pela metade.</p>
+  </div>
+</div>
+
+<div class="opt">
+  <div class="head"><div class="letra">D</div><div class="tit">Pausar 7 campanhas perdedoras direto no Gerenciador FB</div></div>
+  <div class="met"><span class="badge b-low">Esforço baixo (não-código)</span><span class="badge b-hi">Impacto alto financeiro</span></div>
+  <div class="corpo">
+    <p><strong>Problema que resolve:</strong> 4 campanhas [SAK] SP CIDADE (wa.me sem UTM, invisíveis) + 3 VIEWS (objetivo não converte) queimando <strong>~R$ 290/dia = R$ 2.000/semana</strong> sem MQL.</p>
+    <p><strong>Como:</strong> 15min no Gerenciador de Anúncios. Lista completa em <code>/crm/ads</code> ordenada por CPL.</p>
+    <p><strong>Ganho esperado:</strong> R$ 2k/semana liberados pra realocar em <code>TYPEBOT-RESINA-ENV180D</code> (CPL MQL R$ 17, 8x melhor que a média). Escala potencial: <strong>2-3x os MQLs sem aumentar orçamento total</strong>.</p>
+  </div>
+</div>
+
+<div class="opt">
+  <div class="head"><div class="letra">E</div><div class="tit">Auditor automático "Barbara SPIN morre em S" — agente que escaneia conversas</div></div>
+  <div class="met"><span class="badge b-hi">Esforço alto</span><span class="badge b-mid">Impacto médio</span></div>
+  <div class="corpo">
+    <p><strong>Problema que resolve:</strong> ratio out:in da Barbara é 2.26 (monólogo, padrão "templates colados em sequência"). Auditoria de conversas mostrou que ela pula da pergunta de Situação direto pro preço, sem fazer Problema/Implicação.</p>
+    <p><strong>Como:</strong> agente que lê últimas 50 conversas da Barbara, classifica cada uma por estágio SPIN atingido, gera relatório semanal de "onde ela travou".</p>
+    <p><strong>Ganho esperado:</strong> diagnóstico individual por conversa pra treinamento. Médio prazo (4-6 semanas) eleva taxa de fechamento dos quentes em 10-15%. Curto prazo: relatório só.</p>
+  </div>
+</div>
+
+<h2>4. Recomendação</h2>
+<div class="rec">
+<h3>Sequência sugerida: D → C → A → B → E</h3>
+<p><strong>Hoje (15min, sem código):</strong> D — pausar as 7 campanhas. R$ 2k/semana de oxigênio imediato.</p>
+<p><strong>Hoje (5min, sem código):</strong> C — corrigir os 2 typos de valor. Número real da semana sobe pra ~R$ 80k.</p>
+<p><strong>Esta semana (1-2 dias dev):</strong> A — push notification pra Barbara. Maior alavanca individual de conversão.</p>
+<p><strong>Próxima semana (3-4 dias dev):</strong> B — tela <code>/crm/gabi</code>. Sem isso continuamos cegos em 60% do funil.</p>
+<p><strong>Depois (médio prazo):</strong> E — auditor SPIN. Só faz sentido depois que A + B estiverem rodando, senão Barbara ainda nem responde a tempo de aplicar o SPIN.</p>
+</div>
+
+<h2>5. Decisão pendente</h2>
+<p>O time precisa confirmar:</p>
+<ol>
+<li><strong>Confirmar valores dos 2 wons:</strong> Cláudia (R$ 25.000?) e Gilvanice (R$ 15.000?) — Barbara checa contrato e responde.</li>
+<li><strong>Aprovar pausa das 7 campanhas:</strong> Ju autoriza pausar SP CIDADE × 4 e VIEWS × 3? (lista completa em <code>/crm/ads</code>).</li>
+<li><strong>Aprovar escala TYPEBOT-RESINA-ENV180D:</strong> dobrar budget desta campanha (de ~R$ 30/dia pra ~R$ 60/dia)?</li>
+<li><strong>Priorizar A ou B no dev:</strong> começamos pela mediana da Barbara (A) ou pela cegueira da Gabi (B)?</li>
+</ol>
+
+<div class="footer">
+Gerado em 29/05/2026 · Complementa o relatório semanal <code>/r/sakura-2026-05-29</code> · Confidencial — uso interno DD&MM / Clínica Sakura
+</div>
+</div>
+</body>
+</html>
