@@ -25,6 +25,18 @@ const cormorant = Cormorant_Garamond({
 export const metadata: Metadata = {
   title: "Dra. Juliana Pereira",
   description: "Odontologia estética em São Paulo",
+  appleWebApp: {
+    capable: true,
+    title: "Sakura CRM",
+    statusBarStyle: "default",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
+};
+
+export const viewport = {
+  themeColor: "#b08a3e",
 };
 
 export default function RootLayout({

@@ -27,6 +27,12 @@ const SECTIONS: Section[] = [
     description: "Templates de mensagem com variável {primeiro_nome}",
   },
   {
+    href: "/crm/voce/notificacoes",
+    icon: "🔔",
+    label: "Notificações",
+    description: "Alerta no celular toda vez que cair lead quente (PRONTA/ESPERANCOSA)",
+  },
+  {
     href: "/crm/voce/contatos",
     icon: "📇",
     label: "Contatos",

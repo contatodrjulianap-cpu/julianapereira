@@ -7,6 +7,7 @@ import { logEvent } from "@/lib/event-log";
 import { renderGreeting } from "@/lib/integration-config";
 import { getIntegrationConfig } from "@/lib/integration-config-server";
 import { routeLeadToWa, normalizePhone } from "@/lib/wa-router";
+import { sendPushToUser } from "@/lib/push";
 
 const UtmSchema = z
   .object({
@@ -149,6 +150,27 @@ export async function POST(req: NextRequest) {
           archetype,
           owner_id: BARBARA_OWNER_ID,
         },
+      });
+
+      // Movimento A — alerta push pra Barbara cair em ≤15min.
+      // fire-and-forget via after() — não bloqueia response do quiz.
+      after(async () => {
+        try {
+          const emoji = archetype === "PRONTA" ? "🔥" : "🟡";
+          await sendPushToUser(
+            BARBARA_OWNER_ID,
+            {
+              title: `${emoji} LEAD QUENTE — ${archetype}`,
+              body: `${name} ${variant === "porcelana" ? "· porcelana" : "· resina"}\nTocar em ≤15min`,
+              url: `/crm/c/${lead.id}`,
+              tag: `lead-${lead.id}`,
+              requireInteraction: true,
+            },
+            { lead_id: lead.id },
+          );
+        } catch (err) {
+          console.error("push to Barbara failed", err);
+        }
       });
     } catch (e) {
       console.error("Quente → Barbara override failed", e);
