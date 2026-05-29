@@ -163,6 +163,13 @@ export default async function AdsAllPage({
       default: return r.spend;
     }
   }
+  // QS base sem sort/dir
+  const sortBaseQs = (() => {
+    const p = new URLSearchParams();
+    if (mode === "custom" && from) { p.set("from", from); p.set("to", to ?? from); }
+    else { p.set("range", String(days)); }
+    return p.toString();
+  })();
   rows.sort((a, b) => {
     if (a.effectiveStatus !== b.effectiveStatus) {
       if (a.effectiveStatus === "ACTIVE") return -1;
@@ -279,46 +286,46 @@ export default async function AdsAllPage({
               <thead className="bg-slate-50 text-slate-600">
                 <tr className="text-left">
                   <th className="px-3 py-2 font-semibold">
-                    <SortableHeader id="name" label="Ad" defaultDir="asc" />
+                    <SortableHeader id="name" label="Ad" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold">
-                    <SortableHeader id="status" label="Status" defaultDir="asc" />
+                    <SortableHeader id="status" label="Status" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold">
-                    <SortableHeader id="campaign" label="Campanha" defaultDir="asc" />
+                    <SortableHeader id="campaign" label="Campanha" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="spend" label="Spend" align="right" />
+                    <SortableHeader id="spend" label="Spend" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="leads" label="Leads" align="right" />
+                    <SortableHeader id="leads" label="Leads" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="cpl" label="CPL" align="right" defaultDir="asc" />
+                    <SortableHeader id="cpl" label="CPL" align="right" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-emerald-700">
-                    <SortableHeader id="cpl_pronta" label="CPL 🔥" align="right" defaultDir="asc" />
+                    <SortableHeader id="cpl_pronta" label="CPL 🔥" align="right" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-amber-700">
-                    <SortableHeader id="cpl_esp" label="CPL 🟡" align="right" defaultDir="asc" />
+                    <SortableHeader id="cpl_esp" label="CPL 🟡" align="right" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right text-purple-700">
-                    <SortableHeader id="cpa" label="CPA 💰" align="right" defaultDir="asc" />
+                    <SortableHeader id="cpa" label="CPA 💰" align="right" defaultDir="asc" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="quente" label="% qte" align="right" />
+                    <SortableHeader id="quente" label="% qte" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="pronta" label="PRO" align="right" />
+                    <SortableHeader id="pronta" label="PRO" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="esp" label="ESP" align="right" />
+                    <SortableHeader id="esp" label="ESP" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="cetica" label="CET" align="right" />
+                    <SortableHeader id="cetica" label="CET" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                   <th className="px-2 py-2 font-semibold text-right">
-                    <SortableHeader id="won" label="Won" align="right" />
+                    <SortableHeader id="won" label="Won" align="right" currentSort={sortKey} currentDir={sortDir} pathname="/crm/ads/all" baseQs={sortBaseQs} />
                   </th>
                 </tr>
               </thead>

@@ -1,8 +1,7 @@
-"use client";
+import Link from "next/link";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-
-// Header de coluna clicável que ordena tabela ASC/DESC via querystring.
+// Server-safe header de coluna que ordena via querystring.
+// Recebe sort/dir atuais + pathname/baseQs como props (sem hooks client).
 // Server lê ?sort=<id>&dir=asc|desc e aplica em rows.sort().
 
 export function SortableHeader({
@@ -10,38 +9,33 @@ export function SortableHeader({
   label,
   align = "left",
   defaultDir = "desc",
-  className = "",
+  currentSort,
+  currentDir,
+  pathname,
+  baseQs,
 }: {
   id: string;
   label: React.ReactNode;
   align?: "left" | "right" | "center";
   defaultDir?: "asc" | "desc";
-  className?: string;
+  currentSort: string;
+  currentDir: "asc" | "desc";
+  pathname: string;
+  baseQs: string; // querystring sem sort/dir (preservada entre cliques)
 }) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const currentSort = searchParams?.get("sort") ?? "";
-  const currentDir = searchParams?.get("dir") ?? defaultDir;
   const active = currentSort === id;
-
-  function toggle() {
-    const next = new URLSearchParams(searchParams?.toString() ?? "");
-    if (active) {
-      // Alterna direção
-      next.set("dir", currentDir === "asc" ? "desc" : "asc");
-    } else {
-      next.set("sort", id);
-      next.set("dir", defaultDir);
-    }
-    router.push(`${pathname}?${next.toString()}`);
-  }
-
-  const arrow = active
+  const nextDir: "asc" | "desc" = active
     ? currentDir === "asc"
-      ? " ▲"
-      : " ▼"
-    : "";
+      ? "desc"
+      : "asc"
+    : defaultDir;
+
+  const params = new URLSearchParams(baseQs);
+  params.set("sort", id);
+  params.set("dir", nextDir);
+  const href = `${pathname}?${params.toString()}`;
+
+  const arrow = active ? (currentDir === "asc" ? " ▲" : " ▼") : "";
   const justify =
     align === "right"
       ? "justify-end text-right"
@@ -50,16 +44,15 @@ export function SortableHeader({
         : "justify-start text-left";
 
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      className={`flex items-center gap-0.5 w-full ${justify} hover:text-slate-900 transition ${
+    <Link
+      href={href}
+      className={`inline-flex items-center gap-0.5 w-full ${justify} hover:text-slate-900 transition ${
         active ? "text-slate-900 font-bold" : ""
-      } ${className}`}
+      }`}
     >
       <span>{label}</span>
       <span className="text-[9px] text-slate-400 font-normal">{arrow}</span>
-    </button>
+    </Link>
   );
 }
 
