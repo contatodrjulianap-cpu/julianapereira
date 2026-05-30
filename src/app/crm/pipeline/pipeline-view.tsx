@@ -13,6 +13,20 @@ import {
   whatsLink,
   type LeadFull,
 } from "../lead-modal";
+import { PipelineKanban } from "./pipeline-kanban";
+
+type ViewMode = "list" | "kanban";
+const VIEW_KEY = "sakura.pipeline.view";
+
+// Profissão vem da pergunta q4 do quiz (texto livre).
+function getProfissao(lead: PipelineLead): string | null {
+  const qa = lead.quiz_answers as Record<string, unknown> | null;
+  if (!qa) return null;
+  const p = qa.q4_profissao;
+  if (typeof p !== "string") return null;
+  const trimmed = p.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 export type PipelineLead = LeadFull;
 export type CrmUser = { id: string; display_name: string; role: string };
@@ -136,6 +150,20 @@ export function PipelineView({
     useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
   const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
   const [filterDate, setFilterDate] = useState<DatePreset>("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
+
+  // Hydrata viewMode do localStorage (uma vez no mount)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem(VIEW_KEY);
+    if (stored === "list" || stored === "kanban") setViewMode(stored);
+  }, []);
+
+  // Persiste viewMode
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(VIEW_KEY, viewMode);
+  }, [viewMode]);
 
   // Inline save: PATCH /api/leads/[id] e otimista local
   const patchLead = useCallback(
@@ -332,12 +360,47 @@ export function PipelineView({
             {leads.length} leads · gestão de funil
           </p>
         </div>
-        <button
-          onClick={exportCsv(leads)}
-          className="px-3 py-2 text-sm rounded-md bg-white border border-slate-200 hover:border-slate-400"
-        >
-          📤 Exportar CSV
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Toggle Lista | Kanban */}
+          <div
+            role="tablist"
+            aria-label="Modo de visualização do pipeline"
+            className="inline-flex bg-white border border-slate-200 rounded-md p-0.5"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "list"}
+              onClick={() => setViewMode("list")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded transition ${
+                viewMode === "list"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              📋 Lista
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={viewMode === "kanban"}
+              onClick={() => setViewMode("kanban")}
+              className={`px-3 py-1.5 text-xs font-semibold rounded transition ${
+                viewMode === "kanban"
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              🗂️ Kanban
+            </button>
+          </div>
+          <button
+            onClick={exportCsv(leads)}
+            className="px-3 py-2 text-sm rounded-md bg-white border border-slate-200 hover:border-slate-400"
+          >
+            📤 CSV
+          </button>
+        </div>
       </div>
 
       {/* Métricas */}
@@ -474,8 +537,17 @@ export function PipelineView({
         </div>
       </div>
 
+      {viewMode === "kanban" && (
+        <PipelineKanban
+          filtered={filtered}
+          usersById={usersById}
+          onCardClick={(l) => setEditing(l)}
+          onStatusChange={updateStatus}
+        />
+      )}
+
       {/* ============ MOBILE: lista em cards ============ */}
-      <div className="md:hidden space-y-2">
+      <div className={`${viewMode === "kanban" ? "hidden" : ""} md:hidden space-y-2`}>
         {filtered.length === 0 ? (
           <div className="bg-white rounded-md border border-slate-200 p-8 text-center text-sm text-slate-500">
             Nenhum lead com esse filtro.
@@ -517,6 +589,11 @@ export function PipelineView({
                           <span className="text-slate-400 italic">sem nome</span>
                         )}
                       </p>
+                      {getProfissao(l) && (
+                        <p className="text-[11px] text-slate-600 truncate mt-0.5">
+                          💼 {getProfissao(l)}
+                        </p>
+                      )}
                       <p className="text-xs text-slate-500 truncate mt-0.5">
                         {l.phone}
                       </p>
@@ -599,7 +676,7 @@ export function PipelineView({
       </div>
 
       {/* ============ DESKTOP: tabela ============ */}
-      <section className="hidden md:block bg-white border border-slate-200 rounded-md overflow-hidden">
+      <section className={`${viewMode === "kanban" ? "hidden" : "hidden md:block"} bg-white border border-slate-200 rounded-md overflow-hidden`}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -643,7 +720,14 @@ export function PipelineView({
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 shrink-0" />
                       )}
-                      <span>{l.name ?? "·"}</span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="truncate">{l.name ?? "·"}</span>
+                        {getProfissao(l) && (
+                          <span className="text-[11px] text-slate-500 truncate">
+                            💼 {getProfissao(l)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-3 py-3 text-slate-600 whitespace-nowrap">
