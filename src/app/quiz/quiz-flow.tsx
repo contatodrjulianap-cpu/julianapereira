@@ -24,7 +24,13 @@ type Step =
   | { kind: "loading" }
   | { kind: "result"; result: ScoreResult; leadId: string };
 
-type Lead = { name: string; phone: string; instagram: string; lgpd: boolean };
+type Lead = {
+  name: string;
+  phone: string;
+  email: string;
+  instagram: string;
+  lgpd: boolean;
+};
 
 function stepNameOf(s: Step, questions: Question[]): string | null {
   if (s.kind === "cover") return "cover";
@@ -56,6 +62,7 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
   const [lead, setLead] = useState<Lead>({
     name: "",
     phone: "",
+    email: "",
     instagram: "",
     lgpd: false,
   });
@@ -146,6 +153,7 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
         body: JSON.stringify({
           name: lead.name.trim(),
           phone: phoneFmt,
+          email: lead.email.trim() || null,
           instagram: lead.instagram.trim() || null,
           archetype: result.archetype,
           geo: result.geo,
@@ -627,6 +635,15 @@ function LeadScreen({
           autoComplete="tel"
         />
         <Field
+          label="Email (opcional)"
+          value={lead.email}
+          onChange={(v) => setLead((l) => ({ ...l, email: v }))}
+          placeholder="seu@email.com"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+        />
+        <Field
           label="Instagram (opcional)"
           value={lead.instagram}
           onChange={(v) => setLead((l) => ({ ...l, instagram: v }))}
@@ -996,6 +1013,7 @@ function Field({
   value,
   onChange,
   placeholder,
+  type = "text",
   inputMode,
   autoComplete,
 }: {
@@ -1003,7 +1021,8 @@ function Field({
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
-  inputMode?: "numeric" | "text";
+  type?: "text" | "email";
+  inputMode?: "numeric" | "text" | "email";
   autoComplete?: string;
 }) {
   return (
@@ -1015,7 +1034,7 @@ function Field({
         {label}
       </span>
       <input
-        type="text"
+        type={type}
         inputMode={inputMode}
         autoComplete={autoComplete}
         value={value}

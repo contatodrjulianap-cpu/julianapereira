@@ -23,6 +23,7 @@ const UtmSchema = z
 const Body = z.object({
   name: z.string().min(2),
   phone: z.string().min(10).regex(/^\d+$/),
+  email: z.string().email().nullable().optional(),
   instagram: z.string().nullable().optional(),
   archetype: z.enum(["PRONTA", "ESPERANCOSA", "CETICA"]),
   geo: z.enum(["SP", "BR", "INTL"]),
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
   const {
     name,
     phone: rawPhone,
+    email,
     instagram,
     archetype,
     geo,
@@ -77,6 +79,7 @@ export async function POST(req: NextRequest) {
       {
         phone,
         name,
+        email: email ?? null,
         instagram: instagram ?? null,
         source: "quiz",
         archetype,
@@ -257,6 +260,7 @@ export async function POST(req: NextRequest) {
             event_id: `lead-${lead.id}`,
             event_source_url: req.headers.get("referer") ?? undefined,
             user_data: {
+              email: email ?? undefined,
               phone,
               external_id: lead.id,
               fbp,
