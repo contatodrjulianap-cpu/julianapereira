@@ -18,10 +18,10 @@ const TABS: Tab[] = [
     label: "Status",
   },
   {
-    href: "/crm/ligacoes",
-    match: (p) => p.startsWith("/crm/ligacoes"),
-    icon: "📞",
-    label: "Ligações",
+    href: "/crm/pipeline",
+    match: (p) => p.startsWith("/crm/pipeline"),
+    icon: "🗂️",
+    label: "Pipeline",
   },
   {
     href: "/crm/conversas",
@@ -42,7 +42,7 @@ const TABS: Tab[] = [
       p.startsWith("/crm/builder") ||
       p.startsWith("/crm/integrations") ||
       p.startsWith("/crm/log") ||
-      p.startsWith("/crm/pipeline") ||
+      p.startsWith("/crm/ligacoes") ||
       p.startsWith("/crm/funnel"),
     icon: "👤",
     label: "Você",

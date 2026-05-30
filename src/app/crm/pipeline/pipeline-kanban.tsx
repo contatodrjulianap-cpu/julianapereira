@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ARCH_BADGE,
   ARCH_LABEL,
@@ -97,49 +97,13 @@ export function PipelineKanban({
   return (
     <>
       {/* =================== MOBILE =================== */}
-      <div className="md:hidden">
-        {/* Tabs de status (1 coluna por vez) */}
-        <div className="-mx-5 px-5 mb-3 overflow-x-auto">
-          <div className="flex gap-2 whitespace-nowrap">
-            {STATUS_OPTIONS.map((s) => {
-              const isActive = mobileCol === s;
-              const count = byStatus[s].length;
-              return (
-                <button
-                  key={s}
-                  onClick={() => setMobileCol(s)}
-                  className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-semibold ring-1 transition ${
-                    isActive
-                      ? `${STATUS_BADGE[s]} ring-current`
-                      : "bg-white text-slate-700 ring-slate-300"
-                  }`}
-                >
-                  {STATUS_LABEL[s]}{" "}
-                  <span className="opacity-70 ml-0.5">({count})</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Cards da coluna ativa */}
-        <div className="space-y-2">
-          {byStatus[mobileCol].length === 0 ? (
-            <div className="bg-white rounded-md border border-slate-200 p-8 text-center text-sm text-slate-500">
-              Sem leads em <strong>{STATUS_LABEL[mobileCol]}</strong>.
-            </div>
-          ) : (
-            byStatus[mobileCol].map((l) => (
-              <KanbanCard
-                key={l.id}
-                lead={l}
-                usersById={usersById}
-                onClick={() => onCardClick(l)}
-              />
-            ))
-          )}
-        </div>
-      </div>
+      <MobileKanban
+        byStatus={byStatus}
+        usersById={usersById}
+        onCardClick={onCardClick}
+        active={mobileCol}
+        onActiveChange={setMobileCol}
+      />
 
       {/* =================== DESKTOP =================== */}
       <div className="hidden md:block -mx-5 lg:-mx-8 px-5 lg:px-8">
@@ -316,5 +280,168 @@ function KanbanCardInner({
         </div>
       )}
     </>
+  );
+}
+
+// Mobile Kanban com swipe horizontal entre colunas (CSS scroll-snap).
+// Tabs no topo viram índice ativo — clicar scrolla pra coluna. Swipe
+// horizontal atualiza tabs via IntersectionObserver na coluna mais visível.
+function MobileKanban({
+  byStatus,
+  usersById,
+  onCardClick,
+  active,
+  onActiveChange,
+}: {
+  byStatus: Record<string, PipelineLead[]>;
+  usersById: Record<string, CrmUser>;
+  onCardClick: (lead: PipelineLead) => void;
+  active: string;
+  onActiveChange: (s: string) => void;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const colRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // Scroll programático quando user toca uma tab
+  function scrollToCol(s: string, smooth = true) {
+    const el = colRefs.current[s];
+    if (!el) return;
+    el.scrollIntoView({
+      behavior: smooth ? "smooth" : "auto",
+      inline: "start",
+      block: "nearest",
+    });
+  }
+
+  function handleTabClick(s: string) {
+    onActiveChange(s);
+    scrollToCol(s);
+  }
+
+  // Detecta coluna mais visível via IntersectionObserver
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Pega a entrada com maior intersectionRatio
+        let bestStatus: string | null = null;
+        let bestRatio = 0;
+        for (const e of entries) {
+          if (e.intersectionRatio > bestRatio) {
+            bestRatio = e.intersectionRatio;
+            bestStatus =
+              (e.target as HTMLElement).dataset.status ?? null;
+          }
+        }
+        if (bestStatus && bestRatio > 0.5) onActiveChange(bestStatus);
+      },
+      {
+        root: scroller,
+        threshold: [0.3, 0.6, 0.9],
+      },
+    );
+
+    for (const s of STATUS_OPTIONS) {
+      const el = colRefs.current[s];
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [onActiveChange]);
+
+  // Mantém a tab ativa visível na bar de tabs
+  useEffect(() => {
+    const tabEl = tabRefs.current[active];
+    if (tabEl) tabEl.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+  }, [active]);
+
+  return (
+    <div className="md:hidden -mx-5">
+      {/* Tabs no topo (sticky) */}
+      <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-5 py-2 overflow-x-auto">
+        <div className="flex gap-2 whitespace-nowrap">
+          {STATUS_OPTIONS.map((s) => {
+            const isActive = active === s;
+            const count = byStatus[s].length;
+            return (
+              <button
+                key={s}
+                ref={(el) => {
+                  tabRefs.current[s] = el;
+                }}
+                onClick={() => handleTabClick(s)}
+                className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-semibold ring-1 transition ${
+                  isActive
+                    ? `${STATUS_BADGE[s]} ring-current`
+                    : "bg-white text-slate-700 ring-slate-300"
+                }`}
+              >
+                {STATUS_LABEL[s]}{" "}
+                <span className="opacity-70 ml-0.5">({count})</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Scroller horizontal com snap entre colunas */}
+      <div
+        ref={scrollerRef}
+        className="flex overflow-x-auto snap-x snap-mandatory"
+        style={{
+          scrollbarWidth: "none",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {STATUS_OPTIONS.map((s) => {
+          const cards = byStatus[s];
+          return (
+            <div
+              key={s}
+              ref={(el) => {
+                colRefs.current[s] = el;
+              }}
+              data-status={s}
+              className="snap-start flex-shrink-0 w-screen px-5 pt-3 pb-4"
+            >
+              {/* Header da coluna (dentro do scroll, redundância visual + clareza) */}
+              <div className="flex items-center justify-between mb-3">
+                <span
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${STATUS_BADGE[s]}`}
+                >
+                  {STATUS_LABEL[s]}
+                </span>
+                <span className="text-[11px] font-semibold text-slate-500">
+                  {cards.length} {cards.length === 1 ? "lead" : "leads"}
+                </span>
+              </div>
+
+              {cards.length === 0 ? (
+                <div className="bg-white rounded-md border border-slate-200 p-8 text-center text-sm text-slate-500">
+                  Sem leads em <strong>{STATUS_LABEL[s]}</strong>.
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {cards.map((l) => (
+                    <KanbanCard
+                      key={l.id}
+                      lead={l}
+                      usersById={usersById}
+                      onClick={() => onCardClick(l)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <p className="px-5 text-[11px] text-slate-400 mt-1">
+        💡 Deslize pra esquerda/direita pra trocar de coluna.
+      </p>
+    </div>
   );
 }
