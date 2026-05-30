@@ -720,10 +720,10 @@ export function PipelineView({
                       ) : (
                         <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 shrink-0" />
                       )}
-                      <div className="flex flex-col min-w-0">
-                        <span className="truncate">{l.name ?? "·"}</span>
+                      <div className="flex flex-col leading-tight">
+                        <span>{l.name ?? "·"}</span>
                         {getProfissao(l) && (
-                          <span className="text-[11px] text-slate-500 truncate">
+                          <span className="text-[11px] text-slate-500 font-normal">
                             💼 {getProfissao(l)}
                           </span>
                         )}
