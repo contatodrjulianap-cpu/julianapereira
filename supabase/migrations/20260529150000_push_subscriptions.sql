@@ -3,9 +3,11 @@
 -- Endpoint é único globalmente (browser gera) — Unique nele evita duplicar
 -- quando o mesmo device re-subscribe (ex: app reinstalado).
 
+-- user_id aponta pra auth.users (crm_users é uma view sobre auth.users —
+-- não dá pra criar FK em view, e a view não tem on delete cascade).
 create table if not exists push_subscriptions (
   id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references crm_users(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
   endpoint text not null unique,
   p256dh text not null,
   auth text not null,
