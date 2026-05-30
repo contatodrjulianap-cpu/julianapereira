@@ -25,7 +25,7 @@ export default async function PipelinePage() {
     .from("leads")
     .select("*")
     .order("created_at", { ascending: false })
-    .limit(500);
+    .limit(3000);
 
   if (!isAdmin) {
     leadsQuery = leadsQuery.eq("assigned_owner_id", user.id);
