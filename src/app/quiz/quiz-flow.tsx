@@ -12,16 +12,18 @@ import {
 import type { QuizConfig } from "@/lib/quiz-config";
 import { trackEvent, getUtm } from "@/lib/track";
 import { normalizePhone } from "@/lib/phone";
+import { VturbPlayer } from "@/components/vturb-player";
+import { anchorCaseFor, antesDepoisVideoFor } from "@/lib/video-config";
 
 const DEFAULT_COVER_IMAGE = "/quiz/case-antes-depois.jpg";
 
 type Step =
   | { kind: "cover" }
-  | { kind: "commitment" }
   | { kind: "question"; index: number }
-  | { kind: "selfie" }
   | { kind: "lead" }
   | { kind: "loading" }
+  | { kind: "video" }
+  | { kind: "selfie" }
   | { kind: "result"; result: ScoreResult; leadId: string };
 
 type Lead = {
@@ -34,21 +36,20 @@ type Lead = {
 
 function stepNameOf(s: Step, questions: Question[]): string | null {
   if (s.kind === "cover") return "cover";
-  if (s.kind === "commitment") return "commitment";
   // Usa question.num (canônico) em vez de index — pergunta condicional
   // (q6_geo_cidade) compartilha num=7 com q6_geo, então o funil principal
   // continua estável mesmo quando o array ganha/perde perguntas.
   if (s.kind === "question") return `q${questions[s.index]?.num ?? s.index + 1}`;
-  if (s.kind === "selfie") return "selfie";
   if (s.kind === "lead") return "lead";
   if (s.kind === "loading") return "loading";
+  if (s.kind === "video") return "video";
+  if (s.kind === "selfie") return "selfie";
   if (s.kind === "result") return `result_${s.result.archetype}`;
   return null;
 }
 
 export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Variant }) {
   const QUESTIONS = config.questions;
-  const TOTAL_VISUAL_STEPS = 1 + QUESTIONS.length + 1;
 
   const [step, setStep] = useState<Step>({ kind: "cover" });
   const [history, setHistory] = useState<Step[]>([{ kind: "cover" }]);
@@ -69,17 +70,23 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [selfiePath, setSelfiePath] = useState<string | null>(null);
+  // Lead é salvo ANTES do vídeo/selfie agora — guardamos result+leadId pra
+  // passar adiante (vídeo → selfie → result) sem re-submeter.
+  const [savedResult, setSavedResult] = useState<ScoreResult | null>(null);
+  const [savedLeadId, setSavedLeadId] = useState<string>("");
 
   const progress = useMemo(() => {
-    const total = TOTAL_VISUAL_STEPS + 1; // + selfie step
+    // Ordem: cover · q1..qN · lead · vídeo · selfie · result
+    const total = QUESTIONS.length + 4; // perguntas + lead + vídeo + selfie + result
     if (step.kind === "cover") return 0;
-    if (step.kind === "commitment") return 1 / total;
-    if (step.kind === "question") return (2 + step.index) / total;
-    if (step.kind === "selfie") return (2 + QUESTIONS.length) / total;
-    if (step.kind === "lead") return (3 + QUESTIONS.length) / total;
-    if (step.kind === "loading" || step.kind === "result") return 1;
+    if (step.kind === "question") return (1 + step.index) / total;
+    if (step.kind === "lead") return (1 + QUESTIONS.length) / total;
+    if (step.kind === "loading" || step.kind === "video")
+      return (2 + QUESTIONS.length) / total;
+    if (step.kind === "selfie") return (3 + QUESTIONS.length) / total;
+    if (step.kind === "result") return 1;
     return 0;
-  }, [step]);
+  }, [step, QUESTIONS.length]);
 
   function go(next: Step) {
     setStep(next);
@@ -112,7 +119,9 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
     if (nextIdx < QUESTIONS.length) {
       go({ kind: "question", index: nextIdx });
     } else {
-      go({ kind: "selfie" });
+      // Fim das perguntas → captura o lead ANTES do vídeo/selfie (garante o
+      // contato mesmo que abandone no vídeo ou na foto).
+      go({ kind: "lead" });
     }
   }
 
@@ -161,7 +170,9 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
           scores: result.scores,
           knockout: result.knockout,
           answers,
-          selfie_path: selfiePath,
+          // Selfie agora é enviada DEPOIS (lead → vídeo → selfie), então o
+          // submit salva o lead sem foto; o upload associa via lead_id.
+          selfie_path: null,
           variant,
           utm,
         }),
@@ -169,9 +180,12 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao salvar");
 
-      // Loading mínimo de 1.8s pra dar a vibe de "calculando"
-      await new Promise((r) => setTimeout(r, 1800));
-      go({ kind: "result", result, leadId: data.lead_id });
+      setSavedResult(result);
+      setSavedLeadId(data.lead_id);
+      // Loading curto pra dar a vibe de "preparando seu diagnóstico", e segue
+      // pro vídeo antes/depois (fecha o loop aberto na abertura).
+      await new Promise((r) => setTimeout(r, 1200));
+      go({ kind: "video" });
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Erro inesperado");
       go({ kind: "lead" });
@@ -185,23 +199,24 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
       className="min-h-screen flex flex-col"
       style={{ background: "var(--sakura-cream)", color: "var(--sakura-cocoa)" }}
     >
-      <ProgressBar progress={progress} canBack={history.length > 1 && step.kind !== "result"} onBack={back} />
+      <ProgressBar
+        progress={progress}
+        canBack={
+          history.length > 1 &&
+          // Pós-lead (loading/vídeo/selfie/result) não volta: lead já foi salvo
+          // e voltar levaria a re-submit ou loading travado.
+          !["loading", "video", "selfie", "result"].includes(step.kind)
+        }
+        onBack={back}
+      />
 
       <main className="flex-1 flex flex-col mx-auto w-full max-w-xl px-5 py-6">
         {step.kind === "cover" && (
           <CoverScreen
             cover={config.cover}
-            onStart={() => go({ kind: "commitment" })}
-          />
-        )}
-        {step.kind === "commitment" && (
-          <CommitmentScreen
-            commitment={config.commitment}
-            onYes={() => go({ kind: "question", index: 0 })}
-            onNo={() => {
-              setAnswers({});
-              go({ kind: "result", result: scoreAnswers({}, QUESTIONS), leadId: "" });
-            }}
+            onStart={() => go({ kind: "question", index: 0 })}
+            story={anchorCaseFor(variant).storyParas}
+            antesDepoisImage={anchorCaseFor(variant).antesDepoisImage}
           />
         )}
         {step.kind === "question" && (
@@ -215,17 +230,6 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
             onContinue={() => advanceFrom(QUESTIONS[step.index].key)}
           />
         )}
-        {step.kind === "selfie" && (
-          <SelfieScreen
-            selfiePath={selfiePath}
-            onUploaded={(path) => setSelfiePath(path)}
-            onContinue={() => go({ kind: "lead" })}
-            onSkip={() => {
-              setSelfiePath(null);
-              go({ kind: "lead" });
-            }}
-          />
-        )}
         {step.kind === "lead" && (
           <LeadScreen
             lead={lead}
@@ -236,6 +240,29 @@ export function QuizFlow({ config, variant }: { config: QuizConfig; variant: Var
           />
         )}
         {step.kind === "loading" && <LoadingScreen />}
+        {step.kind === "video" && (
+          <VideoScreen
+            firstName={lead.name}
+            variant={variant}
+            onContinue={() => go({ kind: "selfie" })}
+          />
+        )}
+        {step.kind === "selfie" && (
+          <SelfieScreen
+            selfiePath={selfiePath}
+            leadId={savedLeadId}
+            onUploaded={(path) => setSelfiePath(path)}
+            onContinue={() =>
+              savedResult &&
+              go({ kind: "result", result: savedResult, leadId: savedLeadId })
+            }
+            onSkip={() => {
+              setSelfiePath(null);
+              if (savedResult)
+                go({ kind: "result", result: savedResult, leadId: savedLeadId });
+            }}
+          />
+        )}
         {step.kind === "result" && (
           <ResultScreen
             result={step.result}
@@ -308,9 +335,13 @@ function ProgressBar({
 function CoverScreen({
   cover,
   onStart,
+  story,
+  antesDepoisImage,
 }: {
   cover: QuizConfig["cover"];
   onStart: () => void;
+  story?: string[];
+  antesDepoisImage?: string;
 }) {
   const c = cover ?? {
     badge: "Avaliação · 3 min",
@@ -321,6 +352,101 @@ function CoverScreen({
     cta_label: "Começar →",
     legal: "Suas respostas são tratadas com sigilo (LGPD).",
   };
+
+  // Modo história (abertura quente): abre com o antes/depois real + a história
+  // da paciente, e fecha o loop prometendo o vídeo no final. O último parágrafo
+  // é o loop e ganha destaque.
+  if (story && story.length > 0) {
+    const paras = story.slice(0, -1);
+    const loop = story[story.length - 1];
+    return (
+      <FadeUp className="flex-1 flex flex-col">
+        <div className="flex-1 flex flex-col">
+          <span
+            className="inline-block self-start text-[10px] tracking-[2.5px] uppercase font-semibold px-3 py-1 mb-3"
+            style={{
+              border: "1px solid var(--sakura-cocoa-3)",
+              color: "var(--sakura-cocoa-2)",
+            }}
+          >
+            {c.badge}
+          </span>
+          <h1
+            className="font-[family-name:var(--font-geist-sans)] font-medium leading-[1.15] mb-3"
+            style={{
+              fontSize: "clamp(24px, 6vw, 36px)",
+              color: "var(--sakura-cocoa)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Responda 9 perguntas e{" "}
+            <em
+              className="not-italic font-medium"
+              style={{ color: "var(--sakura-rose-2)", fontStyle: "italic" }}
+            >
+              agende sua avaliação no WhatsApp
+            </em>
+            .
+          </h1>
+          {/* Linha horizontal acima da imagem */}
+          <div
+            className="border-t mb-3"
+            style={{ borderColor: "var(--sakura-hairline)" }}
+          />
+          {/* Imagem menor, limitada por altura (cabe na 1ª dobra no celular) */}
+          <div className="flex justify-center mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={antesDepoisImage ?? c.image_path ?? DEFAULT_COVER_IMAGE}
+              alt="Antes e depois — troca de lentes com a Dra. Juliana Pereira"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+              className="max-h-[44vh] md:max-h-[52vh] w-auto object-contain"
+              style={{ border: "1px solid var(--sakura-hairline)" }}
+            />
+          </div>
+          {paras.map((p, i) => (
+            <p
+              key={i}
+              className={`leading-snug mb-2 ${i === 0 ? "text-[15px] font-medium" : "text-sm"}`}
+              style={{
+                color: i === 0 ? "var(--sakura-cocoa)" : "var(--sakura-cocoa-2)",
+              }}
+            >
+              {p}
+            </p>
+          ))}
+          <p
+            className="text-sm leading-snug mt-1.5 mb-4 px-3 py-2.5"
+            style={{
+              color: "var(--sakura-cocoa)",
+              background: "var(--sakura-cream-2)",
+              borderLeft: "2px solid var(--sakura-rose-2)",
+            }}
+          >
+            🎥 {loop}
+          </p>
+        </div>
+        <div
+          className="sticky bottom-0 -mx-5 px-5 pt-3 pb-4 md:static md:mx-0 md:px-0 md:pt-0 md:pb-0"
+          style={{
+            background:
+              "linear-gradient(to top, var(--sakura-cream) 70%, transparent)",
+          }}
+        >
+          <PrimaryButton onClick={onStart}>{c.cta_label}</PrimaryButton>
+          <p
+            className="text-center text-xs mt-3"
+            style={{ color: "var(--sakura-cocoa-3)" }}
+          >
+            {c.legal}
+          </p>
+        </div>
+      </FadeUp>
+    );
+  }
+
   return (
     <FadeUp className="flex-1 flex flex-col">
       <div className="flex-1 flex flex-col">
@@ -406,61 +532,6 @@ function CoverScreen({
         >
           {c.legal}
         </p>
-      </div>
-    </FadeUp>
-  );
-}
-
-function CommitmentScreen({
-  commitment,
-  onYes,
-  onNo,
-}: {
-  commitment: QuizConfig["commitment"];
-  onYes: () => void;
-  onNo: () => void;
-}) {
-  const c = commitment ?? {
-    pre_title: "Antes de começar:",
-    body:
-      "Quanto mais honesta a resposta, melhor a equipe consegue te receber. Não tem resposta certa nem errada — só direciona o atendimento.",
-    question: "Topa responder com sinceridade?",
-    yes_label: "Topo, vamos",
-    no_label: "Ainda não tenho certeza",
-  };
-  return (
-    <FadeUp className="flex-1 flex flex-col justify-center">
-      <h2
-        className="font-[family-name:var(--font-geist-sans)] mb-4 leading-[1.1]"
-        style={{
-          fontSize: "clamp(28px, 6vw, 38px)",
-          color: "var(--sakura-cocoa)",
-          fontWeight: 500,
-        }}
-      >
-        {c.pre_title}
-      </h2>
-      <p
-        className="text-base leading-relaxed mb-8"
-        style={{ color: "var(--sakura-cocoa-2)" }}
-      >
-        {c.body}
-      </p>
-      <h3
-        className="font-[family-name:var(--font-geist-sans)] mb-6"
-        style={{ fontSize: "22px", fontWeight: 600 }}
-      >
-        {c.question}
-      </h3>
-      <div className="grid grid-cols-2 gap-3">
-        <OptionButton onClick={onYes}>
-          <span className="text-2xl mr-2">🌸</span>
-          <span>{c.yes_label}</span>
-        </OptionButton>
-        <OptionButton onClick={onNo} dim>
-          <span className="text-2xl mr-2">🚫</span>
-          <span>{c.no_label}</span>
-        </OptionButton>
       </div>
     </FadeUp>
   );
@@ -670,11 +741,13 @@ function LeadScreen({
 
 function SelfieScreen({
   selfiePath,
+  leadId,
   onUploaded,
   onContinue,
   onSkip,
 }: {
   selfiePath: string | null;
+  leadId: string;
   onUploaded: (path: string) => void;
   onContinue: () => void;
   onSkip: () => void;
@@ -690,6 +763,8 @@ function SelfieScreen({
     try {
       const form = new FormData();
       form.append("file", file);
+      // lead_id associa a foto ao lead já salvo (fluxo lead → vídeo → selfie)
+      if (leadId) form.append("lead_id", leadId);
       const res = await fetch("/api/quiz/upload-selfie", {
         method: "POST",
         body: form,
@@ -818,6 +893,79 @@ function LoadingScreen() {
         <LoadingPill delay={0.4}>Encaixando no protocolo da clínica</LoadingPill>
         <LoadingPill delay={0.8}>Liberando o WhatsApp da equipe</LoadingPill>
       </div>
+    </FadeUp>
+  );
+}
+
+// Vídeo antes/depois (VTurb) exibido após o lead — fecha o loop aberto na
+// abertura (a paciente da história contando a transformação). CTA libera após
+// um tempo mínimo pra a pessoa de fato assistir.
+const VIDEO_REVEAL_FALLBACK_SEC = 4;
+
+function VideoScreen({
+  firstName,
+  variant,
+  onContinue,
+}: {
+  firstName: string;
+  variant: Variant;
+  onContinue: () => void;
+}) {
+  const video = antesDepoisVideoFor(variant);
+  const nome = firstName.trim().split(" ")[0] || "você";
+  // Sem embed plugado ainda → libera o CTA na hora (não trava o fluxo).
+  const revealAfter = video ? video.revealCtaAfterSec : 0;
+  const [revealed, setRevealed] = useState(revealAfter === 0);
+
+  // step_view "video" já é disparado pelo go() na transição — não duplicar aqui.
+
+  useEffect(() => {
+    if (revealed) return;
+    const sec = revealAfter || VIDEO_REVEAL_FALLBACK_SEC;
+    const t = setTimeout(() => setRevealed(true), sec * 1000);
+    return () => clearTimeout(t);
+  }, [revealed, revealAfter]);
+
+  return (
+    <FadeUp className="flex-1 flex flex-col justify-center">
+      <p
+        className="text-[10px] uppercase tracking-[2px] font-semibold font-mono mb-3"
+        style={{ color: "var(--sakura-rose-2)" }}
+      >
+        Antes de te passar pra equipe
+      </p>
+      <h2
+        className="font-[family-name:var(--font-geist-sans)] leading-[1.15] mb-3"
+        style={{
+          fontSize: "clamp(24px, 5.2vw, 32px)",
+          color: "var(--sakura-cocoa)",
+          fontWeight: 500,
+        }}
+      >
+        {nome.charAt(0).toUpperCase() + nome.slice(1)}, olha o resultado de quem
+        já estava no seu lugar.
+      </h2>
+      <p
+        className="text-sm leading-relaxed mb-6"
+        style={{ color: "var(--sakura-cocoa-2)" }}
+      >
+        {/* TODO(lucas): copy real casada com o vídeo (a paciente da história
+            da abertura, que refez um trabalho ruim com a Ju). */}
+        Lembra da história do começo? Esse é o antes e depois dela, contando como
+        foi refazer o sorriso com a Dra. Juliana. Vale 1 minuto antes de você
+        falar com a equipe.
+      </p>
+
+      <div
+        className="mb-7 overflow-hidden"
+        style={{ border: "1px solid var(--sakura-hairline)" }}
+      >
+        <VturbPlayer video={video} />
+      </div>
+
+      <PrimaryButton onClick={onContinue} disabled={!revealed}>
+        {revealed ? "Continuar →" : "Assista o vídeo…"}
+      </PrimaryButton>
     </FadeUp>
   );
 }

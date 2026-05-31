@@ -14,6 +14,11 @@ export async function POST(req: NextRequest) {
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "campo 'file' obrigatório" }, { status: 400 });
   }
+  // lead_id opcional: no fluxo novo a selfie é enviada DEPOIS do lead já estar
+  // salvo (lead → vídeo → selfie). Quando presente, associamos a foto ao lead.
+  const leadIdRaw = form.get("lead_id");
+  const leadId =
+    typeof leadIdRaw === "string" && leadIdRaw.length > 0 ? leadIdRaw : null;
   if (file.size > MAX_BYTES) {
     return NextResponse.json({ error: "arquivo > 8MB" }, { status: 413 });
   }
@@ -32,6 +37,16 @@ export async function POST(req: NextRequest) {
   if (error) {
     console.error("selfie upload error", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Associa ao lead já criado (fluxo lead→vídeo→selfie). Falha aqui não quebra
+  // o upload — a foto já está no storage; o vínculo é best-effort.
+  if (leadId) {
+    const { error: updErr } = await supabase
+      .from("leads")
+      .update({ selfie_url: path })
+      .eq("id", leadId);
+    if (updErr) console.error("selfie lead-link error", updErr.message);
   }
 
   return NextResponse.json({ path });

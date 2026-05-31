@@ -6,7 +6,6 @@ import {
   shouldSkipQuestion,
   RESULT_COPY,
   INSTAGRAM_URL,
-  VARIANT_LABEL,
   whatsappMessageFor,
   type AnswerValue,
   type Archetype,
@@ -18,6 +17,12 @@ import {
 import type { QuizConfig } from "@/lib/quiz-config";
 import { trackEvent, getUtm } from "@/lib/track";
 import { normalizePhone } from "@/lib/phone";
+import { VturbPlayer } from "@/components/vturb-player";
+import {
+  anchorCaseFor,
+  antesDepoisVideoFor,
+  type VturbVideo,
+} from "@/lib/video-config";
 
 // =============================================================
 // Tipos
@@ -25,7 +30,9 @@ import { normalizePhone } from "@/lib/phone";
 
 type Msg =
   | { id: string; kind: "bot" | "user"; text: string }
-  | { id: string; kind: "user_image"; src: string };
+  | { id: string; kind: "user_image"; src: string }
+  | { id: string; kind: "bot_image"; src: string; alt: string } // antes/depois na intro
+  | { id: string; kind: "video"; video: VturbVideo | null }; // player VTurb pós-lead
 
 type Phase =
   | { kind: "intro_pending" } // bot ainda digitando saudação
@@ -33,6 +40,7 @@ type Phase =
   | { kind: "question"; idx: number; ready: boolean } // ready = bot terminou de mandar a pergunta
   | { kind: "ask_name"; ready: boolean }
   | { kind: "ask_phone"; ready: boolean; nameJustGiven: string }
+  | { kind: "video"; ready: boolean } // vídeo antes/depois; ready = libera "Continuar"
   | { kind: "ask_image"; ready: boolean }
   | { kind: "submitting" }
   | { kind: "result"; result: ScoreResult; leadId: string; waUrl: string | null }
@@ -98,9 +106,15 @@ export function BotFlow({
   const [multiPick, setMultiPick] = useState<string[]>([]); // buffer Q1 multi
   const [textInput, setTextInput] = useState("");
   const [lead, setLead] = useState({ name: "", phone: "" });
-  const [selfiePath, setSelfiePath] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  // Lead é salvo antes do vídeo/selfie — guardamos o resultado pra montar o
+  // card final depois (nome/phone → vídeo → selfie → result).
+  const savedRef = useRef<{
+    result: ScoreResult;
+    leadId: string;
+    waUrl: string | null;
+  } | null>(null);
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const inputAreaRef = useRef<HTMLDivElement>(null);
@@ -146,23 +160,42 @@ export function BotFlow({
     setMessages((m) => [...m, { id: uid(), kind: "user", text }]);
   }, []);
 
+  const pushBotImage = useCallback(async (src: string, alt: string) => {
+    setTyping(true);
+    await new Promise((r) => setTimeout(r, 900));
+    setMessages((m) => [...m, { id: uid(), kind: "bot_image", src, alt }]);
+    setTyping(false);
+    await new Promise((r) => setTimeout(r, 240));
+  }, []);
+
   // -----------------------------------------------------------
   // Sequências de mensagens por fase
   // -----------------------------------------------------------
 
   const sayIntro = useCallback(async () => {
-    const mat = VARIANT_LABEL[variant];
-    // 1ª msg já vem no estado inicial — pulamos aqui e começamos da 2ª
-    // com efeito de digitação normal.
+    // Abertura quente: mostra o antes/depois logo após o greeting (gancho
+    // visual no instante zero), depois conta a história da paciente (caso real
+    // do vídeo) e abre o loop (promete o vídeo no final). 1ª msg ("Oi! Aqui é a
+    // equipe…") já vem no estado inicial.
+    const anchor = anchorCaseFor(variant);
+    const body = anchor.storyParas.slice(0, -1);
+    const loop = anchor.storyParas[anchor.storyParas.length - 1];
+    if (anchor.antesDepoisImage) {
+      await pushBotImage(
+        anchor.antesDepoisImage,
+        variant === "porcelana"
+          ? "Antes e depois — troca de porcelanas com a Dra. Juliana"
+          : "Antes e depois — troca de resinas com a Dra. Juliana",
+      );
+    }
+    for (const p of body) await pushBot(p);
+    await pushBot(loop);
     await pushBot(
-      `Vou te fazer 9 perguntas rápidas pra entender se você é caso pro plano de *${mat}*.`,
-    );
-    await pushBot(
-      "Quanto mais honesta a resposta, melhor a equipe consegue te receber. Não tem certo nem errado.",
+      "Pra começar, vou te fazer 9 perguntas rápidas. Quanto mais honesta a resposta, melhor a equipe te recebe.",
     );
     await pushBot("Topa? 💬");
     setPhase({ kind: "intro_ready" });
-  }, [pushBot, variant]);
+  }, [pushBot, pushBotImage, variant]);
 
   const sayQuestion = useCallback(
     async (idx: number) => {
@@ -175,8 +208,8 @@ export function BotFlow({
   );
 
   const askName = useCallback(async () => {
-    await pushBot("Pra fechar, só preciso de mais 2 informações.");
-    await pushBot("Como posso te chamar?");
+    await pushBot("Boa, você terminou as perguntas! 🙌");
+    await pushBot("Pra te passar pra equipe certa, como posso te chamar?");
     setPhase({ kind: "ask_name", ready: true });
   }, [pushBot]);
 
@@ -193,15 +226,31 @@ export function BotFlow({
   );
 
   const askImage = useCallback(async () => {
-    await pushBot("Show, terminou as perguntas 🙌");
+    await pushBot("Última coisa 🙏");
     await pushBot(
-      "Antes de trocar os dados, pode me mandar uma *foto do seu sorriso atual*? 📸",
+      "Quer me mandar uma *foto do seu sorriso atual*? 📸 A Ju usa pra já preparar sua avaliação. É opcional, pode pular.",
     );
-    await pushBot(
-      "A Ju usa pra preparar sua avaliação antes do atendimento. É opcional, pode pular.",
-    );
+    trackEvent("quiz_step_view", { step: "selfie", variant, surface: "bot" });
     setPhase({ kind: "ask_image", ready: true });
-  }, [pushBot]);
+  }, [pushBot, variant]);
+
+  // Vídeo antes/depois (VTurb) após o lead — fecha o loop da abertura. Libera o
+  // "Continuar" depois de um tempo mínimo pra a pessoa de fato assistir.
+  const startVideo = useCallback(async () => {
+    const video = antesDepoisVideoFor(variant);
+    await pushBot(
+      "Lembra da história do começo? Esse é o antes e depois dela, contando como foi refazer com a Dra. Juliana 👇",
+    );
+    setMessages((m) => [...m, { id: uid(), kind: "video", video }]);
+    trackEvent("quiz_step_view", { step: "video", variant, surface: "bot" });
+    const sec = video ? video.revealCtaAfterSec : 0;
+    if (sec > 0) {
+      setPhase({ kind: "video", ready: false });
+      setTimeout(() => setPhase({ kind: "video", ready: true }), sec * 1000);
+    } else {
+      setPhase({ kind: "video", ready: true });
+    }
+  }, [pushBot, variant]);
 
 
   // -----------------------------------------------------------
@@ -256,9 +305,9 @@ export function BotFlow({
       setPhase({ kind: "question", idx: nextIdx, ready: false });
       sayQuestion(nextIdx);
     } else {
-      trackEvent("quiz_step_view", { step: "selfie", variant, surface: "bot" });
-      setPhase({ kind: "ask_image", ready: false });
-      askImage();
+      // Fim das perguntas → captura o lead ANTES do vídeo/selfie.
+      setPhase({ kind: "ask_name", ready: false });
+      askName();
     }
   }
 
@@ -314,7 +363,7 @@ export function BotFlow({
     pushUser(textInput.trim());
     setLead((l) => ({ ...l, phone: normalized }));
     setTextInput("");
-    doSubmit(lead.name, normalized, selfiePath);
+    doSubmit(lead.name, normalized);
   }
 
   async function handleImageFile(file: File) {
@@ -329,16 +378,17 @@ export function BotFlow({
     try {
       const form = new FormData();
       form.append("file", file);
+      // Associa a foto ao lead já salvo (lead → vídeo → selfie)
+      const leadId = savedRef.current?.leadId;
+      if (leadId) form.append("lead_id", leadId);
       const res = await fetch("/api/quiz/upload-selfie", {
         method: "POST",
         body: form,
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erro ao enviar");
-      setSelfiePath(data.path);
       await pushBot("Recebi a foto, valeu! 🙏");
-      setPhase({ kind: "ask_name", ready: false });
-      askName();
+      showResult();
     } catch (e) {
       setImageError(e instanceof Error ? e.message : "Erro ao enviar foto");
     } finally {
@@ -348,14 +398,14 @@ export function BotFlow({
 
   function skipImage() {
     pushUser("Pular");
-    setSelfiePath(null);
-    setPhase({ kind: "ask_name", ready: false });
-    askName();
+    showResult();
   }
 
-  async function doSubmit(name: string, phone: string, selfie: string | null) {
+  // Salva o lead (sem foto ainda) e segue pro vídeo antes/depois. Selfie e card
+  // de resultado vêm depois (lead → vídeo → selfie → result).
+  async function doSubmit(name: string, phone: string) {
     setPhase({ kind: "submitting" });
-    await pushBot("Calculando seu perfil…");
+    await pushBot("Só um segundo, já te mostro uma coisa…");
 
     try {
       const utm = getUtm();
@@ -373,7 +423,7 @@ export function BotFlow({
           scores: result.scores,
           knockout: result.knockout,
           answers,
-          selfie_path: selfie,
+          selfie_path: null,
           variant,
           surface: "bot",
           utm,
@@ -390,28 +440,39 @@ export function BotFlow({
       const linkData = await linkRes.json();
       const waUrl: string | null = linkData?.url ?? null;
 
-      await new Promise((r) => setTimeout(r, 1200));
-
-      const copy = RESULT_COPY[result.archetype];
-      await pushBot(`*${copy.badge}*`);
-      await pushBot(copy.title);
-      await pushBot(BOT_RESULT_DESCRIPTION[result.archetype]);
-
-      setPhase({
-        kind: "result",
-        result,
-        leadId: data.lead_id,
-        waUrl,
-      });
-      trackEvent("quiz_step_view", {
-        step: `result_${result.archetype}`,
-        variant,
-        surface: "bot",
-      });
+      savedRef.current = { result, leadId: data.lead_id, waUrl };
+      await new Promise((r) => setTimeout(r, 600));
+      await startVideo();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erro inesperado";
       setPhase({ kind: "error", message: msg });
     }
+  }
+
+  function continueFromVideo() {
+    setPhase({ kind: "ask_image", ready: false });
+    askImage();
+  }
+
+  async function showResult() {
+    const saved = savedRef.current;
+    if (!saved) return;
+    const { result, leadId, waUrl } = saved;
+    setPhase({ kind: "submitting" });
+    await pushBot("Prontinho! Aqui está o seu resultado 👇");
+    await new Promise((r) => setTimeout(r, 600));
+
+    const copy = RESULT_COPY[result.archetype];
+    await pushBot(`*${copy.badge}*`);
+    await pushBot(copy.title);
+    await pushBot(BOT_RESULT_DESCRIPTION[result.archetype]);
+
+    setPhase({ kind: "result", result, leadId, waUrl });
+    trackEvent("quiz_step_view", {
+      step: `result_${result.archetype}`,
+      variant,
+      surface: "bot",
+    });
   }
 
   function clickResultCta() {
@@ -462,13 +523,15 @@ export function BotFlow({
         }}
       >
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
-          {messages.map((m) =>
-            m.kind === "user_image" ? (
-              <ImageBubble key={m.id} src={m.src} />
-            ) : (
-              <Bubble key={m.id} kind={m.kind} text={m.text} />
-            ),
-          )}
+          {messages.map((m) => {
+            if (m.kind === "user_image")
+              return <ImageBubble key={m.id} src={m.src} />;
+            if (m.kind === "bot_image")
+              return <BotImageBubble key={m.id} src={m.src} alt={m.alt} />;
+            if (m.kind === "video")
+              return <VideoBubble key={m.id} video={m.video} />;
+            return <Bubble key={m.id} kind={m.kind} text={m.text} />;
+          })}
           {typing && <TypingDots />}
           {phase.kind === "result" && (
             <ResultCard
@@ -594,6 +657,12 @@ export function BotFlow({
               onClick={submitPhone}
             />
           </TextRow>
+        )}
+
+        {phase.kind === "video" && (
+          <PrimaryButton onClick={continueFromVideo} disabled={!phase.ready}>
+            {phase.ready ? "Continuar →" : "Assista o vídeo…"}
+          </PrimaryButton>
         )}
 
         {phase.kind === "ask_image" && phase.ready && (
@@ -1064,6 +1133,58 @@ function ImageBubble({ src }: { src: string }) {
             objectFit: "cover",
           }}
         />
+      </div>
+    </div>
+  );
+}
+
+// Antes/depois na intro — bolha do bot (alinhada à esquerda).
+function BotImageBubble({ src, alt }: { src: string; alt: string }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", margin: "6px 0" }}>
+      <div
+        style={{
+          maxWidth: "78%",
+          background: C.bubbleBot,
+          padding: 3,
+          borderRadius: "10px 10px 10px 2px",
+          boxShadow: "0 1px 0.5px rgba(0,0,0,0.13)",
+          overflow: "hidden",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          style={{
+            display: "block",
+            width: "100%",
+            maxWidth: 280,
+            borderRadius: 8,
+            objectFit: "cover",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Player VTurb (vídeo antes/depois) numa bolha larga do bot.
+function VideoBubble({ video }: { video: VturbVideo | null }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "flex-start", margin: "6px 0" }}>
+      <div
+        style={{
+          width: "92%",
+          maxWidth: 360,
+          background: C.bubbleBot,
+          padding: 4,
+          borderRadius: "10px 10px 10px 2px",
+          boxShadow: "0 1px 0.5px rgba(0,0,0,0.13)",
+          overflow: "hidden",
+        }}
+      >
+        <VturbPlayer video={video} />
       </div>
     </div>
   );
