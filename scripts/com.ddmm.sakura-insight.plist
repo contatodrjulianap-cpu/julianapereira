@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.ddmm.sakura-insight</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/lucasdinizcordeiro/Projetos/1-Projects/julianapereira/scripts/daily-insight.sh</string>
+    </array>
+
+    <!-- launchd roda com env mínimo: PATH explícito pra achar claude, python3, node -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/lucasdinizcordeiro/.local/bin:/opt/homebrew/opt/python@3.14/Frameworks/Python.framework/Versions/3.14/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <!-- todo dia às 07:00 local. Se o Mac estiver dormindo, roda ao acordar. -->
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>7</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/lucasdinizcordeiro/Projetos/1-Projects/julianapereira/scripts/insight.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/lucasdinizcordeiro/Projetos/1-Projects/julianapereira/scripts/insight.log</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>

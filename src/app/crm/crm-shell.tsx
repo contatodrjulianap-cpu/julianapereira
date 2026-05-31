@@ -13,7 +13,8 @@ export type CrmTab =
   | "ligacoes"
   | "conversas"
   | "voce"
-  | "playbook";
+  | "playbook"
+  | "insights";
 
 export async function CrmShell({
   active,
@@ -74,6 +75,9 @@ export async function CrmShell({
               </TabLink>
               {isAdmin && (
                 <>
+                  <TabLink href="/crm/insights" active={active === "insights"}>
+                    🧠 Insight
+                  </TabLink>
                   <TabLink href="/crm/funnel" active={active === "funnel"}>
                     📈 Funil
                   </TabLink>
