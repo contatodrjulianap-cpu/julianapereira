@@ -34,6 +34,44 @@ def fonte(l):
     return l.get("source") or l.get("utm_source") or "desconhecida"
 
 
+# --- Utmify: gasto Meta do dia da CLÍNICA, via HTTP direto (sem MCP, funciona no cron) ---
+UTMIFY_TOKEN = os.environ.get("UTMIFY_TOKEN", "")
+UTMIFY_DASH = "69fccc9c3a7450559dec0f97"          # dashboard "Clinica Sakura - Ju"
+UTMIFY_ACCTS = ["402752221617566"]                # CA2 - Dra Juliana (Impulsionar)
+_UA = "Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/124.0 Safari/537.36"
+_RES = "gs,gm,gg,gk,gt,gu,gwe,ga,gp,gwa,gr,gtf,gpc,gcs"
+
+
+def utmify_spend(dia):
+    """Gasto Meta do dia em reais via Utmify HTTP. None se sem token/erro — nunca inventa."""
+    if not UTMIFY_TOKEN:
+        return None
+    url = f"https://mcp.utmify.com.br/mcp/?token={UTMIFY_TOKEN}&resources={_RES}"
+    hdr = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
+           "User-Agent": _UA, "MCP-Protocol-Version": "2024-11-05"}
+
+    def post(b):
+        raw = urllib.request.urlopen(
+            urllib.request.Request(url, data=json.dumps(b).encode(), headers=hdr, method="POST"),
+            timeout=60).read().decode()
+        if "data:" in raw:
+            raw = "".join(l[5:].strip() for l in raw.splitlines() if l.startswith("data:"))
+        return json.loads(raw)
+
+    try:
+        post({"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+            "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "ddmm", "version": "1"}}})
+        r = post({"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {
+            "name": "get_dashboard_summary", "arguments": {
+                "dashboardId": UTMIFY_DASH,
+                "dateRange": {"from": f"{dia}T00:00:00-03:00", "to": f"{dia}T23:59:59-03:00"},
+                "metaAdAccountIds": UTMIFY_ACCTS}}})
+        cents = (json.loads(r["result"]["content"][0]["text"]).get("ads") or {}).get("spent")
+        return round(cents / 100, 2) if cents is not None else None
+    except Exception:
+        return None
+
+
 def rollup(dia: str) -> dict:
     frm = f"{dia}T00:00:00-03:00"
     nxt = (datetime.strptime(dia, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y-%m-%d")
@@ -59,6 +97,10 @@ def rollup(dia: str) -> dict:
     por_at = collections.Counter(nome(l["assigned_owner_id"]) for l in parados)
     avancaram = sum(1 for l in novos if l["status"] != "new")
 
+    invest = utmify_spend(dia)
+    cpl = round(invest / len(novos), 2) if invest and novos else None
+    cpa = round(invest / len(wons_dia), 2) if invest and wons_dia else None
+
     return {
         "dia": dia,
         "cliente": "sakura",
@@ -68,12 +110,12 @@ def rollup(dia: str) -> dict:
         "wons": len(wons_dia),
         "parados": len(parados),
         "por_atendente": {k: {"parados": v} for k, v in por_at.items()},
-        # ads ficam null até o Utmify MCP da Ju ser ligado (v2)
-        "investimento_brl": None, "cpl_brl": None, "cpa_brl": None,
+        "investimento_brl": invest, "cpl_brl": cpl, "cpa_brl": cpa,
         "fontes_numericas": [
             f"Supabase leads created_at {dia}",
             "Supabase leads follow_up_at vencido (agora)",
             "crm_users (mapa atendente)",
+            "Utmify HTTP (gasto Meta clínica do dia)" if invest is not None else "Utmify N/D",
         ],
     }
 
