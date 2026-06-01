@@ -59,7 +59,7 @@ export default function PlaybookView() {
           Manual de vendas das atendentes
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Como atender, vender e não deixar lead esfriar. Bola pra Barbara e
+          Como atender, vender e não deixar lead esfriar. Bola pra Milena e
           Gabi rodarem todo dia.
         </p>
       </header>
@@ -543,7 +543,7 @@ function MetricasTab() {
       <Card variant="rose">
         <p className="text-sm text-rose-900">
           📊 <strong>Métricas pra acompanhar nas próximas 2 semanas.</strong>{" "}
-          Revisão sexta 06/06 — Ju + Lucas + Barbara.
+          Revisão sexta 06/06 — Ju + Lucas + Milena.
         </p>
       </Card>
       <Card>

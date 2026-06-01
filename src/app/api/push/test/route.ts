@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sendPushToUser } from "@/lib/push";
 
 // POST /api/push/test
-// Dispara push de teste pro user logado. Útil pra Barbara/Ju conferirem
+// Dispara push de teste pro user logado. Útil pra Milena/Ju conferirem
 // que o setup tá funcionando antes do 1º lead PRONTA real chegar.
 export async function POST() {
   const supabase = await createClient();

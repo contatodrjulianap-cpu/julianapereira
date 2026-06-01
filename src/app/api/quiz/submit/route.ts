@@ -127,18 +127,20 @@ export async function POST(req: NextRequest) {
   }
 
   // FIXME(2026-05-26): override temporário pedido pelo Lucas — PRONTA e
-  // ESPERANCOSA (estendido 2026-05-27) vão sempre pra Barbara, não
-  // round-robin. CETICA continua sem atribuição. Tirar este bloco quando
+  // ESPERANCOSA (estendido 2026-05-27) vão sempre pro closer de lead quente,
+  // não round-robin. CETICA continua sem atribuição. Tirar este bloco quando
   // ele pedir.
+  // Closer atual: Milena (assumiu a cadeira da Barbara em 2026-06-01 — mesmo
+  // user/chip, takeover in-place, por isso os UUIDs não mudaram).
   if (archetype === "PRONTA" || archetype === "ESPERANCOSA") {
-    const BARBARA_OWNER_ID = "6c0b2208-1806-4e89-bd08-2046895ab4f5";
-    const BARBARA_WA_NUMBER_ID = "53cd6090-9160-485a-9fda-c46276a4ad6a";
+    const HOT_CLOSER_OWNER_ID = "6c0b2208-1806-4e89-bd08-2046895ab4f5";
+    const HOT_CLOSER_WA_NUMBER_ID = "53cd6090-9160-485a-9fda-c46276a4ad6a";
     try {
       await supabase
         .from("leads")
         .update({
-          assigned_owner_id: BARBARA_OWNER_ID,
-          wa_number_id: BARBARA_WA_NUMBER_ID,
+          assigned_owner_id: HOT_CLOSER_OWNER_ID,
+          wa_number_id: HOT_CLOSER_WA_NUMBER_ID,
           assigned_at: new Date().toISOString(),
         })
         .eq("id", lead.id);
@@ -149,19 +151,19 @@ export async function POST(req: NextRequest) {
         lead_id: lead.id,
         status: "success",
         payload: {
-          reason: "quente_to_barbara_fixed",
+          reason: "quente_to_closer_fixed",
           archetype,
-          owner_id: BARBARA_OWNER_ID,
+          owner_id: HOT_CLOSER_OWNER_ID,
         },
       });
 
-      // Movimento A — alerta push pra Barbara cair em ≤15min.
+      // Movimento A — alerta push pro closer cair em ≤15min.
       // fire-and-forget via after() — não bloqueia response do quiz.
       after(async () => {
         try {
           const emoji = archetype === "PRONTA" ? "🔥" : "🟡";
           await sendPushToUser(
-            BARBARA_OWNER_ID,
+            HOT_CLOSER_OWNER_ID,
             {
               title: `${emoji} LEAD QUENTE — ${archetype}`,
               body: `${name} ${variant === "porcelana" ? "· porcelana" : "· resina"}\nTocar em ≤15min`,
@@ -172,11 +174,11 @@ export async function POST(req: NextRequest) {
             { lead_id: lead.id },
           );
         } catch (err) {
-          console.error("push to Barbara failed", err);
+          console.error("push to hot closer failed", err);
         }
       });
     } catch (e) {
-      console.error("Quente → Barbara override failed", e);
+      console.error("Quente → closer override failed", e);
     }
   }
 
@@ -198,7 +200,7 @@ export async function POST(req: NextRequest) {
 
   // Anti dupla-greeting: se já houve qualquer outbound nesse lead nas
   // últimas 24h (re-quiz, lead antigo, atendente já tocou), pula o auto.
-  // Evita "Olá Nome, bom dia" da Barbara seguido de greeting genérico.
+  // Evita "Olá Nome, bom dia" do closer seguido de greeting genérico.
   const since24h = new Date(Date.now() - 24 * 3600_000).toISOString();
   const { count: recentOutCount } = await supabase
     .from("messages")

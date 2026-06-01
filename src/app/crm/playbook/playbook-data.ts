@@ -80,7 +80,7 @@ export const SEQUENCIA: Bloco[] = [
       {
         titulo: 'P · O que te preocupa?',
         texto: 'O que mais te preocupa em relação ao tratamento?',
-        nota: 'Pergunta-ouro que Barbara já usa. Abre a conversa pra dor real.',
+        nota: 'Pergunta-ouro validada na operação. Abre a conversa pra dor real.',
       },
       {
         titulo: 'P · O que te incomoda?',
@@ -268,7 +268,7 @@ export const FOLLOWUP: FollowUpToque[] = [
   },
 
   // --- CADÊNCIA LONGA: ciclo real de decisão odonto high-ticket (1-3 meses) ---
-  // Barbara confirmou: lead que diz "vou me organizar" leva 2-3 meses pra decidir.
+  // Validado na operação: lead que diz "vou me organizar" leva 2-3 meses pra decidir.
   // Esses toques são pra incubação, não pra fechar urgência.
   {
     dia: 'D+30',
@@ -297,7 +297,7 @@ export const FOLLOWUP: FollowUpToque[] = [
 ];
 
 // Sugestão de qual toque agendar baseado na nota 0-10 do Pacto Final (Bloco 4)
-// — Barbara usa isso ao agendar follow_up_at depois de "vou pensar"
+// — usado ao agendar follow_up_at depois de "vou pensar"
 export const FOLLOWUP_NOTA_SUGGESTION = [
   { nota: '8-10', proximo: 'D+1 ou D+3', razao: 'Lead quente, decide nos próximos dias' },
   { nota: '5-7', proximo: 'D+7 a D+15', razao: 'Lead morno, precisa de 1-2 semanas pra maturar' },
@@ -391,7 +391,7 @@ export const METRICAS: Metrica[] = [
     meta: '≥80%',
   },
   {
-    titulo: 'Dupla-greeting (Gabi+Barbara no mesmo lead)',
+    titulo: 'Dupla-greeting (Gabi+Milena no mesmo lead)',
     baseline: '1 em 8 observada (Nilson)',
     meta: '0',
   },
@@ -419,7 +419,7 @@ export const POP: EtapaPOP[] = [
     o_que_voce_ve: 'Tela de login com 2 campos (e-mail e senha) e o nome "CRM Sakura" no topo.',
     passos: [
       'Abrir clinicasakura.org/crm/login no celular, iPad ou computador.',
-      'Entrar com seu e-mail (barbara@clinicasakura.org ou gabi@clinicasakura.org).',
+      'Entrar com seu e-mail (milena@clinicasakura.org ou gabi@clinicasakura.org).',
       'Senha foi passada no privado pelo Lucas.',
       'Depois de entrar, você cai direto na aba 💬 Conversas — onde fica o WhatsApp dos leads.',
       'Deixar essa aba aberta o dia todo. Atualiza sozinha quando chega lead novo.',

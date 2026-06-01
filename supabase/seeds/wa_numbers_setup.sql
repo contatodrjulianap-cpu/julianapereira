@@ -110,3 +110,46 @@ select w.label, w.phone, w.instance_id, u.email as owner_email, w.active, w.in_r
 
 -- Adicionar um 3º número (nova atendente futura)
 -- insert into public.wa_numbers (instance_id, token, phone, label, owner_id) ...
+
+
+-- ----------------------------------------------------------------------------
+-- TROCAR ATENDENTE NA MESMA CADEIRA (takeover in-place — mesmo chip/instância)
+-- ----------------------------------------------------------------------------
+-- Ex: Barbara saiu, Milena entrou no lugar dela (2026-06-01), pegando o MESMO
+-- celular/chip e assumindo TODOS os leads. Caminho mais limpo: reusa o user e o
+-- wa_number existentes, só troca a identidade por cima. UUIDs não mudam, então
+-- o override hardcoded em api/quiz/submit/route.ts (closer de lead quente)
+-- continua válido sem redeploy obrigatório.
+--
+-- PASSO 1 (Ju, no Dashboard → Authentication → Users):
+--   Editar o user 6c0b2208-1806-4e89-bd08-2046895ab4f5 (era Barbara):
+--     - trocar Email: barbara@clinicasakura.org → milena@clinicasakura.org
+--     - "Reset password" / setar senha nova (entregar pra Milena)
+--   Isso revoga o acesso da Barbara e dá o da Milena — é a troca de acesso.
+--
+-- PASSO 2 (SQL abaixo): renomear display_name, relabel do número e limpar push.
+
+-- 2a. display_name Barbara → Milena (role continua 'sales')
+-- update auth.users
+--    set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb)
+--                           || jsonb_build_object('display_name', 'Milena')
+--  where id = '6c0b2208-1806-4e89-bd08-2046895ab4f5';
+
+-- 2b. Relabel do número (mesmo chip/instância, só o nome na UI)
+-- update public.wa_numbers
+--    set label = 'Sakura WPP 2 (Milena)'
+--  where id = '53cd6090-9160-485a-9fda-c46276a4ad6a';
+
+-- 2c. Limpar push subscriptions antigas (devices da Barbara não recebem mais
+--     lead quente). Milena re-registra fresh ao logar no chip e ativar push.
+-- delete from public.push_subscriptions
+--  where user_id = '6c0b2208-1806-4e89-bd08-2046895ab4f5';
+
+-- 2d. Confere (leads já seguem atribuídos — mesmo UUID, nada a reatribuir)
+-- select id, email, raw_user_meta_data->>'display_name' as display_name,
+--        raw_user_meta_data->>'role' as role
+--   from auth.users where id = '6c0b2208-1806-4e89-bd08-2046895ab4f5';
+-- select label, phone, active, in_rotation
+--   from public.wa_numbers where id = '53cd6090-9160-485a-9fda-c46276a4ad6a';
+-- select count(*) as leads_da_milena
+--   from public.leads where assigned_owner_id = '6c0b2208-1806-4e89-bd08-2046895ab4f5';
