@@ -1,6 +1,7 @@
 "use client";
 
 import type { LeadFull } from "../lead-modal";
+import { isFollowUpStatus } from "@/lib/lead-status";
 
 export type Bucket =
   | "todos"
@@ -36,6 +37,7 @@ export function bucketOf(lead: {
   ) {
     return "follow_up";
   }
+  if (isFollowUpStatus(lead.status)) return "follow_up";
   switch (lead.status) {
     case "new":
       return "novos";

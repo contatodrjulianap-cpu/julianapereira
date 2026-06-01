@@ -2,9 +2,27 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/event-log";
+import { nextFollowUpStatus } from "@/lib/lead-status";
 
 const PatchBody = z.object({
-  status: z.enum(["new", "contacted", "qualified", "proposal", "won", "lost", "disqualified"]).optional(),
+  status: z
+    .enum([
+      "new",
+      "contacted",
+      "qualified",
+      "follow_up_1",
+      "follow_up_2",
+      "follow_up_3",
+      "follow_up_4",
+      "follow_up_5",
+      "follow_up_6",
+      "follow_up_7",
+      "won",
+      "lost",
+      "disqualified",
+      "proposal", // legado — aceito até a migração propagar
+    ])
+    .optional(),
   assigned_to: z.string().nullable().optional(),
   assigned_owner_id: z.string().uuid().nullable().optional(),
   next_contact_at: z.string().nullable().optional(), // ISO date 'YYYY-MM-DD'
@@ -39,9 +57,25 @@ export async function PATCH(
   }
 
   const admin = createServiceClient();
+
+  // Auto-avanço de follow up: ao agendar um follow_up_at (não-nulo) sem mexer no
+  // status na mão, sobe o lead pro próximo "Follow up N". Drag no kanban manda
+  // status explícito → respeita. Status terminal (won/lost/disqualified) e FU7
+  // não avançam. Snooze/reagendar também conta como toque (capado em FU7).
+  const update: Record<string, unknown> = { ...parsed.data };
+  if (parsed.data.follow_up_at && parsed.data.status === undefined) {
+    const { data: cur } = await admin
+      .from("leads")
+      .select("status")
+      .eq("id", id)
+      .single();
+    const next = nextFollowUpStatus(cur?.status as string | null);
+    if (next) update.status = next;
+  }
+
   const { data, error } = await admin
     .from("leads")
-    .update(parsed.data)
+    .update(update)
     .eq("id", id)
     .select()
     .single();
@@ -56,7 +90,7 @@ export async function PATCH(
     target: "supabase",
     lead_id: id,
     status: "success",
-    payload: { changes: parsed.data, by: user.email },
+    payload: { changes: update, by: user.email },
   });
 
   return NextResponse.json({ ok: true, lead: data });

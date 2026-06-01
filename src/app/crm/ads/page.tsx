@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { ENGAGED_STATUSES } from "@/lib/lead-status";
 import { CrmShell } from "../crm-shell";
 import {
   getSakCampaigns,
@@ -129,10 +130,7 @@ export default async function AdsPage({
     else if (l.archetype === "ESPERANCOSA") agg.esperancosa += 1;
     else if (l.archetype === "CETICA") agg.cetica += 1;
     if (l.status === "won") agg.won += 1;
-    if (
-      l.status &&
-      ["contacted", "qualified", "proposal", "won"].includes(l.status)
-    )
+    if (l.status && [...ENGAGED_STATUSES, "won"].includes(l.status))
       agg.contacted += 1;
     map.set(key, agg);
   }

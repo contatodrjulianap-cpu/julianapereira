@@ -4,6 +4,17 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { QUESTIONS, type Archetype } from "@/lib/quiz-archetypes";
 import { SourceBadge } from "./conversas/source-icons";
+// Status canônicos vivem em @/lib/lead-status (server-safe). Re-exportados no
+// fim deste módulo pros componentes client que importam de "../lead-modal".
+import {
+  STATUS_LABEL,
+  STATUS_BADGE,
+  STATUS_OPTIONS,
+  FOLLOW_UP_STATUSES,
+  ENGAGED_STATUSES,
+  isFollowUpStatus,
+  nextFollowUpStatus,
+} from "@/lib/lead-status";
 
 export type LeadFull = {
   id: string;
@@ -55,35 +66,15 @@ export const ARCH_BADGE: Record<NonNullable<LeadFull["archetype"]>, string> = {
   CETICA: "bg-slate-200 text-slate-700",
 };
 
-export const STATUS_LABEL: Record<string, string> = {
-  new: "📨 Novo",
-  contacted: "📞 Contatado",
-  qualified: "✅ Qualificado",
-  proposal: "⏰ Follow up",
-  won: "🎉 Fechado",
-  lost: "❌ Perdido",
-  disqualified: "🚫 Desqualificado",
+export {
+  STATUS_LABEL,
+  STATUS_BADGE,
+  STATUS_OPTIONS,
+  FOLLOW_UP_STATUSES,
+  ENGAGED_STATUSES,
+  isFollowUpStatus,
+  nextFollowUpStatus,
 };
-
-export const STATUS_BADGE: Record<string, string> = {
-  new: "bg-blue-100 text-blue-800",
-  contacted: "bg-indigo-100 text-indigo-800",
-  qualified: "bg-amber-100 text-amber-800",
-  proposal: "bg-pink-100 text-pink-800",
-  won: "bg-emerald-100 text-emerald-800",
-  lost: "bg-red-100 text-red-800",
-  disqualified: "bg-zinc-200 text-zinc-700",
-};
-
-export const STATUS_OPTIONS = [
-  "new",
-  "contacted",
-  "qualified",
-  "proposal",
-  "won",
-  "lost",
-  "disqualified",
-];
 
 type HistoryItem = {
   id: string;

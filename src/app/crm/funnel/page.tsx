@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { ENGAGED_STATUSES } from "@/lib/lead-status";
 import { CrmShell } from "../crm-shell";
 import { FunnelView, type FunnelMetrics, type FunnelRange } from "./funnel-view";
 import {
@@ -171,7 +172,7 @@ export default async function FunnelPage({
     cur.total += 1;
     if (l.status === "won") cur.won += 1;
     else if (l.status === "lost") cur.lost += 1;
-    else if (["contacted", "qualified", "proposal"].includes(l.status ?? ""))
+    else if (ENGAGED_STATUSES.includes(l.status ?? ""))
       cur.contacted += 1;
     statsMap.set(l.assigned_owner_id, cur);
   }
@@ -223,7 +224,7 @@ export default async function FunnelPage({
     else if (l.archetype === "ESPERANCOSA") cur.esperancosa += 1;
     else if (l.archetype === "CETICA") cur.cetica += 1;
     if (l.status === "won") cur.won += 1;
-    if (["contacted", "qualified", "proposal"].includes(l.status ?? "")) cur.contacted += 1;
+    if (ENGAGED_STATUSES.includes(l.status ?? "")) cur.contacted += 1;
     utmMap.set(key, cur);
   }
   const utmRows = Array.from(utmMap.values()).sort((a, b) => b.total - a.total);

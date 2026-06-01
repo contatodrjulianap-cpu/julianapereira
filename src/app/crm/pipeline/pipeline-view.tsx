@@ -9,6 +9,7 @@ import {
   STATUS_BADGE,
   STATUS_LABEL,
   STATUS_OPTIONS,
+  ENGAGED_STATUSES,
   fmtBRL,
   whatsLink,
   type LeadFull,
@@ -332,7 +333,7 @@ export function PipelineView({
       (l) => l.archetype === "PRONTA" && (l.status ?? "new") === "new",
     ).length;
     const negociacao = leads.filter((l) =>
-      ["contacted", "qualified", "proposal"].includes(l.status ?? "new"),
+      ENGAGED_STATUSES.includes(l.status ?? "new"),
     ).length;
     const fechadosMes = leads.filter(
       (l) => l.status === "won" && l.updated_at.slice(0, 7) === monthStr,
