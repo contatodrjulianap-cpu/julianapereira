@@ -50,6 +50,7 @@ export type LeadFull = {
   utm_term: string | null;
   utm_content: string | null;
   last_message_at: string | null;
+  last_read_at: string | null;
   created_at: string;
   updated_at: string;
 };

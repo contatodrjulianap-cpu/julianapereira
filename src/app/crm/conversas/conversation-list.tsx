@@ -16,6 +16,7 @@ import { LeadActionsSheet, type LeadActionPayload } from "./lead-actions-sheet";
 type LeadCard = LeadFull & {
   selfie_signed_url?: string | null;
   last_message: LastMessage | null;
+  unread?: boolean;
 };
 
 type UrgencyFilter = "todos" | "hoje" | "vencidos" | "proximos" | "frios";

@@ -214,6 +214,11 @@ export function ConversationThread({
     };
   }, []);
 
+  // Marca a conversa como lida ao abrir (fire-and-forget).
+  useEffect(() => {
+    fetch(`/api/leads/${lead.id}/read`, { method: "POST" }).catch(() => {});
+  }, [lead.id]);
+
   // Auto-resize do textarea: até 6 linhas
   useEffect(() => {
     const el = inputRef.current;
@@ -287,7 +292,14 @@ export function ConversationThread({
           table: "messages",
           filter: `lead_id=eq.${lead.id}`,
         },
-        (payload) => setMessages((prev) => [...prev, payload.new as Message]),
+        (payload) => {
+          const msg = payload.new as Message;
+          setMessages((prev) => [...prev, msg]);
+          // Mensagem do lead chegou com a conversa aberta → já conta como lida.
+          if (msg.direction === "inbound") {
+            fetch(`/api/leads/${lead.id}/read`, { method: "POST" }).catch(() => {});
+          }
+        },
       )
       .subscribe();
     return () => {

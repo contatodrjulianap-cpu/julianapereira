@@ -10,7 +10,16 @@ export type LastMessage = {
 export type LeadWithExtras = LeadFull & {
   selfie_signed_url: string | null;
   last_message: LastMessage | null;
+  unread: boolean;
 };
+
+// Não-lido estilo WhatsApp: a última mensagem é do lead (inbound) e chegou
+// depois da última vez que a conversa foi aberta (ou nunca foi aberta).
+function isUnread(lead: LeadFull, last: LastMessage | null): boolean {
+  if (!last || last.direction !== "inbound") return false;
+  if (!lead.last_read_at) return true;
+  return new Date(lead.last_read_at).getTime() < new Date(last.created_at).getTime();
+}
 
 type SupabaseServer = Awaited<ReturnType<typeof createClient>>;
 
@@ -95,9 +104,13 @@ export async function loadConversasLeads(
     }
   }
 
-  return leads.map((l) => ({
-    ...l,
-    selfie_signed_url: l.selfie_url ? (signedByPath[l.selfie_url] ?? null) : null,
-    last_message: lastMessageByLead[l.id] ?? null,
-  }));
+  return leads.map((l) => {
+    const last = lastMessageByLead[l.id] ?? null;
+    return {
+      ...l,
+      selfie_signed_url: l.selfie_url ? (signedByPath[l.selfie_url] ?? null) : null,
+      last_message: last,
+      unread: isUnread(l, last),
+    };
+  });
 }

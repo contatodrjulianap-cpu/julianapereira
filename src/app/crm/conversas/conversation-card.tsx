@@ -10,6 +10,7 @@ import { SourceBadge } from "./source-icons";
 type LeadCard = LeadFull & {
   selfie_signed_url?: string | null;
   last_message: LastMessage | null;
+  unread?: boolean;
 };
 
 function temperatureOf(lead: LeadCard): "🔥" | "☀️" | "❄️" | null {
@@ -139,6 +140,7 @@ export function ConversationCard({
   const time = lead.last_message_at ?? lead.last_message?.created_at;
   const preview = lead.last_message?.text ?? "—";
   const isOutbound = lead.last_message?.direction === "outbound";
+  const unread = !!lead.unread;
 
   return (
     <li className="relative bg-white border-b border-slate-100 overflow-hidden isolate">
@@ -283,12 +285,22 @@ export function ConversationCard({
               📌
             </span>
           )}
+          {unread && (
+            <span
+              className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-white"
+              aria-label="Não lido"
+            />
+          )}
         </div>
 
         {/* Texto */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="font-semibold text-[15px] text-slate-900 truncate">
+            <p
+              className={`text-[15px] truncate ${
+                unread ? "font-bold text-slate-900" : "font-semibold text-slate-900"
+              }`}
+            >
               {lead.name ?? lead.phone}
               {statusEmoji && (
                 <span className="ml-1.5 text-[13px]">{statusEmoji}</span>
@@ -314,11 +326,19 @@ export function ConversationCard({
               )}
               {temp && <span className="ml-1.5 text-[13px]">{temp}</span>}
             </p>
-            <span className="text-[11px] text-slate-400 shrink-0">
+            <span
+              className={`text-[11px] shrink-0 ${
+                unread ? "font-semibold text-green-600" : "text-slate-400"
+              }`}
+            >
               {time ? relativeTime(time) : ""}
             </span>
           </div>
-          <p className="text-[13px] text-slate-500 truncate leading-snug">
+          <p
+            className={`text-[13px] truncate leading-snug ${
+              unread ? "font-semibold text-slate-700" : "text-slate-500"
+            }`}
+          >
             {isOutbound && <span className="text-slate-400">você: </span>}
             {preview}
           </p>
