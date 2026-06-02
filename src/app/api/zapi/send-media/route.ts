@@ -46,10 +46,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "lead not found" }, { status: 404 });
   }
 
-  // Upload pro bucket privado
-  const isImage = file.type.startsWith("image/");
-  const isAudio = file.type.startsWith("audio/");
-  const ext = (file.name.split(".").pop() || file.type.split("/")[1] || "bin")
+  // Upload pro bucket privado.
+  // Navegadores gravam com codec no mime (audio/webm;codecs=opus); o bucket
+  // valida mime exato, então usamos só o tipo base no contentType.
+  const baseMime = file.type.split(";")[0].trim();
+  const isImage = baseMime.startsWith("image/");
+  const isAudio = baseMime.startsWith("audio/");
+  const ext = (file.name.split(".").pop() || baseMime.split("/")[1] || "bin")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "")
     .slice(0, 8);
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest) {
   const path = `${lead.id}/${randomUUID()}.${safeExt}`;
   const { error: upErr } = await admin.storage
     .from("wa-media")
-    .upload(path, file, { contentType: file.type, upsert: false });
+    .upload(path, file, { contentType: baseMime, upsert: false });
   if (upErr) {
     return NextResponse.json({ error: upErr.message }, { status: 500 });
   }
