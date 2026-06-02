@@ -12,57 +12,63 @@ export const dynamic = "force-dynamic";
 
 type SP = { preset?: string; from?: string; to?: string };
 
+// Meia-noite (00:00) America/Sao_Paulo do dia-calendário SP de `date`,
+// independente do TZ do servidor (Vercel = UTC). NÃO usar setHours: ele opera
+// no TZ do processo, que em prod é UTC → "hoje" quebra após 21h BRT.
+function spDayStart(date: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  const d = parts.find((p) => p.type === "day")!.value;
+  return new Date(`${y}-${m}-${d}T00:00:00-03:00`);
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 // Resolve janela de tempo a partir dos searchParams. Boundary "hoje" = 00:00
 // SP (BR é UTC-3). Tudo é convertido pra ISO UTC pra Supabase.
 function resolveRange(sp: SP): LogDateRange {
+  const now = new Date();
+  const todayStart = spDayStart(now);
   const presets: Record<
     string,
     () => { start_at: string | null; end_at: string | null; label: string }
   > = {
     all: () => ({ start_at: null, end_at: null, label: "Tudo" }),
-    today: () => {
-      const s = new Date();
-      s.setHours(0, 0, 0, 0);
-      return { start_at: s.toISOString(), end_at: null, label: "Hoje" };
-    },
+    today: () => ({
+      start_at: todayStart.toISOString(),
+      end_at: null,
+      label: "Hoje",
+    }),
     yesterday: () => {
-      const s = new Date();
-      s.setDate(s.getDate() - 1);
-      s.setHours(0, 0, 0, 0);
-      const e = new Date(s);
-      e.setDate(e.getDate() + 1);
+      const s = new Date(todayStart.getTime() - DAY_MS);
       return {
         start_at: s.toISOString(),
-        end_at: e.toISOString(),
+        end_at: todayStart.toISOString(),
         label: "Ontem",
       };
     },
-    "3d": () => {
-      const s = new Date();
-      s.setDate(s.getDate() - 2);
-      s.setHours(0, 0, 0, 0);
-      return {
-        start_at: s.toISOString(),
-        end_at: null,
-        label: "Últimos 3 dias",
-      };
-    },
-    "7d": () => {
-      const s = new Date();
-      s.setDate(s.getDate() - 6);
-      s.setHours(0, 0, 0, 0);
-      return {
-        start_at: s.toISOString(),
-        end_at: null,
-        label: "Últimos 7 dias",
-      };
-    },
+    "3d": () => ({
+      start_at: new Date(todayStart.getTime() - 2 * DAY_MS).toISOString(),
+      end_at: null,
+      label: "Últimos 3 dias",
+    }),
+    "7d": () => ({
+      start_at: new Date(todayStart.getTime() - 6 * DAY_MS).toISOString(),
+      end_at: null,
+      label: "Últimos 7 dias",
+    }),
   };
 
   if (sp.from && sp.to) {
-    const s = new Date(`${sp.from}T00:00:00`);
-    const e = new Date(`${sp.to}T00:00:00`);
-    e.setDate(e.getDate() + 1);
+    const s = new Date(`${sp.from}T00:00:00-03:00`);
+    const e = new Date(`${sp.to}T00:00:00-03:00`);
+    e.setTime(e.getTime() + DAY_MS);
     return {
       preset: "custom",
       from: sp.from,

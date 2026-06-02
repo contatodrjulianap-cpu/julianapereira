@@ -13,22 +13,35 @@ export const dynamic = "force-dynamic";
 
 type SP = { preset?: string; from?: string; to?: string; variant?: string };
 
+// Meia-noite (00:00) America/Sao_Paulo do dia-calendário SP de `date`,
+// independente do timezone do servidor (Vercel = UTC). Brasil não tem DST
+// desde 2019, então BRT = UTC-3 constante. NÃO usar setHours: ele opera no TZ
+// local do processo, que em prod é UTC → janela "hoje" quebra após 21h BRT.
+function spDayStart(date: Date): Date {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year")!.value;
+  const m = parts.find((p) => p.type === "month")!.value;
+  const d = parts.find((p) => p.type === "day")!.value;
+  return new Date(`${y}-${m}-${d}T00:00:00-03:00`);
+}
+
 function resolveRange(sp: SP): FunnelRange {
   // BR timezone (-03:00). Tudo aqui é UTC, mas presets são pensados em horário local.
   // Pra Sakura (Brasil), boundary "hoje" = 00:00 horário SP = 03:00 UTC.
   const now = new Date();
   const presetMap: Record<string, () => { start: Date; end: Date; label: string }> = {
     today: () => {
-      const start = new Date(now);
-      start.setHours(0, 0, 0, 0);
+      const start = spDayStart(now);
       return { start, end: now, label: "Hoje" };
     },
     yesterday: () => {
-      const start = new Date(now);
-      start.setDate(start.getDate() - 1);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setDate(end.getDate() + 1);
+      const end = spDayStart(now);
+      const start = new Date(end.getTime() - 24 * 60 * 60 * 1000);
       return { start, end, label: "Ontem" };
     },
     "7d": () => {
@@ -47,9 +60,10 @@ function resolveRange(sp: SP): FunnelRange {
 
   // Custom range: ?from=YYYY-MM-DD&to=YYYY-MM-DD (interpretado como meia-noite local → meia-noite local +1)
   if (sp.from && sp.to) {
-    const start = new Date(`${sp.from}T00:00:00`);
-    const end = new Date(`${sp.to}T00:00:00`);
-    end.setDate(end.getDate() + 1);
+    // Offset -03:00 explícito: sem ele o parse usa o TZ do servidor (UTC em prod).
+    const start = new Date(`${sp.from}T00:00:00-03:00`);
+    const end = new Date(`${sp.to}T00:00:00-03:00`);
+    end.setTime(end.getTime() + 24 * 60 * 60 * 1000);
     return {
       preset: "custom",
       from: sp.from,

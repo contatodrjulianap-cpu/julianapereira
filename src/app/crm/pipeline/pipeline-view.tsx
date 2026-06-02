@@ -326,9 +326,20 @@ export function PipelineView({
 
   // Métricas
   const stats = useMemo(() => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const monthStr = new Date().toISOString().slice(0, 7);
-    const novosHoje = leads.filter((l) => l.created_at.slice(0, 10) === todayStr).length;
+    // Datas no calendário de São Paulo. toISOString() é sempre UTC → depois das
+    // 21h BRT "hoje" viraria o dia seguinte e "novos hoje" zeraria.
+    const spYmd = (d: Date) =>
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(d);
+    const todayStr = spYmd(new Date());
+    const monthStr = todayStr.slice(0, 7);
+    const novosHoje = leads.filter(
+      (l) => spYmd(new Date(l.created_at)) === todayStr,
+    ).length;
     const prontasNovas = leads.filter(
       (l) => l.archetype === "PRONTA" && (l.status ?? "new") === "new",
     ).length;
@@ -336,7 +347,7 @@ export function PipelineView({
       ENGAGED_STATUSES.includes(l.status ?? "new"),
     ).length;
     const fechadosMes = leads.filter(
-      (l) => l.status === "won" && l.updated_at.slice(0, 7) === monthStr,
+      (l) => l.status === "won" && spYmd(new Date(l.updated_at)).slice(0, 7) === monthStr,
     );
     const receitaMes = fechadosMes.reduce(
       (s, l) => s + Number(l.deal_value ?? 0),
