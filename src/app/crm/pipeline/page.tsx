@@ -21,11 +21,14 @@ export default async function PipelinePage() {
     .maybeSingle();
   const isAdmin = crmUser?.role === "admin";
 
+  // Pipeline mostra só os leads quentes/mornos (PRONTA/ESPERANCOSA). É um subset
+  // pequeno — não bate no max-rows (~1000) do PostgREST e mantém o Kanban leve.
+  // A base completa fica em /crm/leads (paginada).
   let leadsQuery = supabase
     .from("leads")
     .select("*")
-    .order("created_at", { ascending: false })
-    .limit(3000);
+    .in("archetype", ["PRONTA", "ESPERANCOSA"])
+    .order("created_at", { ascending: false });
 
   if (!isAdmin) {
     leadsQuery = leadsQuery.eq("assigned_owner_id", user.id);

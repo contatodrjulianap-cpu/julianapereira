@@ -229,16 +229,22 @@ export function PipelineView({
         "postgres_changes",
         { event: "*", schema: "public", table: "leads" },
         (payload) => {
+          // Pipeline só mostra PRONTA/ESPERANCOSA — espelha isso no realtime.
+          const isHot = (l: PipelineLead) =>
+            l.archetype === "PRONTA" || l.archetype === "ESPERANCOSA";
           if (payload.eventType === "INSERT") {
-            setLeads((prev) => [payload.new as PipelineLead, ...prev]);
+            const n = payload.new as PipelineLead;
+            if (isHot(n)) setLeads((prev) => [n, ...prev]);
           } else if (payload.eventType === "UPDATE") {
-            setLeads((prev) =>
-              prev.map((l) =>
-                l.id === (payload.new as PipelineLead).id
-                  ? (payload.new as PipelineLead)
-                  : l,
-              ),
-            );
+            const n = payload.new as PipelineLead;
+            setLeads((prev) => {
+              const exists = prev.some((l) => l.id === n.id);
+              if (!isHot(n)) return prev.filter((l) => l.id !== n.id);
+              // virou (ou continua) quente: atualiza ou insere
+              return exists
+                ? prev.map((l) => (l.id === n.id ? n : l))
+                : [n, ...prev];
+            });
           } else if (payload.eventType === "DELETE") {
             setLeads((prev) => prev.filter((l) => l.id !== (payload.old as PipelineLead).id));
           }
@@ -369,7 +375,10 @@ export function PipelineView({
         <div>
           <h2 className="text-xl font-bold tracking-tight">Pipeline</h2>
           <p className="text-sm text-slate-500">
-            {leads.length} leads · gestão de funil
+            {leads.length} leads quentes 🔥🟡 · base completa em{" "}
+            <a href="/crm/leads" className="underline hover:text-slate-700">
+              Leads
+            </a>
           </p>
         </div>
         <div className="flex items-center gap-2">

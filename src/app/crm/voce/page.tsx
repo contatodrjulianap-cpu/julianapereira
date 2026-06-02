@@ -39,10 +39,16 @@ const SECTIONS: Section[] = [
     description: "Cadastro de contatos da clínica e parceiros pra compartilhar",
   },
   {
+    href: "/crm/leads",
+    icon: "📇",
+    label: "Todos os leads",
+    description: "Base completa, paginada e com busca/filtros (leve)",
+  },
+  {
     href: "/crm/pipeline",
     icon: "📊",
     label: "Pipeline",
-    description: "Lista completa de leads em formato tabela",
+    description: "Kanban dos leads quentes (prontos e esperançosos)",
   },
   {
     href: "/crm/funnel",

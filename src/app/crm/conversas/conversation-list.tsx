@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { LeadFull } from "../lead-modal";
-import type { LastMessage } from "./page";
+import type { LastMessage } from "./load-leads";
 import { ConversationCard } from "./conversation-card";
 import {
   PipelineBar,

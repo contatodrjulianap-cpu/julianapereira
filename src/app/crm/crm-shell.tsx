@@ -11,6 +11,7 @@ export type CrmTab =
   | "builder"
   | "integrations"
   | "status"
+  | "leads"
   | "ligacoes"
   | "conversas"
   | "voce"
@@ -73,6 +74,9 @@ export async function CrmShell({
               </TabLink>
               <TabLink href="/crm/status" active={active === "status"}>
                 ✨ Status
+              </TabLink>
+              <TabLink href="/crm/leads" active={active === "leads"}>
+                📇 Leads
               </TabLink>
               <TabLink href="/crm/playbook" active={active === "playbook"}>
                 📖 Playbook

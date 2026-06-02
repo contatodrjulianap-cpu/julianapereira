@@ -1,15 +1,9 @@
 import { redirect } from "next/navigation";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { ConversationList } from "./conversation-list";
-import type { LeadFull } from "../lead-modal";
+import { loadConversasLeads } from "./load-leads";
 
 export const dynamic = "force-dynamic";
-
-export type LastMessage = {
-  direction: "inbound" | "outbound";
-  text: string;
-  created_at: string;
-};
 
 export default async function ConversasPage() {
   const supabase = await createClient();
@@ -34,54 +28,7 @@ export default async function ConversasPage() {
     attendants = users ?? [];
   }
 
-  // Admin (Ju + Lucas) precisa ver tudo — atendente só vê os dela (limit 200
-  // é suficiente porque cada uma tem subset por assigned_owner_id).
-  let leadsQuery = supabase
-    .from("leads")
-    .select("*")
-    .order("last_message_at", { ascending: false, nullsFirst: false })
-    .limit(isAdmin ? 2000 : 200);
-  if (!isAdmin) leadsQuery = leadsQuery.eq("assigned_owner_id", user.id);
-  const { data: leadsRaw } = await leadsQuery;
-  const leads = (leadsRaw ?? []) as LeadFull[];
-
-  const lastMessageByLead: Record<string, LastMessage> = {};
-  if (leads.length > 0) {
-    const ids = leads.map((l) => l.id);
-    const { data: msgs } = await supabase
-      .from("messages")
-      .select("lead_id, direction, text, created_at")
-      .in("lead_id", ids)
-      .order("created_at", { ascending: false });
-    for (const m of msgs ?? []) {
-      if (!lastMessageByLead[m.lead_id]) {
-        lastMessageByLead[m.lead_id] = {
-          direction: m.direction,
-          text: m.text,
-          created_at: m.created_at,
-        };
-      }
-    }
-  }
-
-  const paths = leads
-    .filter((l): l is LeadFull & { selfie_url: string } => !!l.selfie_url)
-    .map((l) => l.selfie_url);
-  const signedByPath: Record<string, string> = {};
-  if (paths.length > 0) {
-    const admin = createServiceClient();
-    const { data: signed } = await admin.storage
-      .from("quiz-selfies")
-      .createSignedUrls(paths, 60 * 60);
-    for (const s of signed ?? []) {
-      if (s.path && s.signedUrl) signedByPath[s.path] = s.signedUrl;
-    }
-  }
-  const leadsWithExtras = leads.map((l) => ({
-    ...l,
-    selfie_signed_url: l.selfie_url ? (signedByPath[l.selfie_url] ?? null) : null,
-    last_message: lastMessageByLead[l.id] ?? null,
-  }));
+  const leadsWithExtras = await loadConversasLeads(supabase, user.id, isAdmin);
 
   return (
     <>

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { LeadFull } from "../lead-modal";
-import type { LastMessage } from "./page";
+import type { LastMessage } from "./load-leads";
 import { SourceBadge } from "./source-icons";
 
 type LeadCard = LeadFull & {
