@@ -48,7 +48,7 @@ const SECTIONS: Section[] = [
     href: "/crm/pipeline",
     icon: "📊",
     label: "Pipeline",
-    description: "Kanban dos leads quentes (prontos e esperançosos)",
+    description: "Kanban dos leads acionáveis (quentes do quiz + WhatsApp direto)",
   },
   {
     href: "/crm/funnel",

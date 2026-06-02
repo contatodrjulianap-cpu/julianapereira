@@ -21,14 +21,21 @@ export default async function PipelinePage() {
     .maybeSingle();
   const isAdmin = crmUser?.role === "admin";
 
-  // Pipeline mostra só os leads quentes/mornos (PRONTA/ESPERANCOSA). É um subset
-  // pequeno — não bate no max-rows (~1000) do PostgREST e mantém o Kanban leve.
-  // A base completa fica em /crm/leads (paginada).
+  // Pipeline mostra os leads acionáveis:
+  //  - quentes/mornos do quiz (archetype PRONTA/ESPERANCOSA), e
+  //  - leads de WhatsApp direto (sem archetype, mas que já mandaram mensagem —
+  //    last_message_at preenchido pelo webhook do Z-API).
+  // Subset acionável, fica fora do peso da base completa (/crm/leads paginada).
+  // Se um dia passar de ~1000 (max-rows do PostgREST), os mais recentes ficam
+  // (order created_at desc).
   let leadsQuery = supabase
     .from("leads")
     .select("*")
-    .in("archetype", ["PRONTA", "ESPERANCOSA"])
-    .order("created_at", { ascending: false });
+    .or(
+      "archetype.in.(PRONTA,ESPERANCOSA),and(archetype.is.null,last_message_at.not.is.null)",
+    )
+    .order("created_at", { ascending: false })
+    .limit(2000);
 
   if (!isAdmin) {
     leadsQuery = leadsQuery.eq("assigned_owner_id", user.id);

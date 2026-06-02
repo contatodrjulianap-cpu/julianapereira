@@ -229,17 +229,20 @@ export function PipelineView({
         "postgres_changes",
         { event: "*", schema: "public", table: "leads" },
         (payload) => {
-          // Pipeline só mostra PRONTA/ESPERANCOSA — espelha isso no realtime.
-          const isHot = (l: PipelineLead) =>
-            l.archetype === "PRONTA" || l.archetype === "ESPERANCOSA";
+          // Pipeline = quentes do quiz (PRONTA/ESPERANCOSA) + leads de WhatsApp
+          // direto (sem archetype, mas com mensagem). Espelha isso no realtime.
+          const belongsInPipeline = (l: PipelineLead) =>
+            l.archetype === "PRONTA" ||
+            l.archetype === "ESPERANCOSA" ||
+            (l.archetype == null && l.last_message_at != null);
           if (payload.eventType === "INSERT") {
             const n = payload.new as PipelineLead;
-            if (isHot(n)) setLeads((prev) => [n, ...prev]);
+            if (belongsInPipeline(n)) setLeads((prev) => [n, ...prev]);
           } else if (payload.eventType === "UPDATE") {
             const n = payload.new as PipelineLead;
             setLeads((prev) => {
               const exists = prev.some((l) => l.id === n.id);
-              if (!isHot(n)) return prev.filter((l) => l.id !== n.id);
+              if (!belongsInPipeline(n)) return prev.filter((l) => l.id !== n.id);
               // virou (ou continua) quente: atualiza ou insere
               return exists
                 ? prev.map((l) => (l.id === n.id ? n : l))
@@ -375,7 +378,8 @@ export function PipelineView({
         <div>
           <h2 className="text-xl font-bold tracking-tight">Pipeline</h2>
           <p className="text-sm text-slate-500">
-            {leads.length} leads quentes 🔥🟡 · base completa em{" "}
+            {leads.length} leads acionáveis · quentes 🔥🟡 + WhatsApp 💬 · base
+            completa em{" "}
             <a href="/crm/leads" className="underline hover:text-slate-700">
               Leads
             </a>
