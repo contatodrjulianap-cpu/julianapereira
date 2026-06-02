@@ -147,7 +147,9 @@ export async function sendAudio(input: SendAudioInput, meta?: SendTextMeta) {
       {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify(input),
+        // waveform: true → Z-API entrega como nota de voz (PTT) com duração e
+        // onda. Sem isso, mp4/AAC do Safari chega no WhatsApp como 0:00.
+        body: JSON.stringify({ ...input, waveform: true }),
       },
     );
     const responseJson = await res.json().catch(() => ({}));
