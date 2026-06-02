@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { sendImage, sendDocument } from "@/lib/zapi";
+import { sendImage, sendAudio, sendDocument } from "@/lib/zapi";
 import { resolveZapiCredsForLead } from "@/lib/wa-router";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
@@ -48,6 +48,7 @@ export async function POST(req: NextRequest) {
 
   // Upload pro bucket privado
   const isImage = file.type.startsWith("image/");
+  const isAudio = file.type.startsWith("audio/");
   const ext = (file.name.split(".").pop() || file.type.split("/")[1] || "bin")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "")
@@ -85,6 +86,8 @@ export async function POST(req: NextRequest) {
         { phone: lead.phone, image: url, caption: caption || undefined },
         meta,
       );
+    } else if (isAudio) {
+      zapiRes = await sendAudio({ phone: lead.phone, audio: url }, meta);
     } else {
       zapiRes = await sendDocument(
         {
@@ -109,7 +112,7 @@ export async function POST(req: NextRequest) {
     direction: "outbound",
     text: caption || null,
     media_url: path, // armazena PATH (signed URL é gerado on-demand pra render)
-    media_type: isImage ? "image" : "document",
+    media_type: isImage ? "image" : isAudio ? "audio" : "document",
     raw: zapiRes as unknown as Record<string, unknown>,
     zapi_message_id:
       (zapiRes as { messageId?: string })?.messageId ?? null,

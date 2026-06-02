@@ -134,6 +134,56 @@ export async function sendImage(input: SendImageInput, meta?: SendTextMeta) {
   }
 }
 
+export type SendAudioInput = {
+  phone: string;
+  audio: string; // URL pública ou base64 data URL — Z-API converte pra ptt
+};
+
+export async function sendAudio(input: SendAudioInput, meta?: SendTextMeta) {
+  const start = Date.now();
+  try {
+    const res = await fetch(
+      endpoint("/send-audio", { instanceId: meta?.instance_id, token: meta?.token }),
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify(input),
+      },
+    );
+    const responseJson = await res.json().catch(() => ({}));
+
+    await logEvent({
+      type: "zapi_send_audio",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: res.ok ? "success" : "failed",
+      payload: { phone: input.phone, has_url: !!input.audio },
+      response: responseJson,
+      error: res.ok ? undefined : `HTTP ${res.status}`,
+      duration_ms: Date.now() - start,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Z-API send-audio failed: ${res.status} ${JSON.stringify(responseJson)}`);
+    }
+    return responseJson;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "unknown";
+    await logEvent({
+      type: "zapi_send_audio",
+      direction: "outbound",
+      target: "zapi",
+      lead_id: meta?.lead_id,
+      status: "failed",
+      payload: { phone: input.phone },
+      error: msg,
+      duration_ms: Date.now() - start,
+    });
+    throw e;
+  }
+}
+
 export type SendDocumentInput = {
   phone: string;
   document: string; // URL pública ou base64

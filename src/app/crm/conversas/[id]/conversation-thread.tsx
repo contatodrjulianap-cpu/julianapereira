@@ -81,6 +81,13 @@ export function ConversationThread({
   const [reportOpen, setReportOpen] = useState(false);
   const [msgActionFor, setMsgActionFor] = useState<Message | null>(null);
   const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const audioPickerRef = useRef<HTMLInputElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const cancelRecordRef = useRef(false);
+  const [recording, setRecording] = useState(false);
+  const [recordSecs, setRecordSecs] = useState(0);
 
   const firstName = firstNameOf(currentLead.name);
 
@@ -90,6 +97,9 @@ export function ConversationThread({
       case "camera":
         // Pequeno delay pra animação do sheet anterior fechar antes do novo abrir
         setTimeout(() => setCameraSheetOpen(true), 250);
+        break;
+      case "audio":
+        audioPickerRef.current?.click();
         break;
       case "document":
         documentPickerRef.current?.click();
@@ -136,6 +146,73 @@ export function ConversationThread({
       setUploadingMedia(false);
     }
   }
+
+  function pickAudioMime(): string {
+    const candidates = [
+      "audio/ogg;codecs=opus",
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ];
+    if (typeof MediaRecorder === "undefined") return "";
+    return candidates.find((m) => MediaRecorder.isTypeSupported(m)) ?? "";
+  }
+
+  async function startRecording() {
+    if (recording || uploadingMedia) return;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      alert("Gravação de áudio não suportada neste navegador");
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      alert("Permita o acesso ao microfone para gravar áudio");
+      return;
+    }
+    const mime = pickAudioMime();
+    const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+    audioChunksRef.current = [];
+    cancelRecordRef.current = false;
+    rec.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunksRef.current.push(e.data);
+    };
+    rec.onstop = () => {
+      stream.getTracks().forEach((t) => t.stop());
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+      setRecording(false);
+      setRecordSecs(0);
+      if (cancelRecordRef.current) return;
+      const type = rec.mimeType || mime || "audio/webm";
+      const blob = new Blob(audioChunksRef.current, { type });
+      if (blob.size === 0) return;
+      const ext = type.includes("ogg")
+        ? "ogg"
+        : type.includes("mp4")
+          ? "m4a"
+          : "webm";
+      const ts = new Date().toISOString().replace(/[:.]/g, "-");
+      const file = new File([blob], `voz-${ts}.${ext}`, { type });
+      void uploadAndSendMedia(file);
+    };
+    mediaRecorderRef.current = rec;
+    rec.start();
+    setRecording(true);
+    setRecordSecs(0);
+    recordTimerRef.current = setInterval(() => setRecordSecs((s) => s + 1), 1000);
+  }
+
+  function stopRecording(cancel: boolean) {
+    cancelRecordRef.current = cancel;
+    mediaRecorderRef.current?.stop();
+  }
+
+  useEffect(() => {
+    return () => {
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    };
+  }, []);
 
   // Auto-resize do textarea: até 6 linhas
   useEffect(() => {
@@ -494,53 +571,99 @@ export function ConversationThread({
 
       {/* Input */}
       <div className="bg-white border-t border-slate-200 px-2 py-2 pb-[max(env(safe-area-inset-bottom),8px)] flex items-end gap-1.5">
-        <button
-          onClick={() => setAttachOpen(true)}
-          className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:bg-slate-100 transition"
-          aria-label="Anexar / ações"
-          title="Anexar / ações"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
-        <div className="flex-1 relative">
-          <textarea
-            ref={inputRef}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Mensagem"
-            rows={1}
-            className="w-full pl-3 pr-11 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none overflow-y-auto"
-            style={{ minHeight: 40 }}
-          />
-          <button
-            onClick={() => setQuickOpen(true)}
-            className="absolute right-1 bottom-1 w-9 h-9 rounded-full flex items-center justify-center text-amber-500 active:bg-amber-100 transition"
-            aria-label="Respostas rápidas"
-            title="Respostas rápidas"
-          >
-            <span className="text-[20px] leading-none">⚡</span>
-          </button>
-        </div>
-        <button
-          onClick={send}
-          disabled={sending || !draft.trim()}
-          className="shrink-0 w-10 h-10 rounded-full bg-[var(--sakura-cocoa)] text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
-          aria-label="Enviar"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            stroke="currentColor"
-            strokeWidth="1.5"
-          >
-            <path d="M3 11L21 3L13 21L11 13L3 11Z" />
-          </svg>
-        </button>
+        {recording ? (
+          <>
+            <button
+              onClick={() => stopRecording(true)}
+              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-rose-600 active:bg-rose-100 transition"
+              aria-label="Cancelar gravação"
+              title="Cancelar"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </button>
+            <div className="flex-1 flex items-center gap-2 px-3 h-10 bg-slate-100 rounded-2xl">
+              <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse" />
+              <span className="text-sm tabular-nums text-slate-700">
+                {String(Math.floor(recordSecs / 60)).padStart(2, "0")}:
+                {String(recordSecs % 60).padStart(2, "0")}
+              </span>
+              <span className="text-xs text-slate-400 ml-1">gravando…</span>
+            </div>
+            <button
+              onClick={() => stopRecording(false)}
+              disabled={uploadingMedia}
+              className="shrink-0 w-10 h-10 rounded-full bg-[var(--sakura-cocoa)] text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
+              aria-label="Enviar áudio"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                <path d="M3 11L21 3L13 21L11 13L3 11Z" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={() => setAttachOpen(true)}
+              className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-slate-600 active:bg-slate-100 transition"
+              aria-label="Anexar / ações"
+              title="Anexar / ações"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+            </button>
+            <div className="flex-1 relative">
+              <textarea
+                ref={inputRef}
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Mensagem"
+                rows={1}
+                className="w-full pl-3 pr-11 py-2 text-sm bg-slate-100 rounded-2xl outline-none resize-none overflow-y-auto"
+                style={{ minHeight: 40 }}
+              />
+              <button
+                onClick={() => setQuickOpen(true)}
+                className="absolute right-1 bottom-1 w-9 h-9 rounded-full flex items-center justify-center text-amber-500 active:bg-amber-100 transition"
+                aria-label="Respostas rápidas"
+                title="Respostas rápidas"
+              >
+                <span className="text-[20px] leading-none">⚡</span>
+              </button>
+            </div>
+            {draft.trim() ? (
+              <button
+                onClick={send}
+                disabled={sending}
+                className="shrink-0 w-10 h-10 rounded-full bg-[var(--sakura-cocoa)] text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
+                aria-label="Enviar"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 11L21 3L13 21L11 13L3 11Z" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                disabled={uploadingMedia}
+                className="shrink-0 w-10 h-10 rounded-full bg-[var(--sakura-cocoa)] text-white flex items-center justify-center disabled:opacity-40 active:scale-95 transition"
+                aria-label="Gravar áudio"
+                title="Gravar áudio"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                  <line x1="12" y1="19" x2="12" y2="23" />
+                  <line x1="8" y1="23" x2="16" y2="23" />
+                </svg>
+              </button>
+            )}
+          </>
+        )}
       </div>
 
       <QuickRepliesSheet
@@ -676,6 +799,17 @@ export function ConversationThread({
         ref={documentPickerRef}
         type="file"
         accept="application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void uploadAndSendMedia(f);
+        }}
+      />
+      <input
+        ref={audioPickerRef}
+        type="file"
+        accept="audio/*"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];

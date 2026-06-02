@@ -4,6 +4,7 @@ import { BottomSheet } from "../bottom-sheet";
 
 export type AttachmentAction =
   | "camera"
+  | "audio"
   | "document"
   | "contact"
   | "location"
@@ -21,6 +22,7 @@ type Item = {
 
 const ATTACHMENTS: Item[] = [
   { kind: "camera", emoji: "📷", label: "Câmera", bg: "bg-rose-100", fg: "text-rose-700" },
+  { kind: "audio", emoji: "🎵", label: "Áudio", bg: "bg-teal-100", fg: "text-teal-700" },
   { kind: "document", emoji: "📄", label: "Documento", bg: "bg-indigo-100", fg: "text-indigo-700" },
   { kind: "contact", emoji: "👤", label: "Contato", bg: "bg-sky-100", fg: "text-sky-700" },
   { kind: "location", emoji: "📍", label: "Endereço da clínica", bg: "bg-emerald-100", fg: "text-emerald-700" },
