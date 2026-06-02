@@ -13,6 +13,17 @@ export type LeadWithExtras = LeadFull & {
   unread: boolean;
 };
 
+// Preview pra mensagens sem texto (mídia), estilo WhatsApp.
+function mediaLabel(mediaType: string | null): string {
+  if (!mediaType) return "";
+  if (mediaType.startsWith("image")) return "📷 Foto";
+  if (mediaType.startsWith("audio")) return "🎤 Áudio";
+  if (mediaType.startsWith("video")) return "🎥 Vídeo";
+  if (mediaType.startsWith("application") || mediaType.includes("pdf"))
+    return "📄 Documento";
+  return "📎 Mídia";
+}
+
 // Não-lido estilo WhatsApp: a última mensagem é do lead (inbound) e chegou
 // depois da última vez que a conversa foi aberta (ou nunca foi aberta).
 function isUnread(lead: LeadFull, last: LastMessage | null): boolean {
@@ -69,20 +80,29 @@ export async function loadConversasLeads(
     }
   }
 
-  // 3) Última mensagem por lead.
+  // 3) Última mensagem por lead — via RPC DISTINCT ON, em lotes.
+  // Evita o max-rows (1000) do PostgREST: um .in() sem limite sobre 16k+
+  // mensagens só trazia preview pros leads mais recentes. A RPC retorna 1 linha
+  // por lead; lotes de 800 ids mantêm cada resposta abaixo do cap.
   const lastMessageByLead: Record<string, LastMessage> = {};
   if (leads.length > 0) {
     const ids = leads.map((l) => l.id);
-    const { data: msgs } = await supabase
-      .from("messages")
-      .select("lead_id, direction, text, created_at")
-      .in("lead_id", ids)
-      .order("created_at", { ascending: false });
-    for (const m of msgs ?? []) {
-      if (!lastMessageByLead[m.lead_id]) {
+    const CHUNK = 800;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const slice = ids.slice(i, i + CHUNK);
+      const { data: msgs } = await supabase.rpc("last_messages_for_leads", {
+        p_lead_ids: slice,
+      });
+      for (const m of (msgs ?? []) as Array<{
+        lead_id: string;
+        direction: "inbound" | "outbound";
+        text: string | null;
+        media_type: string | null;
+        created_at: string;
+      }>) {
         lastMessageByLead[m.lead_id] = {
           direction: m.direction,
-          text: m.text,
+          text: m.text?.trim() ? m.text : mediaLabel(m.media_type),
           created_at: m.created_at,
         };
       }
