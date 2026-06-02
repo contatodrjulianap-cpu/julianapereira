@@ -147,7 +147,8 @@ export function LeadModal({
       ? new Date(lead.follow_up_at).toISOString().slice(0, 10)
       : "",
     follow_up_note: lead.follow_up_note ?? "",
-    scheduled_at: toLocalDatetimeInput(lead.scheduled_at),
+    scheduled_date: splitLocalDatetime(lead.scheduled_at).date,
+    scheduled_time: splitLocalDatetime(lead.scheduled_at).time,
     call_recording_url: lead.call_recording_url ?? "",
     deal_value: lead.deal_value?.toString() ?? "",
     source: detectSourceKey(lead.source),
@@ -280,7 +281,10 @@ export function LeadModal({
             ? new Date(`${form.follow_up_date}T12:00:00`).toISOString()
             : null,
           follow_up_note: form.follow_up_note.trim() || null,
-          scheduled_at: fromLocalDatetimeInput(form.scheduled_at),
+          scheduled_at: combineLocalDateTime(
+            form.scheduled_date,
+            form.scheduled_time,
+          ),
           call_recording_url: form.call_recording_url.trim() || null,
           deal_value: form.deal_value === "" ? null : Number(form.deal_value),
           source: form.source || null,
@@ -486,18 +490,38 @@ export function LeadModal({
                   ))}
                 </select>
               </Field>
-              <Field label="📆 Data/hora da call (agendamento)">
-                <input
-                  type="datetime-local"
-                  value={form.scheduled_at}
-                  onChange={(e) =>
-                    setForm({ ...form, scheduled_at: e.target.value })
-                  }
-                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
-                />
+              <Field label="📆 Data e hora da call (agendamento)">
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={form.scheduled_date}
+                    onChange={(e) =>
+                      setForm({ ...form, scheduled_date: e.target.value })
+                    }
+                    className="flex-1 min-w-0 px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                  />
+                  <select
+                    value={form.scheduled_time}
+                    onChange={(e) =>
+                      setForm({ ...form, scheduled_time: e.target.value })
+                    }
+                    aria-label="Hora da call"
+                    className="w-[104px] shrink-0 px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                  >
+                    <option value="">hora…</option>
+                    {(TIME_SLOTS.includes(form.scheduled_time) || !form.scheduled_time
+                      ? TIME_SLOTS
+                      : [form.scheduled_time, ...TIME_SLOTS]
+                    ).map((t) => (
+                      <option key={t} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <span className="text-[10px] text-slate-400 normal-case font-normal">
                   Agendar uma call move o lead pra <strong>Agendado</strong> e
-                  aparece na aba Agenda.
+                  aparece na aba Agenda. Sem hora assume 09:00.
                 </span>
               </Field>
               <Field label="Próximo contato (follow-up)">
@@ -1203,27 +1227,39 @@ export function whatsLink(phone: string, name: string | null): string {
   return `https://wa.me/${final}?text=${msg}`;
 }
 
-// ISO (UTC) → valor pro <input type="datetime-local"> em horário LOCAL do browser.
-// Retorna "" quando null. Formato exigido pelo input: "YYYY-MM-DDTHH:mm".
-function toLocalDatetimeInput(iso: string | null): string {
-  if (!iso) return "";
+// ISO (UTC) → { date: "YYYY-MM-DD", time: "HH:mm" } em horário LOCAL do browser.
+function splitLocalDatetime(iso: string | null): { date: string; time: string } {
+  if (!iso) return { date: "", time: "" };
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
+  if (Number.isNaN(d.getTime())) return { date: "", time: "" };
   const pad = (n: number) => n.toString().padStart(2, "0");
-  return (
-    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
-    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
-  );
+  return {
+    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    time: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
 }
 
-// Valor do <input type="datetime-local"> (horário local) → ISO (UTC) pra gravar.
-// "" → null.
-function fromLocalDatetimeInput(val: string): string | null {
-  if (!val) return null;
-  const d = new Date(val); // interpretado como horário local
+// date "YYYY-MM-DD" + time "HH:mm" (local) → ISO (UTC). Sem data → null.
+// Data sem hora cai pra 09:00 como padrão sensato.
+function combineLocalDateTime(date: string, time: string): string | null {
+  if (!date) return null;
+  const d = new Date(`${date}T${time || "09:00"}`); // interpretado como local
   if (Number.isNaN(d.getTime())) return null;
   return d.toISOString();
 }
+
+// Slots de hora pra agendamento (07:00 → 21:00, de 15 em 15 min).
+const TIME_SLOTS: string[] = (() => {
+  const out: string[] = [];
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  for (let h = 7; h <= 21; h++) {
+    for (const m of [0, 15, 30, 45]) {
+      if (h === 21 && m > 0) break;
+      out.push(`${pad(h)}:${pad(m)}`);
+    }
+  }
+  return out;
+})();
 
 export function fmtBRL(n: number): string {
   return (

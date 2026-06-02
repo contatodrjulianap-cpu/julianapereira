@@ -331,6 +331,7 @@ function CalendarView({
   onCardClick: (l: AgLead) => void;
 }) {
   const todayYmd = useMemo(() => spYmd(new Date()), []);
+  const [mode, setMode] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState(() => {
     const [y, m] = todayYmd.split("-").map(Number);
     return { y, m: m - 1 }; // m 0-indexed
@@ -367,6 +368,9 @@ function CalendarView({
     return out;
   }, [cursor]);
 
+  // 7 dias da semana que contém `selected` (Domingo-start)
+  const weekDays = useMemo(() => weekYmds(selected), [selected]);
+
   const selectedLeads = byDay.get(selected) ?? [];
 
   function shiftMonth(delta: number) {
@@ -378,75 +382,173 @@ function CalendarView({
     });
   }
 
+  // Navega ±7 dias (modo semana). Mantém o mês do grid em sincronia.
+  function shiftWeek(delta: number) {
+    setSelected((cur) => {
+      const next = shiftYmd(cur, delta * 7);
+      const [y, m] = next.split("-").map(Number);
+      setCursor({ y, m: m - 1 });
+      return next;
+    });
+  }
+
+  const headerLabel =
+    mode === "month"
+      ? `${MONTHS[cursor.m]} ${cursor.y}`
+      : fmtWeekLabel(weekDays);
+
   return (
     <div className="grid lg:grid-cols-[1fr_360px] gap-4">
       {/* Calendário */}
       <div className="bg-white border border-slate-200 rounded-lg p-3">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <button
-            onClick={() => shiftMonth(-1)}
-            className="px-2 py-1 rounded-md hover:bg-slate-100 text-slate-600"
-            aria-label="Mês anterior"
-          >
-            ‹
-          </button>
-          <h3 className="text-sm font-bold text-slate-800">
-            {MONTHS[cursor.m]} {cursor.y}
-          </h3>
-          <button
-            onClick={() => shiftMonth(1)}
-            className="px-2 py-1 rounded-md hover:bg-slate-100 text-slate-600"
-            aria-label="Próximo mês"
-          >
-            ›
-          </button>
-        </div>
-        <div className="grid grid-cols-7 gap-1 mb-1">
-          {WEEKDAYS.map((w) => (
-            <div
-              key={w}
-              className="text-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 py-1"
+        {/* Nav + label + toggle Mês/Semana */}
+        <div className="flex items-center justify-between gap-2 mb-3 px-1">
+          <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => (mode === "month" ? shiftMonth(-1) : shiftWeek(-1))}
+              className="px-2 py-1 rounded-md hover:bg-slate-100 text-slate-600"
+              aria-label="Anterior"
             >
-              {w}
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-1">
-          {cells.map((cell, i) => {
-            if (!cell) return <div key={`b-${i}`} />;
-            const count = byDay.get(cell.ymd)?.length ?? 0;
-            const isToday = cell.ymd === todayYmd;
-            const isSelected = cell.ymd === selected;
-            return (
+              ‹
+            </button>
+            <button
+              onClick={() => {
+                setSelected(todayYmd);
+                const [y, m] = todayYmd.split("-").map(Number);
+                setCursor({ y, m: m - 1 });
+              }}
+              className="px-2 py-1 rounded-md hover:bg-slate-100 text-[11px] font-semibold text-slate-600"
+            >
+              Hoje
+            </button>
+            <button
+              onClick={() => (mode === "month" ? shiftMonth(1) : shiftWeek(1))}
+              className="px-2 py-1 rounded-md hover:bg-slate-100 text-slate-600"
+              aria-label="Próximo"
+            >
+              ›
+            </button>
+          </div>
+          <h3 className="text-sm font-bold text-slate-800 capitalize truncate">
+            {headerLabel}
+          </h3>
+          <div
+            role="tablist"
+            aria-label="Mês ou semana"
+            className="inline-flex bg-slate-100 rounded-md p-0.5 shrink-0"
+          >
+            {(["month", "week"] as const).map((m) => (
               <button
-                key={cell.ymd}
-                onClick={() => setSelected(cell.ymd)}
-                className={`aspect-square rounded-md flex flex-col items-center justify-center text-sm relative transition ${
-                  isSelected
-                    ? "bg-slate-900 text-white"
-                    : isToday
-                      ? "bg-cyan-50 text-cyan-900 ring-1 ring-cyan-300"
-                      : "hover:bg-slate-100 text-slate-700"
+                key={m}
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+                className={`px-2.5 py-1 text-[11px] font-semibold rounded transition ${
+                  mode === m
+                    ? "bg-white shadow-sm text-slate-900"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <span className={isToday && !isSelected ? "font-bold" : ""}>
-                  {cell.day}
-                </span>
-                {count > 0 && (
-                  <span
-                    className={`mt-0.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-bold flex items-center justify-center ${
+                {m === "month" ? "Mês" : "Semana"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ===== Mês ===== */}
+        {mode === "month" && (
+          <>
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {WEEKDAYS.map((w) => (
+                <div
+                  key={w}
+                  className="text-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 py-1"
+                >
+                  {w}
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {cells.map((cell, i) => {
+                if (!cell) return <div key={`b-${i}`} />;
+                const dayLeads = byDay.get(cell.ymd) ?? [];
+                const isToday = cell.ymd === todayYmd;
+                const isSelected = cell.ymd === selected;
+                return (
+                  <div
+                    key={cell.ymd}
+                    onClick={() => setSelected(cell.ymd)}
+                    className={`min-h-[64px] sm:min-h-[78px] rounded-md p-1 flex flex-col gap-0.5 cursor-pointer transition border ${
                       isSelected
-                        ? "bg-white text-slate-900"
-                        : "bg-cyan-500 text-white"
+                        ? "border-slate-900 bg-slate-50"
+                        : isToday
+                          ? "border-cyan-300 bg-cyan-50"
+                          : "border-transparent hover:bg-slate-50"
                     }`}
                   >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                    <span
+                      className={`text-[11px] leading-none px-0.5 ${
+                        isToday ? "font-bold text-cyan-800" : "text-slate-500"
+                      }`}
+                    >
+                      {cell.day}
+                    </span>
+                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                      {dayLeads.slice(0, 3).map((l) => (
+                        <DayEventChip key={l.id} lead={l} onClick={onCardClick} />
+                      ))}
+                      {dayLeads.length > 3 && (
+                        <span className="text-[9px] text-slate-400 px-1">
+                          +{dayLeads.length - 3} mais
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* ===== Semana ===== */}
+        {mode === "week" && (
+          <div className="grid grid-cols-1 sm:grid-cols-7 gap-1">
+            {weekDays.map((ymd, i) => {
+              const dayLeads = byDay.get(ymd) ?? [];
+              const isToday = ymd === todayYmd;
+              const dd = ymd.slice(8, 10);
+              return (
+                <div
+                  key={ymd}
+                  className={`rounded-md border p-1.5 sm:min-h-[140px] flex flex-col ${
+                    isToday ? "border-cyan-300 bg-cyan-50" : "border-slate-200"
+                  }`}
+                >
+                  <button
+                    onClick={() => setSelected(ymd)}
+                    className={`text-left text-[11px] font-semibold mb-1 ${
+                      isToday ? "text-cyan-800" : "text-slate-600"
+                    }`}
+                  >
+                    {WEEKDAYS[i]} {dd}
+                    {dayLeads.length > 0 && (
+                      <span className="ml-1 text-slate-400">· {dayLeads.length}</span>
+                    )}
+                  </button>
+                  <div className="flex flex-col gap-1">
+                    {dayLeads.length === 0 ? (
+                      <span className="text-[10px] text-slate-300 px-0.5">—</span>
+                    ) : (
+                      dayLeads.map((l) => (
+                        <DayEventChip key={l.id} lead={l} onClick={onCardClick} big />
+                      ))
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Lista do dia selecionado */}
@@ -599,6 +701,61 @@ function AgendaCard({
       </div>
     </div>
   );
+}
+
+// Linha clicável de evento dentro de uma célula do calendário (hora + nome).
+function DayEventChip({
+  lead,
+  onClick,
+  big = false,
+}: {
+  lead: AgLead;
+  onClick: (l: AgLead) => void;
+  big?: boolean;
+}) {
+  const name = lead.name ?? lead.phone;
+  const time = spTime(lead.scheduled_at!);
+  return (
+    <button
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick(lead);
+      }}
+      title={`${time} · ${name}`}
+      className={`w-full text-left truncate rounded bg-cyan-100 text-cyan-900 hover:bg-cyan-200 transition leading-tight ${
+        big ? "px-1.5 py-1 text-[11px]" : "px-1 py-0.5 text-[10px]"
+      }`}
+    >
+      <span className="font-semibold tabular-nums">{time}</span> {name}
+    </button>
+  );
+}
+
+// 7 ymds (Domingo→Sábado) da semana que contém `ymd`.
+function weekYmds(ymd: string): string[] {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+  const sunday = new Date(y, m - 1, d - base.getDay());
+  const out: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const dd = new Date(sunday.getFullYear(), sunday.getMonth(), sunday.getDate() + i);
+    out.push(`${dd.getFullYear()}-${pad(dd.getMonth() + 1)}-${pad(dd.getDate())}`);
+  }
+  return out;
+}
+
+// Desloca um ymd por N dias (pode ser negativo).
+function shiftYmd(ymd: string, deltaDays: number): string {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const nd = new Date(y, m - 1, d + deltaDays);
+  return `${nd.getFullYear()}-${pad(nd.getMonth() + 1)}-${pad(nd.getDate())}`;
+}
+
+// "01/06 – 07/06" pro header do modo semana.
+function fmtWeekLabel(week: string[]): string {
+  const first = week[0];
+  const last = week[6];
+  return `${first.slice(8, 10)}/${first.slice(5, 7)} – ${last.slice(8, 10)}/${last.slice(5, 7)}`;
 }
 
 function fmtSelectedLabel(ymd: string, todayYmd: string): string {
