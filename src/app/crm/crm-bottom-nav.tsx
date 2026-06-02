@@ -24,6 +24,12 @@ const TABS: Tab[] = [
     label: "Pipeline",
   },
   {
+    href: "/crm/agendamentos",
+    match: (p) => p.startsWith("/crm/agendamentos"),
+    icon: "📆",
+    label: "Agenda",
+  },
+  {
     href: "/crm/conversas",
     match: (p) => p === "/crm" || p.startsWith("/crm/conversas"),
     icon: "💬",

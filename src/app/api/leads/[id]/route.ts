@@ -10,6 +10,8 @@ const PatchBody = z.object({
       "new",
       "contacted",
       "qualified",
+      "scheduled",
+      "attended",
       "follow_up_1",
       "follow_up_2",
       "follow_up_3",
@@ -30,9 +32,14 @@ const PatchBody = z.object({
   pinned: z.boolean().optional(),
   follow_up_at: z.string().nullable().optional(),
   follow_up_note: z.string().max(2000).nullable().optional(),
+  scheduled_at: z.string().nullable().optional(), // ISO datetime da call agendada
+  call_recording_url: z.string().url().max(2000).nullable().optional(),
   source: z.string().nullable().optional(),
   tags: z.array(z.string().min(1).max(40)).optional(),
 });
+
+// Status anteriores ao agendamento — agendar uma call promove o lead pra "scheduled".
+const PRE_APPOINTMENT = new Set(["new", "contacted", "qualified"]);
 
 export async function PATCH(
   req: NextRequest,
@@ -63,14 +70,25 @@ export async function PATCH(
   // status explícito → respeita. Status terminal (won/lost/disqualified) e FU7
   // não avançam. Snooze/reagendar também conta como toque (capado em FU7).
   const update: Record<string, unknown> = { ...parsed.data };
-  if (parsed.data.follow_up_at && parsed.data.status === undefined) {
+  // Auto-status sem mexer no status na mão (drag/edição explícita sempre vence):
+  //  · agendar follow_up_at → próximo Follow up N
+  //  · agendar scheduled_at (call) e ainda pré-agendamento → "scheduled"
+  if (
+    parsed.data.status === undefined &&
+    (parsed.data.follow_up_at || parsed.data.scheduled_at)
+  ) {
     const { data: cur } = await admin
       .from("leads")
       .select("status")
       .eq("id", id)
       .single();
-    const next = nextFollowUpStatus(cur?.status as string | null);
-    if (next) update.status = next;
+    const curStatus = (cur?.status as string | null) ?? null;
+    if (parsed.data.scheduled_at && PRE_APPOINTMENT.has(curStatus ?? "")) {
+      update.status = "scheduled";
+    } else if (parsed.data.follow_up_at) {
+      const next = nextFollowUpStatus(curStatus);
+      if (next) update.status = next;
+    }
   }
 
   const { data, error } = await admin

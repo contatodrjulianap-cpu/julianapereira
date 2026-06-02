@@ -41,6 +41,8 @@ export type LeadFull = {
   pinned: boolean;
   follow_up_at: string | null;
   follow_up_note: string | null;
+  scheduled_at: string | null;        // data/hora da call agendada (TLDV)
+  call_recording_url: string | null;  // link de compartilhamento da gravação
   archetype_scores: Record<Archetype, number> | null;
   utm_source: string | null;
   utm_medium: string | null;
@@ -144,6 +146,8 @@ export function LeadModal({
       ? new Date(lead.follow_up_at).toISOString().slice(0, 10)
       : "",
     follow_up_note: lead.follow_up_note ?? "",
+    scheduled_at: toLocalDatetimeInput(lead.scheduled_at),
+    call_recording_url: lead.call_recording_url ?? "",
     deal_value: lead.deal_value?.toString() ?? "",
     source: detectSourceKey(lead.source),
   });
@@ -274,6 +278,8 @@ export function LeadModal({
             ? new Date(`${form.follow_up_date}T12:00:00`).toISOString()
             : null,
           follow_up_note: form.follow_up_note.trim() || null,
+          scheduled_at: fromLocalDatetimeInput(form.scheduled_at),
+          call_recording_url: form.call_recording_url.trim() || null,
           deal_value: form.deal_value === "" ? null : Number(form.deal_value),
           source: form.source || null,
         }),
@@ -468,7 +474,21 @@ export function LeadModal({
                   ))}
                 </select>
               </Field>
-              <Field label="Próximo contato">
+              <Field label="📆 Data/hora da call (agendamento)">
+                <input
+                  type="datetime-local"
+                  value={form.scheduled_at}
+                  onChange={(e) =>
+                    setForm({ ...form, scheduled_at: e.target.value })
+                  }
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+                <span className="text-[10px] text-slate-400 normal-case font-normal">
+                  Agendar uma call move o lead pra <strong>Agendado</strong> e
+                  aparece na aba Agenda.
+                </span>
+              </Field>
+              <Field label="Próximo contato (follow-up)">
                 <input
                   type="date"
                   value={form.follow_up_date}
@@ -500,6 +520,28 @@ export function LeadModal({
                   placeholder="—"
                   className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
                 />
+              </Field>
+              <Field label="🎥 Link da gravação da call (TLDV)">
+                <input
+                  type="url"
+                  inputMode="url"
+                  value={form.call_recording_url}
+                  onChange={(e) =>
+                    setForm({ ...form, call_recording_url: e.target.value })
+                  }
+                  placeholder="https://tldv.io/app/meetings/..."
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+                {form.call_recording_url.trim() && (
+                  <a
+                    href={form.call_recording_url.trim()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold text-rose-600 hover:underline normal-case"
+                  >
+                    ▶ Abrir gravação
+                  </a>
+                )}
               </Field>
             </div>
             <button
@@ -1147,6 +1189,28 @@ export function whatsLink(phone: string, name: string | null): string {
     `Oi${firstName ? " " + firstName : ""}! Aqui é da equipe da Dra. Juliana Pereira 🌸`,
   );
   return `https://wa.me/${final}?text=${msg}`;
+}
+
+// ISO (UTC) → valor pro <input type="datetime-local"> em horário LOCAL do browser.
+// Retorna "" quando null. Formato exigido pelo input: "YYYY-MM-DDTHH:mm".
+function toLocalDatetimeInput(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
+// Valor do <input type="datetime-local"> (horário local) → ISO (UTC) pra gravar.
+// "" → null.
+function fromLocalDatetimeInput(val: string): string | null {
+  if (!val) return null;
+  const d = new Date(val); // interpretado como horário local
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 export function fmtBRL(n: number): string {

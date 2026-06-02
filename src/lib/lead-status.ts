@@ -20,6 +20,8 @@ export const STATUS_OPTIONS = [
   "new",
   "contacted",
   "qualified",
+  "scheduled",
+  "attended",
   ...FOLLOW_UP_STATUSES,
   "won",
   "lost",
@@ -27,7 +29,13 @@ export const STATUS_OPTIONS = [
 ];
 
 // Status "em negociação" (entre contatado e fechado) — usado em métricas/funil.
-export const ENGAGED_STATUSES = ["contacted", "qualified", ...FOLLOW_UP_STATUSES];
+export const ENGAGED_STATUSES = [
+  "contacted",
+  "qualified",
+  "scheduled",
+  "attended",
+  ...FOLLOW_UP_STATUSES,
+];
 
 const TERMINAL = new Set(["won", "lost", "disqualified"]);
 
@@ -35,6 +43,8 @@ export const STATUS_LABEL: Record<string, string> = {
   new: "📨 Novo",
   contacted: "📞 Contatado",
   qualified: "✅ Qualificado",
+  scheduled: "📆 Agendado",
+  attended: "🪑 Compareceu",
   follow_up_1: "⏰ Follow up 1",
   follow_up_2: "⏰ Follow up 2",
   follow_up_3: "⏰ Follow up 3",
@@ -53,6 +63,8 @@ export const STATUS_BADGE: Record<string, string> = {
   new: "bg-blue-100 text-blue-800",
   contacted: "bg-indigo-100 text-indigo-800",
   qualified: "bg-amber-100 text-amber-800",
+  scheduled: "bg-cyan-100 text-cyan-800",
+  attended: "bg-teal-100 text-teal-800",
   // gradiente rosa→vermelho conforme o toque avança (FU7 = último, mais urgente)
   follow_up_1: "bg-pink-100 text-pink-800",
   follow_up_2: "bg-rose-100 text-rose-800",

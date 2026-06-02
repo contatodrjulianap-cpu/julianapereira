@@ -16,7 +16,7 @@ import os, sys, json, urllib.request, urllib.parse, collections
 from datetime import datetime, timezone, timedelta
 
 BRT = timezone(timedelta(hours=-3))
-ACTIVE = {"new", "contacted", "proposal", "qualified"}
+ACTIVE = {"new", "contacted", "qualified", "scheduled", "attended", "proposal"}
 
 BASE = os.environ["NEXT_PUBLIC_SUPABASE_URL"].rstrip("/")
 KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]

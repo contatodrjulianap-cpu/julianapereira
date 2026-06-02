@@ -5,6 +5,7 @@ import { CrmBottomNav } from "./crm-bottom-nav";
 export type CrmTab =
   | "inbox"
   | "pipeline"
+  | "agendamentos"
   | "funnel"
   | "log"
   | "builder"
@@ -66,6 +67,9 @@ export async function CrmShell({
               </TabLink>
               <TabLink href="/crm/pipeline" active={active === "pipeline"}>
                 📊 Pipeline
+              </TabLink>
+              <TabLink href="/crm/agendamentos" active={active === "agendamentos"}>
+                📆 Agenda
               </TabLink>
               <TabLink href="/crm/status" active={active === "status"}>
                 ✨ Status
