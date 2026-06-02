@@ -338,6 +338,17 @@ function CalendarView({
   });
   const [selected, setSelected] = useState<string>(todayYmd);
 
+  // No celular o Mês fica apertado (7 colunas) — abre em Semana por padrão.
+  // Roda só no mount (client); desktop continua em Mês. Toggle manual vence.
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 639px)").matches
+    ) {
+      setMode("week");
+    }
+  }, []);
+
   // Mapa ymd → leads
   const byDay = useMemo(() => {
     const map = new Map<string, AgLead[]>();
