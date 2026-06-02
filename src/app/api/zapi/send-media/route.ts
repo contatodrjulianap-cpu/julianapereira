@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendImage, sendAudio, sendDocument } from "@/lib/zapi";
 import { resolveZapiCredsForLead } from "@/lib/wa-router";
+import { logEvent } from "@/lib/event-log";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
 
@@ -62,7 +63,16 @@ export async function POST(req: NextRequest) {
     .from("wa-media")
     .upload(path, file, { contentType: baseMime, upsert: false });
   if (upErr) {
-    return NextResponse.json({ error: upErr.message }, { status: 500 });
+    await logEvent({
+      type: "zapi_send_media_upload",
+      direction: "outbound",
+      target: "supabase",
+      lead_id: lead.id,
+      status: "failed",
+      payload: { mime: baseMime, file_type: file.type, ext: safeExt, size: file.size },
+      error: upErr.message,
+    });
+    return NextResponse.json({ error: `upload: ${upErr.message}` }, { status: 500 });
   }
   const { data: signed, error: signErr } = await admin.storage
     .from("wa-media")
@@ -105,7 +115,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (e) {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "send failed" },
+      { error: `send(${isImage ? "image" : isAudio ? "audio" : "document"}): ${e instanceof Error ? e.message : "send failed"}` },
       { status: 502 },
     );
   }
