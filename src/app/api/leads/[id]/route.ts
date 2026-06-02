@@ -5,6 +5,7 @@ import { logEvent } from "@/lib/event-log";
 import { nextFollowUpStatus } from "@/lib/lead-status";
 
 const PatchBody = z.object({
+  name: z.string().max(200).nullable().optional(),
   status: z
     .enum([
       "new",

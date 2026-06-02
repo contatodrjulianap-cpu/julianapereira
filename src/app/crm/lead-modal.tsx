@@ -139,6 +139,7 @@ export function LeadModal({
   onSaved: (updated: LeadFull) => void;
 }) {
   const [form, setForm] = useState({
+    name: lead.name ?? "",
     status: lead.status ?? "new",
     assigned_to: lead.assigned_to ?? "",
     assigned_owner_id: lead.assigned_owner_id ?? "",
@@ -271,6 +272,7 @@ export function LeadModal({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          name: form.name.trim() || null,
           status: form.status,
           assigned_to: form.assigned_to.trim() || null,
           assigned_owner_id: form.assigned_owner_id || null,
@@ -429,6 +431,16 @@ export function LeadModal({
           {/* Status do funil */}
           <Card title="Status do funil">
             <div className="space-y-3">
+              <Field label="✏️ Nome do contato">
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Nome do lead (corrigir se veio com bug)"
+                  maxLength={200}
+                  className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                />
+              </Field>
               <Field label="Status">
                 <select
                   value={form.status}
