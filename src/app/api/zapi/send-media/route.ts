@@ -4,6 +4,9 @@ import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { sendImage, sendAudio, sendDocument } from "@/lib/zapi";
 import { resolveZapiCredsForLead } from "@/lib/wa-router";
 import { logEvent } from "@/lib/event-log";
+import { transcodeToOpusOgg } from "@/lib/audio";
+
+export const runtime = "nodejs";
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20MB
 
@@ -100,7 +103,38 @@ export async function POST(req: NextRequest) {
         meta,
       );
     } else if (isAudio) {
-      zapiRes = await sendAudio({ phone: lead.phone, audio: url }, meta);
+      // WhatsApp PTT precisa de ogg/opus: webm (Chrome) e m4a (iPhone) chegam
+      // 0:00 se mandados crus. Transcodifica e envia em base64 (o original
+      // segue no storage pro CRM tocar). Falha de transcode → fallback pro url
+      // cru (não quebra o envio), logado pra diagnóstico.
+      let audioPayload = url;
+      const tStart = Date.now();
+      try {
+        const buf = Buffer.from(await file.arrayBuffer());
+        const ogg = await transcodeToOpusOgg(buf, safeExt);
+        audioPayload = `data:audio/ogg;base64,${ogg.toString("base64")}`;
+        await logEvent({
+          type: "zapi_audio_transcode",
+          direction: "outbound",
+          target: "supabase",
+          lead_id: lead.id,
+          status: "success",
+          payload: { from_ext: safeExt, in_bytes: buf.length, out_bytes: ogg.length },
+          duration_ms: Date.now() - tStart,
+        });
+      } catch (e) {
+        await logEvent({
+          type: "zapi_audio_transcode",
+          direction: "outbound",
+          target: "supabase",
+          lead_id: lead.id,
+          status: "failed",
+          payload: { from_ext: safeExt },
+          error: e instanceof Error ? e.message : "transcode failed",
+          duration_ms: Date.now() - tStart,
+        });
+      }
+      zapiRes = await sendAudio({ phone: lead.phone, audio: audioPayload }, meta);
     } else {
       zapiRes = await sendDocument(
         {
