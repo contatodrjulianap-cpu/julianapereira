@@ -17,6 +17,28 @@ function initials(name: string | null): string {
   return (p.length === 1 ? p[0].slice(0, 2) : p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
+// Launcher isolado: gerencia o próprio estado do modal. Renderizado como filho
+// da lista, abrir/fechar NÃO re-renderiza a lista pesada de conversas.
+export function NewConversationLauncher({
+  variant,
+}: {
+  variant: "header" | "fab";
+}) {
+  const [open, setOpen] = useState(false);
+  const cls =
+    variant === "fab"
+      ? "hidden md:flex absolute bottom-4 right-4 z-20 items-center gap-2 px-4 py-3 rounded-full bg-[var(--sakura-cocoa,#3b2d28)] text-white text-sm font-semibold shadow-lg hover:shadow-xl active:opacity-80"
+      : "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--sakura-cocoa,#3b2d28)] text-white text-[12px] font-semibold active:opacity-80";
+  return (
+    <>
+      <button onClick={() => setOpen(true)} className={cls} title="Iniciar conversa com um lead">
+        {variant === "fab" ? "＋ Nova conversa" : "＋ Nova"}
+      </button>
+      {open && <NewConversationModal onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
 export function NewConversationModal({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -28,26 +50,33 @@ export function NewConversationModal({ onClose }: { onClose: () => void }) {
     inputRef.current?.focus();
   }, []);
 
-  // Busca com debounce simples.
+  // Busca com debounce + AbortController (cancela request anterior, sem pile-up).
   useEffect(() => {
     const term = q.trim();
     if (term.length < 2) {
       setHits([]);
+      setLoading(false);
       return;
     }
     setLoading(true);
+    const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/leads/search?q=${encodeURIComponent(term)}`);
+        const res = await fetch(`/api/leads/search?q=${encodeURIComponent(term)}`, {
+          signal: ctrl.signal,
+        });
         const data = await res.json();
         setHits(res.ok ? (data.leads ?? []) : []);
       } catch {
-        setHits([]);
+        // abortado ou erro → ignora
       } finally {
         setLoading(false);
       }
-    }, 250);
-    return () => clearTimeout(t);
+    }, 300);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
   }, [q]);
 
   function open(id: string) {
