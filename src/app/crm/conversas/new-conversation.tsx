@@ -44,6 +44,7 @@ export function NewConversationModal({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<Hit[]>([]);
   const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -81,6 +82,26 @@ export function NewConversationModal({ onClose }: { onClose: () => void }) {
 
   function open(id: string) {
     router.push(`/crm/conversas/${id}`);
+  }
+
+  const qDigits = q.replace(/\D/g, "");
+
+  async function createAndOpen() {
+    if (creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/leads/quick-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: qDigits }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "erro");
+      router.push(`/crm/conversas/${data.id}`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "erro ao criar contato");
+      setCreating(false);
+    }
   }
 
   return (
@@ -138,6 +159,23 @@ export function NewConversationModal({ onClose }: { onClose: () => void }) {
                 </li>
               ))}
             </ul>
+            {qDigits.length >= 10 && (
+              <button
+                onClick={createAndOpen}
+                disabled={creating}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-emerald-50 active:bg-emerald-100 text-left border-t border-slate-100 disabled:opacity-50"
+              >
+                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center text-lg shrink-0">
+                  ＋
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-emerald-700">
+                    {creating ? "Criando…" : "Criar contato novo e abrir"}
+                  </p>
+                  <p className="text-[12px] text-slate-500 truncate">{qDigits}</p>
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </div>
