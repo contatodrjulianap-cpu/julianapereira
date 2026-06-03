@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { LeadFull } from "../lead-modal";
 import type { LastMessage } from "./load-leads";
@@ -179,11 +179,11 @@ export function ConversationList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leads, search, bucket, urgency, attendants]);
 
-  function applyPatched(updated: LeadFull) {
+  const applyPatched = useCallback((updated: LeadFull) => {
     setLeads((prev) =>
       prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)),
     );
-  }
+  }, []);
 
   async function handleSheetAction(a: LeadActionPayload) {
     if (!sheetLead) return;
@@ -363,7 +363,7 @@ export function ConversationList({
               key={lead.id}
               lead={lead}
               onPatched={applyPatched}
-              onOpenSheet={(l) => setSheetLead(l)}
+              onOpenSheet={setSheetLead}
             />
           ))
         )}

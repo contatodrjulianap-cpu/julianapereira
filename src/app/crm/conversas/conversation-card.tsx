@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import type { LeadFull } from "../lead-modal";
+import { STATUS_LABEL, STATUS_BADGE } from "@/lib/lead-status";
 import type { LastMessage } from "./load-leads";
 import { SourceBadge } from "./source-icons";
 
@@ -85,7 +86,20 @@ const REVEAL_LEFT = 240; // arrasto pra esquerda revela 3 ações (won/lost/disq
 const REVEAL_RIGHT = 220; // arrasto pra direita revela 3 ações
 const SNAP = 70; // threshold pra snap-open
 
-export function ConversationCard({
+// Rótulo curto do status (sistema → STATUS_LABEL; custom "c_x" → prettify).
+function statusPill(status: string | null): { label: string; badge: string } | null {
+  if (!status) return null;
+  if (STATUS_LABEL[status]) {
+    return { label: STATUS_LABEL[status], badge: STATUS_BADGE[status] ?? "bg-slate-100 text-slate-700" };
+  }
+  if (status.startsWith("c_")) {
+    const t = status.slice(2).replace(/_/g, " ");
+    return { label: t.charAt(0).toUpperCase() + t.slice(1), badge: "bg-slate-200 text-slate-700" };
+  }
+  return { label: status, badge: "bg-slate-100 text-slate-700" };
+}
+
+export const ConversationCard = memo(function ConversationCard({
   lead,
   onPatched,
   onOpenSheet,
@@ -141,6 +155,7 @@ export function ConversationCard({
   const preview = lead.last_message?.text ?? "—";
   const isOutbound = lead.last_message?.direction === "outbound";
   const unread = !!lead.unread;
+  const pill = statusPill(lead.status);
 
   return (
     <li className="relative bg-white border-b border-slate-100 overflow-hidden isolate">
@@ -308,36 +323,42 @@ export function ConversationCard({
         {/* Texto */}
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline justify-between gap-2">
-            <p
-              className={`text-[15px] truncate ${
-                unread ? "font-bold text-slate-900" : "font-semibold text-slate-900"
-              }`}
-            >
-              {lead.name ?? lead.phone}
-              {statusEmoji && (
-                <span className="ml-1.5 text-[13px]">{statusEmoji}</span>
-              )}
-              {hasFollowUp && lead.follow_up_at && (
-                <span
-                  className="ml-1.5 inline-flex items-baseline gap-1"
-                  title={`Follow up: ${new Date(lead.follow_up_at).toLocaleDateString("pt-BR")}`}
-                >
-                  <span className="text-[13px]">⏰</span>
+            <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+              <p
+                className={`text-[15px] truncate ${
+                  unread ? "font-bold text-slate-900" : "font-semibold text-slate-900"
+                }`}
+              >
+                {lead.name ?? lead.phone}
+                {hasFollowUp && lead.follow_up_at && (
                   <span
-                    className="text-[10px] font-semibold"
-                    style={{
-                      color:
-                        new Date(lead.follow_up_at) < new Date()
-                          ? "#dc2626"
-                          : "#a06a56",
-                    }}
+                    className="ml-1.5 inline-flex items-baseline gap-1"
+                    title={`Follow up: ${new Date(lead.follow_up_at).toLocaleDateString("pt-BR")}`}
                   >
-                    {formatFollowUpShort(lead.follow_up_at)}
+                    <span className="text-[13px]">⏰</span>
+                    <span
+                      className="text-[10px] font-semibold"
+                      style={{
+                        color:
+                          new Date(lead.follow_up_at) < new Date()
+                            ? "#dc2626"
+                            : "#a06a56",
+                      }}
+                    >
+                      {formatFollowUpShort(lead.follow_up_at)}
+                    </span>
                   </span>
+                )}
+                {temp && <span className="ml-1.5 text-[13px]">{temp}</span>}
+              </p>
+              {pill && (
+                <span
+                  className={`shrink-0 px-1.5 py-0.5 rounded-full text-[9px] font-semibold ${pill.badge}`}
+                >
+                  {pill.label}
                 </span>
               )}
-              {temp && <span className="ml-1.5 text-[13px]">{temp}</span>}
-            </p>
+            </div>
             <span
               className={`text-[11px] shrink-0 ${
                 unread ? "font-semibold text-green-600" : "text-slate-400"
@@ -414,7 +435,7 @@ export function ConversationCard({
       )}
     </li>
   );
-}
+});
 
 function ActionButton({
   color,
