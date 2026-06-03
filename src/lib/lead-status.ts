@@ -23,6 +23,7 @@ export const STATUS_OPTIONS = [
   "scheduled",
   "attended",
   ...FOLLOW_UP_STATUSES,
+  "hot",
   "won",
   "lost",
   "disqualified",
@@ -35,6 +36,7 @@ export const ENGAGED_STATUSES = [
   "scheduled",
   "attended",
   ...FOLLOW_UP_STATUSES,
+  "hot",
 ];
 
 const TERMINAL = new Set(["won", "lost", "disqualified"]);
@@ -52,6 +54,7 @@ export const STATUS_LABEL: Record<string, string> = {
   follow_up_5: "⏰ Follow up 5",
   follow_up_6: "⏰ Follow up 6",
   follow_up_7: "⏰ Follow up 7",
+  hot: "🔥 Quente",
   won: "🎉 Fechado",
   lost: "❌ Perdido",
   disqualified: "🚫 Desqualificado",
@@ -73,6 +76,7 @@ export const STATUS_BADGE: Record<string, string> = {
   follow_up_5: "bg-violet-100 text-violet-800",
   follow_up_6: "bg-orange-100 text-orange-800",
   follow_up_7: "bg-red-100 text-red-800",
+  hot: "bg-orange-500 text-white",
   won: "bg-emerald-100 text-emerald-800",
   lost: "bg-red-100 text-red-800",
   disqualified: "bg-zinc-200 text-zinc-700",

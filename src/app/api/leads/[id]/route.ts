@@ -20,6 +20,7 @@ const PatchBody = z.object({
       "follow_up_5",
       "follow_up_6",
       "follow_up_7",
+      "hot",
       "won",
       "lost",
       "disqualified",
