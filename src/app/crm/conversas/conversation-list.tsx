@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { LeadFull } from "../lead-modal";
 import type { LastMessage } from "./load-leads";
@@ -99,6 +99,14 @@ export function ConversationList({
   const [urgency, setUrgency] = useState<UrgencyFilter>(initialUrgency);
   const [ownerFilter, setOwnerFilter] = useState<string>(initialOwner);
   const [sheetLead, setSheetLead] = useState<LeadCard | null>(null);
+  // Janela: renderiza só os primeiros N cards (cada um é motion.div pesado).
+  // Sem isso, ~2k cards travam o Safari ao abrir modal / teclado.
+  const [visible, setVisible] = useState(50);
+
+  // Reseta a janela quando o filtro muda (lista nova começa do topo).
+  useEffect(() => {
+    setVisible(50);
+  }, [search, bucket, urgency, ownerFilter]);
 
   // Cascata: cada contador respeita os OUTROS filtros, ignorando só o seu próprio
   // facet. Ex: badges de "Etapa no funil" refletem o atendente/urgência atuais.
@@ -346,13 +354,24 @@ export function ConversationList({
         />
       </div>
 
-      <ul className="flex-1 overflow-y-auto">
+      <ul
+        className="flex-1 overflow-y-auto"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (
+            el.scrollHeight - el.scrollTop - el.clientHeight < 600 &&
+            visible < filtered.length
+          ) {
+            setVisible((v) => v + 50);
+          }
+        }}
+      >
         {filtered.length === 0 ? (
           <li className="p-6 text-center text-sm text-slate-400">
             Nenhuma conversa nesse filtro.
           </li>
         ) : (
-          filtered.map((lead) => (
+          filtered.slice(0, visible).map((lead) => (
             <ConversationCard
               key={lead.id}
               lead={lead}
@@ -360,6 +379,11 @@ export function ConversationList({
               onOpenSheet={setSheetLead}
             />
           ))
+        )}
+        {visible < filtered.length && (
+          <li className="py-4 text-center text-xs text-slate-400">
+            mostrando {visible} de {filtered.length} · role pra ver mais
+          </li>
         )}
       </ul>
 
