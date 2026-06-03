@@ -12,6 +12,7 @@ import {
   type Bucket,
 } from "./pipeline-bar";
 import { LeadActionsSheet, type LeadActionPayload } from "./lead-actions-sheet";
+import { NewConversationModal } from "./new-conversation";
 
 type LeadCard = LeadFull & {
   selfie_signed_url?: string | null;
@@ -98,6 +99,7 @@ export function ConversationList({
   const [urgency, setUrgency] = useState<UrgencyFilter>(initialUrgency);
   const [ownerFilter, setOwnerFilter] = useState<string>(initialOwner);
   const [sheetLead, setSheetLead] = useState<LeadCard | null>(null);
+  const [showNew, setShowNew] = useState(false);
 
   // Cascata: cada contador respeita os OUTROS filtros, ignorando só o seu próprio
   // facet. Ex: badges de "Etapa no funil" refletem o atendente/urgência atuais.
@@ -234,11 +236,17 @@ export function ConversationList({
   }
 
   return (
-    <div className="flex-1 flex flex-col bg-white min-h-0 min-w-0 overflow-x-hidden w-full">
-      <header className="md:hidden sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3">
+    <div className="relative flex-1 flex flex-col bg-white min-h-0 min-w-0 overflow-x-hidden w-full">
+      <header className="md:hidden sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
         <h1 className="text-[22px] font-semibold tracking-tight text-slate-900">
           Conversas
         </h1>
+        <button
+          onClick={() => setShowNew(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--sakura-cocoa,#3b2d28)] text-white text-[12px] font-semibold active:opacity-80"
+        >
+          ＋ Nova
+        </button>
       </header>
 
       {/* Barra de urgência (Hoje / Vencidos / Próximos / Frios) */}
@@ -367,6 +375,17 @@ export function ConversationList({
         onAction={handleSheetAction}
         onClose={() => setSheetLead(null)}
       />
+
+      {/* FAB "Nova conversa" — desktop (no mobile já tem botão no header) */}
+      <button
+        onClick={() => setShowNew(true)}
+        className="hidden md:flex absolute bottom-4 right-4 z-20 items-center gap-2 px-4 py-3 rounded-full bg-[var(--sakura-cocoa,#3b2d28)] text-white text-sm font-semibold shadow-lg hover:shadow-xl active:opacity-80"
+        title="Iniciar conversa com um lead"
+      >
+        ＋ Nova conversa
+      </button>
+
+      {showNew && <NewConversationModal onClose={() => setShowNew(false)} />}
     </div>
   );
 }

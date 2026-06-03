@@ -416,6 +416,13 @@ export function LeadModal({
 
           <div className="flex items-center justify-center gap-5 mt-6">
             <CircleAction
+              onClick={() => {
+                window.location.href = `/crm/conversas/${lead.id}`;
+              }}
+              icon="🗨️"
+              label="Conversa"
+            />
+            <CircleAction
               href={whatsLink(lead.phone, lead.name)}
               icon="💬"
               label="WhatsApp"

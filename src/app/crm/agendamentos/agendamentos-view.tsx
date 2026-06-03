@@ -11,6 +11,7 @@ import {
   whatsLink,
   type LeadFull,
 } from "../lead-modal";
+import { AppointmentModal } from "./appointment-modal";
 
 export type AgLead = LeadFull;
 export type CrmUser = { id: string; display_name: string; role: string };
@@ -62,6 +63,13 @@ export function AgendamentosView({
   const [leads, setLeads] = useState<AgLead[]>(initialLeads);
   const [editing, setEditing] = useState<AgLead | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("kanban");
+  // Modal de agendamento: { mode:"new" } ou { mode:"edit", lead }
+  const [appt, setAppt] = useState<
+    { mode: "new" } | { mode: "edit"; lead: AgLead } | null
+  >(null);
+  const onRemarcar = useCallback((lead: AgLead) => {
+    setAppt({ mode: "edit", lead });
+  }, []);
 
   const usersById = useMemo(() => {
     const map: Record<string, CrmUser> = {};
@@ -180,6 +188,12 @@ export function AgendamentosView({
             📅 Calendário
           </button>
         </div>
+        <button
+          onClick={() => setAppt({ mode: "new" })}
+          className="px-3 py-2 text-sm font-semibold rounded-md bg-[var(--sakura-cocoa,#3b2d28)] text-white hover:opacity-90"
+        >
+          ＋ Novo agendamento
+        </button>
       </div>
 
       {/* Métricas */}
@@ -200,6 +214,7 @@ export function AgendamentosView({
           usersById={usersById}
           isAdmin={isAdmin}
           onCardClick={setEditing}
+          onRemarcar={onRemarcar}
         />
       ) : (
         <CalendarView
@@ -207,6 +222,7 @@ export function AgendamentosView({
           usersById={usersById}
           isAdmin={isAdmin}
           onCardClick={setEditing}
+          onRemarcar={onRemarcar}
         />
       )}
 
@@ -214,6 +230,15 @@ export function AgendamentosView({
         <LeadModal
           lead={editing}
           onClose={() => setEditing(null)}
+          onSaved={onSaved}
+        />
+      )}
+
+      {appt && (
+        <AppointmentModal
+          lead={appt.mode === "edit" ? appt.lead : null}
+          initialISO={appt.mode === "edit" ? appt.lead.scheduled_at : null}
+          onClose={() => setAppt(null)}
           onSaved={onSaved}
         />
       )}
@@ -239,11 +264,13 @@ function DiaADiaKanban({
   usersById,
   isAdmin,
   onCardClick,
+  onRemarcar,
 }: {
   leads: AgLead[];
   usersById: Record<string, CrmUser>;
   isAdmin: boolean;
   onCardClick: (l: AgLead) => void;
+  onRemarcar: (l: AgLead) => void;
 }) {
   const { todayYmd, tomorrowYmd } = useMemo(() => {
     const now = new Date();
@@ -304,6 +331,7 @@ function DiaADiaKanban({
                     isAdmin={isAdmin}
                     showDay={b === "proximos" || b === "passados"}
                     onClick={() => onCardClick(l)}
+                    onRemarcar={() => onRemarcar(l)}
                   />
                 ))
               )}
@@ -324,11 +352,13 @@ function CalendarView({
   usersById,
   isAdmin,
   onCardClick,
+  onRemarcar,
 }: {
   leads: AgLead[];
   usersById: Record<string, CrmUser>;
   isAdmin: boolean;
   onCardClick: (l: AgLead) => void;
+  onRemarcar: (l: AgLead) => void;
 }) {
   const todayYmd = useMemo(() => spYmd(new Date()), []);
   const [mode, setMode] = useState<"month" | "week">("month");
@@ -583,6 +613,7 @@ function CalendarView({
                 usersById={usersById}
                 isAdmin={isAdmin}
                 onClick={() => onCardClick(l)}
+                onRemarcar={() => onRemarcar(l)}
               />
             ))}
           </div>
@@ -602,12 +633,14 @@ function AgendaCard({
   isAdmin,
   showDay = false,
   onClick,
+  onRemarcar,
 }: {
   lead: AgLead;
   usersById: Record<string, CrmUser>;
   isAdmin: boolean;
   showDay?: boolean;
   onClick: () => void;
+  onRemarcar?: () => void;
 }) {
   const ownerLabel = lead.assigned_owner_id
     ? usersById[lead.assigned_owner_id]?.display_name
@@ -696,19 +729,33 @@ function AgendaCard({
         ) : (
           <span />
         )}
-        <a
-          href={whatsLink(lead.phone, lead.name)}
-          target="_blank"
-          rel="noreferrer noopener"
-          onClick={(e) => e.stopPropagation()}
-          aria-label={`WhatsApp de ${lead.name ?? lead.phone}`}
-          className="flex-shrink-0 inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded-full text-[10px] font-semibold transition"
-        >
-          <svg viewBox="0 0 32 32" fill="currentColor" className="w-3 h-3" aria-hidden="true">
-            <path d="M16.003 3C9.376 3 4 8.376 4 15c0 2.353.689 4.546 1.873 6.405L4 28l6.764-1.834A12 12 0 0 0 16.003 27C22.63 27 28 21.624 28 15S22.63 3 16.003 3z" />
-          </svg>
-          WPP
-        </a>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onRemarcar && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemarcar();
+              }}
+              className="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded-full text-[10px] font-semibold transition"
+              title="Remarcar ou cancelar"
+            >
+              ⟳ Remarcar
+            </button>
+          )}
+          <a
+            href={whatsLink(lead.phone, lead.name)}
+            target="_blank"
+            rel="noreferrer noopener"
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`WhatsApp de ${lead.name ?? lead.phone}`}
+            className="inline-flex items-center gap-1 bg-emerald-500 hover:bg-emerald-600 text-white px-2 py-1 rounded-full text-[10px] font-semibold transition"
+          >
+            <svg viewBox="0 0 32 32" fill="currentColor" className="w-3 h-3" aria-hidden="true">
+              <path d="M16.003 3C9.376 3 4 8.376 4 15c0 2.353.689 4.546 1.873 6.405L4 28l6.764-1.834A12 12 0 0 0 16.003 27C22.63 27 28 21.624 28 15S22.63 3 16.003 3z" />
+            </svg>
+            WPP
+          </a>
+        </div>
       </div>
     </div>
   );

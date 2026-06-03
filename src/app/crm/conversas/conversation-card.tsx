@@ -216,7 +216,12 @@ export function ConversationCard({
         drag="x"
         dragConstraints={{ left: -REVEAL_LEFT, right: REVEAL_RIGHT }}
         dragElastic={0.05}
-        style={{ x, background: "white", position: "relative", zIndex: 1 }}
+        style={{
+          x,
+          background: unread ? "#f0fdf4" : "white",
+          position: "relative",
+          zIndex: 1,
+        }}
         onDragStart={() => {
           dragging.current = true;
           if (longPressTimer.current) clearTimeout(longPressTimer.current);
@@ -266,6 +271,13 @@ export function ConversationCard({
         }}
         className="flex items-center gap-3 px-4 py-3 cursor-pointer select-none touch-pan-y"
       >
+        {/* Barra lateral de não-lido */}
+        {unread && (
+          <span
+            className="absolute left-0 inset-y-0 w-1.5 bg-green-500"
+            aria-hidden
+          />
+        )}
         {/* Avatar */}
         <div className="shrink-0 relative">
           {lead.selfie_signed_url ? (
@@ -334,14 +346,21 @@ export function ConversationCard({
               {time ? relativeTime(time) : ""}
             </span>
           </div>
-          <p
-            className={`text-[13px] truncate leading-snug ${
-              unread ? "font-semibold text-slate-700" : "text-slate-500"
-            }`}
-          >
-            {isOutbound && <span className="text-slate-400">você: </span>}
-            {preview}
-          </p>
+          <div className="flex items-center justify-between gap-2">
+            <p
+              className={`text-[13px] truncate leading-snug flex-1 min-w-0 ${
+                unread ? "font-semibold text-slate-800" : "text-slate-500"
+              }`}
+            >
+              {isOutbound && <span className="text-slate-400">você: </span>}
+              {preview}
+            </p>
+            {unread && (
+              <span className="shrink-0 inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                ● novo
+              </span>
+            )}
+          </div>
         </div>
 
         <SourceBadge source={lead.source} />
