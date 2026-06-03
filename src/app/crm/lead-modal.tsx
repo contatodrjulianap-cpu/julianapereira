@@ -134,10 +134,16 @@ export function LeadModal({
   lead,
   onClose,
   onSaved,
+  statusOptions = STATUS_OPTIONS,
+  statusLabels = STATUS_LABEL,
+  statusBadges = STATUS_BADGE,
 }: {
   lead: LeadFull;
   onClose: () => void;
   onSaved: (updated: LeadFull) => void;
+  statusOptions?: string[];
+  statusLabels?: Record<string, string>;
+  statusBadges?: Record<string, string>;
 }) {
   const [form, setForm] = useState({
     name: lead.name ?? "",
@@ -394,9 +400,9 @@ export function LeadModal({
             )}
             {lead.status && (
               <span
-                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_BADGE[lead.status] ?? "bg-slate-100 text-slate-700"}`}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusBadges[lead.status] ?? "bg-slate-100 text-slate-700"}`}
               >
-                {STATUS_LABEL[lead.status] ?? lead.status}
+                {statusLabels[lead.status] ?? lead.status}
               </span>
             )}
             {form.assigned_owner_id && (
@@ -452,9 +458,9 @@ export function LeadModal({
                   onChange={(e) => setForm({ ...form, status: e.target.value })}
                   className="w-full px-2.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg outline-none"
                 >
-                  {STATUS_OPTIONS.map((s) => (
+                  {statusOptions.map((s) => (
                     <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
+                      {statusLabels[s]}
                     </option>
                   ))}
                 </select>

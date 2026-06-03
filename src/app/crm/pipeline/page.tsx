@@ -41,11 +41,17 @@ export default async function PipelinePage() {
     leadsQuery = leadsQuery.eq("assigned_owner_id", user.id);
   }
 
-  // Lookup atendentes pra mostrar coluna "Responsável" (id → display_name)
-  const [{ data: leads }, { data: users }] = await Promise.all([
-    leadsQuery,
-    supabase.from("crm_users").select("id, display_name, role"),
-  ]);
+  // Lookup atendentes (id → display_name) + status custom criados pela equipe.
+  const [{ data: leads }, { data: users }, { data: customStatuses }] =
+    await Promise.all([
+      leadsQuery,
+      supabase.from("crm_users").select("id, display_name, role"),
+      supabase
+        .from("custom_lead_statuses")
+        .select("key, label, badge, sort_order")
+        .eq("active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
 
   // Signed URLs (1h) pra thumbs de selfie aparecerem direto na lista.
   // Gera em batch — uma única chamada pro Storage.
@@ -73,6 +79,7 @@ export default async function PipelinePage() {
         initialLeads={leadsWithSelfies}
         users={users ?? []}
         isAdmin={isAdmin}
+        initialCustomStatuses={customStatuses ?? []}
       />
     </CrmShell>
   );

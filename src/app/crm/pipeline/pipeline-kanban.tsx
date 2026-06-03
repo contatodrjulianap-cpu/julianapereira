@@ -4,15 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import {
   ARCH_BADGE,
   ARCH_LABEL,
-  STATUS_BADGE,
-  STATUS_LABEL,
-  STATUS_OPTIONS,
   fmtBRL,
   whatsLink,
 } from "../lead-modal";
 import type { PipelineLead, CrmUser } from "./pipeline-view";
 
-type Props = {
+type StatusMaps = {
+  statusOptions: string[];
+  statusLabels: Record<string, string>;
+  statusBadges: Record<string, string>;
+};
+
+type Props = StatusMaps & {
   filtered: PipelineLead[];
   usersById: Record<string, CrmUser>;
   onCardClick: (lead: PipelineLead) => void;
@@ -47,10 +50,13 @@ export function PipelineKanban({
   usersById,
   onCardClick,
   onStatusChange,
+  statusOptions,
+  statusLabels,
+  statusBadges,
 }: Props) {
   // Agrupa por status
   const byStatus: Record<string, PipelineLead[]> = {};
-  for (const s of STATUS_OPTIONS) byStatus[s] = [];
+  for (const s of statusOptions) byStatus[s] = [];
   for (const l of filtered) {
     const s = l.status ?? "new";
     if (byStatus[s]) byStatus[s].push(l);
@@ -103,12 +109,15 @@ export function PipelineKanban({
         onCardClick={onCardClick}
         active={mobileCol}
         onActiveChange={setMobileCol}
+        statusOptions={statusOptions}
+        statusLabels={statusLabels}
+        statusBadges={statusBadges}
       />
 
       {/* =================== DESKTOP =================== */}
       <div className="hidden md:block -mx-5 lg:-mx-8 px-5 lg:px-8">
         <div className="flex gap-3 overflow-x-auto pb-3 min-h-[60vh]">
-          {STATUS_OPTIONS.map((s) => {
+          {statusOptions.map((s) => {
             const cards = byStatus[s];
             const isDropTarget = dragOverCol === s;
             return (
@@ -124,9 +133,9 @@ export function PipelineKanban({
                 {/* Header da coluna */}
                 <div className="sticky top-0 z-10 bg-slate-100 px-3 py-2.5 rounded-t-md flex items-center justify-between border-b border-slate-200">
                   <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold ${STATUS_BADGE[s]}`}
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-[11px] font-semibold ${statusBadges[s]}`}
                   >
-                    {STATUS_LABEL[s]}
+                    {statusLabels[s]}
                   </span>
                   <span className="text-[11px] font-semibold text-slate-500">
                     {cards.length}
@@ -292,12 +301,18 @@ function MobileKanban({
   onCardClick,
   active,
   onActiveChange,
+  statusOptions,
+  statusLabels,
+  statusBadges,
 }: {
   byStatus: Record<string, PipelineLead[]>;
   usersById: Record<string, CrmUser>;
   onCardClick: (lead: PipelineLead) => void;
   active: string;
   onActiveChange: (s: string) => void;
+  statusOptions: string[];
+  statusLabels: Record<string, string>;
+  statusBadges: Record<string, string>;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const colRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -344,12 +359,12 @@ function MobileKanban({
       },
     );
 
-    for (const s of STATUS_OPTIONS) {
+    for (const s of statusOptions) {
       const el = colRefs.current[s];
       if (el) observer.observe(el);
     }
     return () => observer.disconnect();
-  }, [onActiveChange]);
+  }, [onActiveChange, statusOptions]);
 
   // Mantém a tab ativa visível na bar de tabs
   useEffect(() => {
@@ -362,7 +377,7 @@ function MobileKanban({
       {/* Tabs no topo (sticky) */}
       <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-5 py-2 overflow-x-auto">
         <div className="flex gap-2 whitespace-nowrap">
-          {STATUS_OPTIONS.map((s) => {
+          {statusOptions.map((s) => {
             const isActive = active === s;
             const count = byStatus[s].length;
             return (
@@ -374,11 +389,11 @@ function MobileKanban({
                 onClick={() => handleTabClick(s)}
                 className={`flex-shrink-0 px-3 py-2 rounded-full text-xs font-semibold ring-1 transition ${
                   isActive
-                    ? `${STATUS_BADGE[s]} ring-current`
+                    ? `${statusBadges[s]} ring-current`
                     : "bg-white text-slate-700 ring-slate-300"
                 }`}
               >
-                {STATUS_LABEL[s]}{" "}
+                {statusLabels[s]}{" "}
                 <span className="opacity-70 ml-0.5">({count})</span>
               </button>
             );
@@ -395,7 +410,7 @@ function MobileKanban({
           WebkitOverflowScrolling: "touch",
         }}
       >
-        {STATUS_OPTIONS.map((s) => {
+        {statusOptions.map((s) => {
           const cards = byStatus[s];
           return (
             <div
@@ -409,9 +424,9 @@ function MobileKanban({
               {/* Header da coluna (dentro do scroll, redundância visual + clareza) */}
               <div className="flex items-center justify-between mb-3">
                 <span
-                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${STATUS_BADGE[s]}`}
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold ${statusBadges[s]}`}
                 >
-                  {STATUS_LABEL[s]}
+                  {statusLabels[s]}
                 </span>
                 <span className="text-[11px] font-semibold text-slate-500">
                   {cards.length} {cards.length === 1 ? "lead" : "leads"}
@@ -420,7 +435,7 @@ function MobileKanban({
 
               {cards.length === 0 ? (
                 <div className="bg-white rounded-md border border-slate-200 p-8 text-center text-sm text-slate-500">
-                  Sem leads em <strong>{STATUS_LABEL[s]}</strong>.
+                  Sem leads em <strong>{statusLabels[s]}</strong>.
                 </div>
               ) : (
                 <div className="space-y-2">

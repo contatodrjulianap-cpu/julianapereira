@@ -16,10 +16,20 @@ export const FOLLOW_UP_STATUSES = [
   "follow_up_7",
 ] as const;
 
+// Cadência de contato pré-consulta (lead que ainda não marcou/fez avaliação).
+export const PRE_CONSULTA_STATUSES = [
+  "contato_d1_5",
+  "contato_d15",
+  "contato_d30",
+  "contato_mensal",
+] as const;
+
 export const STATUS_OPTIONS = [
   "new",
   "contacted",
   "qualified",
+  "tentativa_agendamento",
+  ...PRE_CONSULTA_STATUSES,
   "scheduled",
   "attended",
   ...FOLLOW_UP_STATUSES,
@@ -33,6 +43,8 @@ export const STATUS_OPTIONS = [
 export const ENGAGED_STATUSES = [
   "contacted",
   "qualified",
+  "tentativa_agendamento",
+  ...PRE_CONSULTA_STATUSES,
   "scheduled",
   "attended",
   ...FOLLOW_UP_STATUSES,
@@ -45,6 +57,11 @@ export const STATUS_LABEL: Record<string, string> = {
   new: "📨 Novo",
   contacted: "📞 Contatado",
   qualified: "✅ Qualificado",
+  tentativa_agendamento: "📲 Tentativa agend.",
+  contato_d1_5: "📞 Contato D1-5",
+  contato_d15: "📞 Contato +15",
+  contato_d30: "📞 Contato D+30",
+  contato_mensal: "🔁 Contato mensal",
   scheduled: "📆 Agendado",
   attended: "🪑 Compareceu",
   follow_up_1: "⏰ Follow up 1",
@@ -66,6 +83,11 @@ export const STATUS_BADGE: Record<string, string> = {
   new: "bg-blue-100 text-blue-800",
   contacted: "bg-indigo-100 text-indigo-800",
   qualified: "bg-amber-100 text-amber-800",
+  tentativa_agendamento: "bg-sky-100 text-sky-800",
+  contato_d1_5: "bg-violet-100 text-violet-800",
+  contato_d15: "bg-violet-100 text-violet-800",
+  contato_d30: "bg-purple-100 text-purple-800",
+  contato_mensal: "bg-fuchsia-100 text-fuchsia-800",
   scheduled: "bg-cyan-100 text-cyan-800",
   attended: "bg-teal-100 text-teal-800",
   // gradiente rosa→vermelho conforme o toque avança (FU7 = último, mais urgente)
@@ -86,6 +108,67 @@ export const STATUS_BADGE: Record<string, string> = {
 export function isFollowUpStatus(s?: string | null): boolean {
   return !!s && (FOLLOW_UP_STATUSES as readonly string[]).includes(s);
 }
+
+// ============================================================
+// Status custom (criados pela equipe no Pipeline/Kanban)
+// ============================================================
+// Os de sistema (acima) têm lógica acoplada e são imutáveis. Os custom são
+// buckets livres vindos da tabela custom_lead_statuses — viram colunas/opções
+// extras, sem lógica especial. Sempre prefixados com "c_".
+
+export type CustomStatus = {
+  key: string;
+  label: string;
+  badge: string;
+  sort_order?: number;
+};
+
+// Set das chaves de sistema — usado pra proteger contra colisão/edição.
+export const SYSTEM_STATUS_KEYS: ReadonlySet<string> = new Set([
+  ...STATUS_OPTIONS,
+  "proposal", // legado aceito
+]);
+
+const TERMINAL_KEYS = new Set(["won", "lost", "disqualified"]);
+
+// Mescla sistema + custom. Custom entram antes do bloco terminal
+// (won/lost/disqualified). Retorna options/labels/badges efetivos.
+export function mergeStatuses(custom: CustomStatus[]): {
+  options: string[];
+  labels: Record<string, string>;
+  badges: Record<string, string>;
+} {
+  const nonTerminal = STATUS_OPTIONS.filter((s) => !TERMINAL_KEYS.has(s));
+  const terminal = STATUS_OPTIONS.filter((s) => TERMINAL_KEYS.has(s));
+  const sorted = [...custom].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+  );
+  return {
+    options: [...nonTerminal, ...sorted.map((c) => c.key), ...terminal],
+    labels: {
+      ...STATUS_LABEL,
+      ...Object.fromEntries(sorted.map((c) => [c.key, c.label])),
+    },
+    badges: {
+      ...STATUS_BADGE,
+      ...Object.fromEntries(sorted.map((c) => [c.key, c.badge])),
+    },
+  };
+}
+
+// Paleta de cores oferecida no gerenciador de status (badge tailwind).
+export const STATUS_COLOR_PALETTE: { name: string; badge: string }[] = [
+  { name: "Cinza", badge: "bg-slate-200 text-slate-700" },
+  { name: "Azul", badge: "bg-blue-100 text-blue-800" },
+  { name: "Índigo", badge: "bg-indigo-100 text-indigo-800" },
+  { name: "Ciano", badge: "bg-cyan-100 text-cyan-800" },
+  { name: "Verde", badge: "bg-emerald-100 text-emerald-800" },
+  { name: "Âmbar", badge: "bg-amber-100 text-amber-800" },
+  { name: "Laranja", badge: "bg-orange-500 text-white" },
+  { name: "Rosa", badge: "bg-pink-100 text-pink-800" },
+  { name: "Roxo", badge: "bg-purple-100 text-purple-800" },
+  { name: "Vermelho", badge: "bg-red-100 text-red-800" },
+];
 
 // Próximo status de follow up dado o status atual — usado pra auto-avanço ao
 // agendar um follow_up_at sem mexer no status na mão.

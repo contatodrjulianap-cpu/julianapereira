@@ -6,15 +6,14 @@ import {
   ARCH_BADGE,
   ARCH_LABEL,
   LeadModal,
-  STATUS_BADGE,
-  STATUS_LABEL,
-  STATUS_OPTIONS,
   ENGAGED_STATUSES,
   fmtBRL,
   whatsLink,
   type LeadFull,
 } from "../lead-modal";
+import { mergeStatuses, type CustomStatus } from "@/lib/lead-status";
 import { PipelineKanban } from "./pipeline-kanban";
+import { StatusManagerModal } from "./status-manager";
 
 type ViewMode = "list" | "kanban";
 const VIEW_KEY = "sakura.pipeline.view";
@@ -33,7 +32,6 @@ export type PipelineLead = LeadFull;
 export type CrmUser = { id: string; display_name: string; role: string };
 
 const ARCH_OPTIONS = ["all", "PRONTA", "ESPERANCOSA", "CETICA"] as const;
-const STATUS_FILTER_OPTIONS = ["all", ...STATUS_OPTIONS] as const;
 
 const DATE_OPTIONS = ["all", "today", "yesterday", "7d", "30d", "90d"] as const;
 type DatePreset = (typeof DATE_OPTIONS)[number];
@@ -129,11 +127,22 @@ export function PipelineView({
   initialLeads,
   users = [],
   isAdmin = false,
+  initialCustomStatuses = [],
 }: {
   initialLeads: PipelineLead[];
   users?: CrmUser[];
   isAdmin?: boolean;
+  initialCustomStatuses?: CustomStatus[];
 }) {
+  // Status efetivos = sistema + custom (criados no CRM). Recalcula ao editar.
+  const [customStatuses, setCustomStatuses] =
+    useState<CustomStatus[]>(initialCustomStatuses);
+  const [showStatusManager, setShowStatusManager] = useState(false);
+  const {
+    options: statusOptions,
+    labels: statusLabels,
+    badges: statusBadges,
+  } = useMemo(() => mergeStatuses(customStatuses), [customStatuses]);
   const usersById = useMemo(() => {
     const map: Record<string, CrmUser> = {};
     for (const u of users) map[u.id] = u;
@@ -147,8 +156,7 @@ export function PipelineView({
   const [editing, setEditing] = useState<PipelineLead | null>(null);
   const [search, setSearch] = useState("");
   const [filterArch, setFilterArch] = useState<(typeof ARCH_OPTIONS)[number]>("all");
-  const [filterStatus, setFilterStatus] =
-    useState<(typeof STATUS_FILTER_OPTIONS)[number]>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
   const [filterDate, setFilterDate] = useState<DatePreset>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -308,7 +316,7 @@ export function PipelineView({
   // Contagem por status (pra pills de filtro)
   const countByStatus = useMemo(() => {
     const map: Record<string, number> = { all: leads.length };
-    STATUS_OPTIONS.forEach((s) => {
+    statusOptions.forEach((s) => {
       map[s] = leads.filter((l) => (l.status ?? "new") === s).length;
     });
     return map;
@@ -419,6 +427,13 @@ export function PipelineView({
               🗂️ Kanban
             </button>
           </div>
+          <button
+            onClick={() => setShowStatusManager(true)}
+            className="px-3 py-2 text-sm rounded-md bg-white border border-slate-200 hover:border-slate-400"
+            title="Criar/editar status do funil"
+          >
+            ⚙️ Status
+          </button>
           <button
             onClick={exportCsv(leads)}
             className="px-3 py-2 text-sm rounded-md bg-white border border-slate-200 hover:border-slate-400"
@@ -545,17 +560,17 @@ export function PipelineView({
           >
             Todos <span className="opacity-70 ml-1">({countByStatus.all})</span>
           </button>
-          {STATUS_OPTIONS.map((s) => (
+          {statusOptions.map((s) => (
             <button
               key={s}
               onClick={() => setFilterStatus(s)}
               className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ring-1 ${
                 filterStatus === s
-                  ? `${STATUS_BADGE[s]} ring-current`
+                  ? `${statusBadges[s]} ring-current`
                   : "bg-white text-slate-700 ring-slate-300 hover:ring-slate-400"
               }`}
             >
-              {STATUS_LABEL[s]}{" "}
+              {statusLabels[s]}{" "}
               <span className="opacity-70 ml-1">({countByStatus[s] ?? 0})</span>
             </button>
           ))}
@@ -568,6 +583,9 @@ export function PipelineView({
           usersById={usersById}
           onCardClick={(l) => setEditing(l)}
           onStatusChange={updateStatus}
+          statusOptions={statusOptions}
+          statusLabels={statusLabels}
+          statusBadges={statusBadges}
         />
       )}
 
@@ -639,11 +657,11 @@ export function PipelineView({
                       updateStatus(l.id, e.target.value);
                     }}
                     aria-label="Status"
-                    className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${STATUS_BADGE[l.status ?? "new"]}`}
+                    className={`flex-shrink-0 px-2 py-1 rounded-full text-[10px] font-semibold cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${statusBadges[l.status ?? "new"]}`}
                   >
-                    {STATUS_OPTIONS.map((s) => (
+                    {statusOptions.map((s) => (
                       <option key={s} value={s}>
-                        {STATUS_LABEL[s]}
+                        {statusLabels[s]}
                       </option>
                     ))}
                   </select>
@@ -791,11 +809,11 @@ export function PipelineView({
                       value={l.status ?? "new"}
                       onChange={(e) => updateStatus(l.id, e.target.value)}
                       aria-label={`Status de ${l.name ?? l.phone}`}
-                      className={`text-[11px] font-semibold rounded-full px-2.5 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${STATUS_BADGE[l.status ?? "new"]}`}
+                      className={`text-[11px] font-semibold rounded-full px-2.5 py-1 cursor-pointer focus:outline-none focus:ring-2 focus:ring-slate-400 ${statusBadges[l.status ?? "new"]}`}
                     >
-                      {STATUS_OPTIONS.map((s) => (
+                      {statusOptions.map((s) => (
                         <option key={s} value={s}>
-                          {STATUS_LABEL[s]}
+                          {statusLabels[s]}
                         </option>
                       ))}
                     </select>
@@ -877,6 +895,17 @@ export function PipelineView({
             );
             setEditing(updated);
           }}
+          statusOptions={statusOptions}
+          statusLabels={statusLabels}
+          statusBadges={statusBadges}
+        />
+      )}
+
+      {showStatusManager && (
+        <StatusManagerModal
+          statuses={customStatuses}
+          onClose={() => setShowStatusManager(false)}
+          onChange={setCustomStatuses}
         />
       )}
     </div>

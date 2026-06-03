@@ -2,31 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { logEvent } from "@/lib/event-log";
-import { nextFollowUpStatus } from "@/lib/lead-status";
+import { nextFollowUpStatus, SYSTEM_STATUS_KEYS } from "@/lib/lead-status";
 
 const PatchBody = z.object({
   name: z.string().max(200).nullable().optional(),
-  status: z
-    .enum([
-      "new",
-      "contacted",
-      "qualified",
-      "scheduled",
-      "attended",
-      "follow_up_1",
-      "follow_up_2",
-      "follow_up_3",
-      "follow_up_4",
-      "follow_up_5",
-      "follow_up_6",
-      "follow_up_7",
-      "hot",
-      "won",
-      "lost",
-      "disqualified",
-      "proposal", // legado — aceito até a migração propagar
-    ])
-    .optional(),
+  // Status é texto livre: pode ser de sistema OU custom (tabela
+  // custom_lead_statuses). Validamos a pertinência abaixo, depois do parse.
+  status: z.string().min(1).max(60).optional(),
   assigned_to: z.string().nullable().optional(),
   assigned_owner_id: z.string().uuid().nullable().optional(),
   next_contact_at: z.string().nullable().optional(), // ISO date 'YYYY-MM-DD'
@@ -66,6 +48,20 @@ export async function PATCH(
   }
 
   const admin = createServiceClient();
+
+  // Valida status: sistema (lista hardcoded) ou custom ativo (tabela). Custom
+  // sempre tem prefixo "c_"; se não for de sistema, confere no banco.
+  if (parsed.data.status !== undefined && !SYSTEM_STATUS_KEYS.has(parsed.data.status)) {
+    const { data: cs } = await admin
+      .from("custom_lead_statuses")
+      .select("key")
+      .eq("key", parsed.data.status)
+      .eq("active", true)
+      .maybeSingle();
+    if (!cs) {
+      return NextResponse.json({ error: "status inválido" }, { status: 400 });
+    }
+  }
 
   // Auto-avanço de follow up: ao agendar um follow_up_at (não-nulo) sem mexer no
   // status na mão, sobe o lead pro próximo "Follow up N". Drag no kanban manda
