@@ -14,6 +14,32 @@ import {
 import { mergeStatuses, type CustomStatus } from "@/lib/lead-status";
 import { PipelineKanban } from "./pipeline-kanban";
 import { StatusManagerModal } from "./status-manager";
+import { BottomSheet } from "../conversas/bottom-sheet";
+
+// Emojis dos arquétipos/origens/data pros gatilhos e opções dos filtros.
+const ARCH_EMOJI: Record<string, string> = {
+  all: "🎯",
+  PRONTA: "🔥",
+  ESPERANCOSA: "🌱",
+  CETICA: "🤔",
+};
+const ORIGIN_EMOJI: Record<string, string> = {
+  all: "🌐",
+  quiz_resina: "🦷",
+  quiz_porcelana: "💎",
+  whatsapp: "🟢",
+  kiwify: "🛒",
+  vendas: "📄",
+  outros: "•",
+};
+const DATE_EMOJI: Record<string, string> = {
+  all: "📅",
+  today: "🔥",
+  yesterday: "🕐",
+  "7d": "📆",
+  "30d": "🗓️",
+  "90d": "📊",
+};
 
 type ViewMode = "list" | "kanban";
 const VIEW_KEY = "sakura.pipeline.view";
@@ -160,6 +186,10 @@ export function PipelineView({
   const [filterOrigin, setFilterOrigin] = useState<OriginGroup>("all");
   const [filterDate, setFilterDate] = useState<DatePreset>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  // Qual grupo de filtro está com o sheet de opções aberto (null = fechado).
+  const [openFilter, setOpenFilter] = useState<
+    "arch" | "owner" | "origin" | "date" | "status" | null
+  >(null);
 
   // Hydrata viewMode do localStorage (uma vez no mount)
   useEffect(() => {
@@ -379,6 +409,119 @@ export function PipelineView({
     };
   }, [leads]);
 
+  // ===== Filtros compactos (1 linha de ícones → BottomSheet com as opções) =====
+  type FacetOption = { key: string; label: string; emoji?: string; count?: number };
+  type Facet = {
+    title: string;
+    value: string;
+    onSelect: (k: string) => void;
+    options: FacetOption[];
+  };
+  const facets: Record<"arch" | "owner" | "origin" | "date" | "status", Facet> = {
+    arch: {
+      title: "Arquétipo",
+      value: filterArch,
+      onSelect: (k) => setFilterArch(k as (typeof ARCH_OPTIONS)[number]),
+      options: ARCH_OPTIONS.map((a) => ({
+        key: a,
+        label: a === "all" ? "Todos" : ARCH_LABEL[a as keyof typeof ARCH_LABEL],
+        emoji: ARCH_EMOJI[a],
+      })),
+    },
+    owner: {
+      title: "Atendente",
+      value: filterOwner,
+      onSelect: (k) => setFilterOwner(k),
+      options: [
+        { key: "all", label: "Todas", emoji: "👥" },
+        ...salesUsers.map((u) => ({ key: u.id, label: u.display_name, emoji: "👤" })),
+      ],
+    },
+    origin: {
+      title: "Origem",
+      value: filterOrigin,
+      onSelect: (k) => setFilterOrigin(k as OriginGroup),
+      options: ORIGIN_OPTIONS.map((g) => ({
+        key: g,
+        label: ORIGIN_LABELS[g],
+        emoji: ORIGIN_EMOJI[g],
+        count: countByOrigin[g] ?? 0,
+      })),
+    },
+    date: {
+      title: "Data de entrada",
+      value: filterDate,
+      onSelect: (k) => setFilterDate(k as DatePreset),
+      options: DATE_OPTIONS.map((p) => ({
+        key: p,
+        label: DATE_LABELS[p],
+        emoji: DATE_EMOJI[p],
+        count: countByDate[p],
+      })),
+    },
+    status: {
+      title: "Status no funil",
+      value: filterStatus,
+      onSelect: (k) => setFilterStatus(k),
+      options: [
+        { key: "all", label: "Todos", emoji: "📋", count: countByStatus.all },
+        ...statusOptions.map((s) => ({
+          key: s,
+          label: statusLabels[s],
+          count: countByStatus[s] ?? 0,
+        })),
+      ],
+    },
+  };
+  const triggers: Array<{
+    key: "arch" | "owner" | "origin" | "date" | "status";
+    emoji: string;
+    label: string;
+    active: boolean;
+    selLabel?: string;
+  }> = [
+    {
+      key: "status",
+      emoji: "📊",
+      label: "Status",
+      active: filterStatus !== "all",
+      selLabel: facets.status.options.find((o) => o.key === filterStatus)?.label,
+    },
+    {
+      key: "origin",
+      emoji: "🌐",
+      label: "Origem",
+      active: filterOrigin !== "all",
+      selLabel: ORIGIN_LABELS[filterOrigin],
+    },
+    {
+      key: "date",
+      emoji: "📅",
+      label: "Data",
+      active: filterDate !== "all",
+      selLabel: DATE_LABELS[filterDate],
+    },
+    {
+      key: "arch",
+      emoji: "🎯",
+      label: "Arquétipo",
+      active: filterArch !== "all",
+      selLabel: filterArch === "all" ? undefined : ARCH_LABEL[filterArch],
+    },
+    ...(isAdmin && salesUsers.length > 0
+      ? [
+          {
+            key: "owner" as const,
+            emoji: "👤",
+            label: "Atendente",
+            active: filterOwner !== "all",
+            selLabel: salesUsers.find((u) => u.id === filterOwner)?.display_name,
+          },
+        ]
+      : []),
+  ];
+  const openFacet = openFilter ? facets[openFilter] : null;
+
   return (
     <div className="max-w-[1280px] mx-auto px-5 lg:px-8 py-6 w-full">
       {/* Header da view */}
@@ -457,8 +600,8 @@ export function PipelineView({
         />
       </section>
 
-      {/* Filtros */}
-      <section className="bg-white border border-slate-200 rounded-md p-3 mb-3 flex flex-col md:flex-row md:flex-wrap md:items-center gap-2">
+      {/* Filtros compactos: busca + 1 linha de ícones (toque abre as opções) */}
+      <section className="bg-white border border-slate-200 rounded-md p-3 mb-3 flex flex-col md:flex-row md:items-center gap-2">
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -466,116 +609,74 @@ export function PipelineView({
           className="w-full md:flex-1 md:min-w-[200px] px-3 py-2.5 md:py-2 text-base md:text-sm border border-slate-200 rounded-md outline-none focus:border-slate-900"
         />
         <div className="-mx-3 md:mx-0 px-3 md:px-0 overflow-x-auto md:overflow-visible">
-          <div className="flex gap-1 md:flex-wrap whitespace-nowrap">
-            {ARCH_OPTIONS.map((a) => (
+          <div className="flex items-center gap-2 whitespace-nowrap">
+            {triggers.map((t) => (
               <button
-                key={a}
-                onClick={() => setFilterArch(a)}
-                className={`flex-shrink-0 px-3 py-2 md:py-1.5 text-xs rounded-md border transition ${
-                  filterArch === a
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-slate-400"
+                key={t.key}
+                onClick={() => setOpenFilter(t.key)}
+                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
+                  t.active
+                    ? "text-white"
+                    : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
                 }`}
+                style={t.active ? { background: "var(--sakura-rose-2,#a06a56)" } : undefined}
               >
-                {a === "all" ? "Todos" : ARCH_LABEL[a as keyof typeof ARCH_LABEL]}
+                <span className="text-[15px]">{t.emoji}</span>
+                <span className="max-w-[120px] truncate">
+                  {t.active ? t.selLabel ?? t.label : t.label}
+                </span>
+                <span className="text-[9px] opacity-60">▾</span>
               </button>
             ))}
           </div>
         </div>
-        {isAdmin && salesUsers.length > 0 && (
-          <select
-            value={filterOwner}
-            onChange={(e) => setFilterOwner(e.target.value)}
-            className="w-full md:w-auto px-3 py-2.5 md:py-2 text-base md:text-sm border border-slate-200 rounded-md outline-none"
-          >
-            <option value="all">Todas as atendentes</option>
-            {salesUsers.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.display_name}
-              </option>
-            ))}
-          </select>
-        )}
       </section>
 
-      {/* Aba de origem: pills com contagem */}
-      <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-2 overflow-x-auto md:overflow-visible">
-        <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
-            Origem:
-          </span>
-          {ORIGIN_OPTIONS.map((g) => (
-            <button
-              key={g}
-              onClick={() => setFilterOrigin(g)}
-              className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
-                filterOrigin === g
-                  ? "bg-amber-600 text-white"
-                  : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
-              }`}
-            >
-              {ORIGIN_LABELS[g]}{" "}
-              <span className="opacity-70 ml-1">({countByOrigin[g] ?? 0})</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Aba de data: filtro por created_at do lead (presets) */}
-      <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-2 overflow-x-auto md:overflow-visible">
-        <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
-            Data:
-          </span>
-          {DATE_OPTIONS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setFilterDate(p)}
-              className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
-                filterDate === p
-                  ? "bg-sky-600 text-white"
-                  : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
-              }`}
-            >
-              {DATE_LABELS[p]}{" "}
-              <span className="opacity-70 ml-1">({countByDate[p]})</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Aba de status: pills com contagem (clica e filtra) */}
-      <div className="-mx-5 lg:-mx-8 md:mx-0 px-5 lg:px-8 md:px-0 mb-3 overflow-x-auto md:overflow-visible">
-        <div className="flex items-center gap-2 md:flex-wrap whitespace-nowrap">
-          <span className="text-[10px] uppercase tracking-[0.18em] text-slate-500 font-semibold mr-1 flex-shrink-0 hidden md:inline">
-            Status:
-          </span>
-          <button
-            onClick={() => setFilterStatus("all")}
-            className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
-              filterStatus === "all"
-                ? "bg-slate-900 text-white"
-                : "bg-white text-slate-700 ring-1 ring-slate-300"
-            }`}
-          >
-            Todos <span className="opacity-70 ml-1">({countByStatus.all})</span>
-          </button>
-          {statusOptions.map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilterStatus(s)}
-              className={`flex-shrink-0 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ring-1 ${
-                filterStatus === s
-                  ? `${statusBadges[s]} ring-current`
-                  : "bg-white text-slate-700 ring-slate-300 hover:ring-slate-400"
-              }`}
-            >
-              {statusLabels[s]}{" "}
-              <span className="opacity-70 ml-1">({countByStatus[s] ?? 0})</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      <BottomSheet open={openFilter !== null} onClose={() => setOpenFilter(null)}>
+        {openFacet && (
+          <div className="px-3 pb-4">
+            <h3 className="px-2 pb-2 text-base font-semibold text-slate-900">
+              {openFacet.title}
+            </h3>
+            <div className="flex flex-col gap-0.5">
+              {openFacet.options.map((o) => {
+                const isActive = o.key === openFacet.value;
+                return (
+                  <button
+                    key={o.key}
+                    onClick={() => {
+                      openFacet.onSelect(o.key);
+                      setOpenFilter(null);
+                    }}
+                    className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl text-left transition active:bg-slate-100"
+                    style={{
+                      background: isActive ? "var(--sakura-cream,#fbf6ee)" : "transparent",
+                    }}
+                  >
+                    <span className="flex items-center gap-2.5 text-[15px] font-medium text-slate-800">
+                      {o.emoji && <span className="text-[18px]">{o.emoji}</span>}
+                      {o.label}
+                    </span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      {o.count !== undefined && (
+                        <span className="text-[13px] text-slate-400">{o.count}</span>
+                      )}
+                      {isActive && (
+                        <span
+                          className="font-bold"
+                          style={{ color: "var(--sakura-rose-2,#a06a56)" }}
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </BottomSheet>
 
       {viewMode === "kanban" && (
         <PipelineKanban
