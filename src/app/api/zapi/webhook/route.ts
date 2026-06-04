@@ -210,17 +210,20 @@ export async function POST(req: NextRequest) {
     ? await ownerForInstance(payload.instanceId)
     : null;
 
-  // Quando o echo outbound vem com phone=@lid, NÃO cria lead novo — procura
-  // primeiro lead existente cujo histórico contém o mesmo chatLid (sinal de
-  // que é a mesma conversa). Evita o bug em que mensagens da atendente
-  // criavam um lead "sem nome" paralelo ao lead real do paciente.
+  // Dedup da migração de LID do WhatsApp: o mesmo contato chega ora pelo número
+  // real (phone=55..., com chatLid de sidecar), ora só pelo LID (phone=NNN@lid).
+  // Sem tratamento isso cria DUAS linhas de lead pro mesmo humano. Quando a msg
+  // vem como @lid (inbound puro OU eco outbound), procura o lead real cujas
+  // mensagens já carregaram esse chatLid e usa ele — em vez de criar fantasma.
+  // O identificador @lid é o próprio phone quando isLid, senão o payload.chatLid.
+  const lidKey = isLid ? rawPhone : payload.chatLid ?? null;
   let existingLeadIdForLid: string | null = null;
-  if (isLid && isOutboundEcho && payload.chatLid) {
+  if (isLid && lidKey) {
     const { data: match } = await supabase
       .from("messages")
       .select("lead_id")
-      .eq("raw->>chatLid", payload.chatLid)
-      .neq("raw->>phone", rawPhone)
+      .eq("raw->>chatLid", lidKey)
+      .neq("raw->>phone", lidKey) // o lead real tem phone real, não o @lid
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -309,6 +312,29 @@ export async function POST(req: NextRequest) {
       { error: leadErr?.message ?? "no lead returned" },
       { status: 500 },
     );
+  }
+
+  // Self-heal reverso da migração de LID: se a msg veio com número real E um
+  // chatLid (o vínculo @lid<->real), absorve qualquer ghost @lid pré-existente
+  // (lead cujo phone == chatLid) movendo mensagens + auditoria pra cá. Cobre o
+  // caso em que o ghost @lid foi criado ANTES do lead real existir. Em try/catch
+  // pra nunca derrubar a ingestão da mensagem atual (colisão de zapi_message_id
+  // é teoricamente impossível: cada msg física tem 1 id e 1 formato de phone).
+  if (!isLid && payload.chatLid) {
+    try {
+      const { data: ghost } = await supabase
+        .from("leads")
+        .select("id")
+        .eq("phone", payload.chatLid)
+        .maybeSingle();
+      if (ghost && ghost.id !== lead.id) {
+        await supabase.from("messages").update({ lead_id: lead.id }).eq("lead_id", ghost.id);
+        await supabase.from("event_log").update({ lead_id: lead.id }).eq("lead_id", ghost.id);
+        await supabase.from("leads").delete().eq("id", ghost.id);
+      }
+    } catch {
+      // ignora: a ingestão da mensagem segue normalmente abaixo
+    }
   }
 
   const parsed = await parseAndStoreMedia(payload, lead.id, supabase);
