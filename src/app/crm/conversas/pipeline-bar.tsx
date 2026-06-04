@@ -12,7 +12,7 @@ export type Bucket =
   | "perdidos"
   | "desqualificados";
 
-const BUCKETS: Array<{ key: Bucket; label: string; emoji: string }> = [
+export const BUCKETS: Array<{ key: Bucket; label: string; emoji: string }> = [
   { key: "todos", label: "Todos", emoji: "💬" },
   { key: "novos", label: "Novos", emoji: "🆕" },
   { key: "em_contato", label: "Em contato", emoji: "🤝" },

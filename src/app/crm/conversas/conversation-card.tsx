@@ -378,7 +378,7 @@ export const ConversationCard = memo(function ConversationCard({
             </p>
             {unread && (
               <span className="shrink-0 inline-flex items-center gap-1 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                ● novo
+                ● não lida
               </span>
             )}
           </div>

@@ -159,3 +159,13 @@
     font-size: 16px !important;
   }
 }
+/* ====================================================================
+   Scroll horizontal sem barra visível (linha de filtros / chips)
+==================================================================== */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

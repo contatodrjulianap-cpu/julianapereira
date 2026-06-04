@@ -6,13 +6,14 @@ import type { LeadFull } from "../lead-modal";
 import type { LastMessage } from "./load-leads";
 import { ConversationCard } from "./conversation-card";
 import {
-  PipelineBar,
   bucketOf,
   countByBucket,
+  BUCKETS,
   type Bucket,
 } from "./pipeline-bar";
 import { LeadActionsSheet, type LeadActionPayload } from "./lead-actions-sheet";
 import { NewConversationLauncher } from "./new-conversation";
+import { BottomSheet } from "./bottom-sheet";
 
 type LeadCard = LeadFull & {
   selfie_signed_url?: string | null;
@@ -20,10 +21,11 @@ type LeadCard = LeadFull & {
   unread?: boolean;
 };
 
-type UrgencyFilter = "todos" | "hoje" | "vencidos" | "proximos" | "frios";
+type UrgencyFilter = "todos" | "nao_lidas" | "hoje" | "vencidos" | "proximos" | "frios";
 
 const URGENCY_CHIPS: Array<{ key: UrgencyFilter; emoji: string; label: string }> = [
   { key: "todos", emoji: "📋", label: "Tudo" },
+  { key: "nao_lidas", emoji: "🟢", label: "Não lidas" },
   { key: "hoje", emoji: "🔥", label: "Hoje" },
   { key: "vencidos", emoji: "⚠️", label: "Vencidos" },
   { key: "proximos", emoji: "📅", label: "Próx. 3d" },
@@ -38,6 +40,8 @@ function startOfToday(): Date {
 
 function matchesUrgency(lead: LeadCard, filter: UrgencyFilter): boolean {
   if (filter === "todos") return true;
+  // "Não lidas" independe de status (até um won pode ter msg nova não lida).
+  if (filter === "nao_lidas") return !!lead.unread;
   const isFinal =
     lead.status === "won" || lead.status === "lost" || lead.status === "disqualified";
   if (isFinal) return false;
@@ -98,6 +102,10 @@ export function ConversationList({
   const [bucket, setBucket] = useState<Bucket>(initialBucket);
   const [urgency, setUrgency] = useState<UrgencyFilter>(initialUrgency);
   const [ownerFilter, setOwnerFilter] = useState<string>(initialOwner);
+  // Qual grupo de filtro está com o sheet de opções aberto (null = fechado).
+  const [openFilter, setOpenFilter] = useState<
+    "urgency" | "bucket" | "owner" | null
+  >(null);
   const [sheetLead, setSheetLead] = useState<LeadCard | null>(null);
   // Janela: renderiza só os primeiros N cards (cada um é motion.div pesado).
   // Sem isso, ~2k cards travam o Safari ao abrir modal / teclado.
@@ -149,12 +157,14 @@ export function ConversationList({
     const base = leads.filter((l) => matchesFilters(l, "urgency", q));
     const out: Record<UrgencyFilter, number> = {
       todos: base.length,
+      nao_lidas: 0,
       hoje: 0,
       vencidos: 0,
       proximos: 0,
       frios: 0,
     };
     for (const l of base) {
+      if (matchesUrgency(l, "nao_lidas")) out.nao_lidas++;
       if (matchesUrgency(l, "hoje")) out.hoje++;
       if (matchesUrgency(l, "vencidos")) out.vencidos++;
       if (matchesUrgency(l, "proximos")) out.proximos++;
@@ -242,6 +252,92 @@ export function ConversationList({
     }
   }
 
+  // Opções de atendente (admin): Todas + cada atendente + sem atendente.
+  const ownerOptions = [
+    { key: "todos", label: "Todas", emoji: "👥" },
+    ...attendants.map((a) => ({
+      key: a.id,
+      label: a.display_name ?? "Sem nome",
+      emoji: "👤",
+    })),
+    { key: "_unassigned", label: "Sem atendente", emoji: "🚫" },
+  ];
+
+  // Definição dos 3 grupos de filtro: título do sheet, valor atual, setter e
+  // a lista de opções (com emoji + contagem). Indexado por openFilter.
+  type FacetOption = { key: string; label: string; emoji?: string; count: number };
+  const facets: Record<
+    "urgency" | "bucket" | "owner",
+    { title: string; value: string; onSelect: (k: string) => void; options: FacetOption[] }
+  > = {
+    urgency: {
+      title: "Quando chamar",
+      value: urgency,
+      onSelect: (k) => setUrgency(k as UrgencyFilter),
+      options: URGENCY_CHIPS.map((c) => ({
+        key: c.key,
+        label: c.label,
+        emoji: c.emoji,
+        count: urgencyCounts[c.key] ?? 0,
+      })),
+    },
+    bucket: {
+      title: "Etapa no funil",
+      value: bucket,
+      onSelect: (k) => setBucket(k as Bucket),
+      options: BUCKETS.map((b) => ({
+        key: b.key,
+        label: b.label,
+        emoji: b.emoji,
+        count: counts[b.key] ?? 0,
+      })),
+    },
+    owner: {
+      title: "Atendente",
+      value: ownerFilter,
+      onSelect: (k) => setOwnerFilter(k),
+      options: ownerOptions.map((o) => ({ ...o, count: ownerCounts[o.key] ?? 0 })),
+    },
+  };
+
+  // Gatilhos (ícones) da linha única. Cada um mostra o emoji + a seleção atual
+  // (ou o nome do grupo, quando no default "todos"). "owner" só pra admin.
+  const triggers: Array<{
+    key: "urgency" | "bucket" | "owner";
+    emoji: string;
+    label: string;
+    active: boolean;
+    selLabel?: string;
+  }> = [
+    {
+      key: "urgency",
+      emoji: "⏰",
+      label: "Quando",
+      active: urgency !== "todos",
+      selLabel: URGENCY_CHIPS.find((c) => c.key === urgency)?.label,
+    },
+    {
+      key: "bucket",
+      emoji: "📊",
+      label: "Funil",
+      active: bucket !== "todos",
+      selLabel: BUCKETS.find((b) => b.key === bucket)?.label,
+    },
+    ...(isAdmin && attendants.length > 0
+      ? [
+          {
+            key: "owner" as const,
+            emoji: "👤",
+            label: "Atendente",
+            active: ownerFilter !== "todos",
+            selLabel: ownerOptions.find((o) => o.key === ownerFilter)?.label,
+          },
+        ]
+      : []),
+  ];
+
+  const openFacet = openFilter ? facets[openFilter] : null;
+
   return (
     <div className="relative flex-1 flex flex-col bg-white min-h-0 min-w-0 overflow-x-hidden w-full">
       <header className="md:hidden sticky top-0 z-10 bg-white border-b border-slate-100 px-4 py-3 flex items-center justify-between">
@@ -251,99 +347,74 @@ export function ConversationList({
         <NewConversationLauncher variant="header" />
       </header>
 
-      {/* Barra de urgência (Hoje / Vencidos / Próximos / Frios) */}
-      <div className="bg-white">
-        <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
-          Quando chamar
-        </p>
-        <div className="overflow-x-auto"><div className="flex gap-2 px-3 pb-2 min-w-max">
-          {URGENCY_CHIPS.map((c) => {
-            const isActive = urgency === c.key;
-            const count = urgencyCounts[c.key];
-            return (
-              <button
-                key={c.key}
-                onClick={() => setUrgency(c.key)}
-                className="px-3 py-1.5 rounded-full transition shrink-0 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1.5"
-                style={{
-                  background: isActive
-                    ? "var(--sakura-rose-2,#a06a56)"
-                    : "rgb(241 245 249)",
-                  color: isActive ? "white" : "rgb(51 65 85)",
-                }}
-              >
-                <span className="text-[14px]">{c.emoji}</span>
-                {c.label}
-                <span
-                  className="px-1.5 py-0.5 rounded-full text-[10px]"
-                  style={{
-                    background: isActive
-                      ? "rgba(255,255,255,0.18)"
-                      : "rgb(226 232 240)",
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        </div>
+      {/* Filtros compactos: 1 ícone por grupo, toca pra abrir as opções */}
+      <div className="bg-white border-b border-slate-100 flex items-center gap-2 px-3 py-2 overflow-x-auto no-scrollbar">
+        {triggers.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setOpenFilter(t.key)}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition"
+            style={{
+              background: t.active
+                ? "var(--sakura-rose-2,#a06a56)"
+                : "rgb(241 245 249)",
+              color: t.active ? "white" : "rgb(51 65 85)",
+            }}
+          >
+            <span className="text-[15px]">{t.emoji}</span>
+            <span className="max-w-[110px] truncate">
+              {t.active ? t.selLabel ?? t.label : t.label}
+            </span>
+            <span className="text-[9px] opacity-60">▾</span>
+          </button>
+        ))}
       </div>
 
-      {isAdmin && attendants.length > 0 && (
-        <div className="bg-white border-t border-slate-100">
-          <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
-            Atendente
-          </p>
-          <div className="overflow-x-auto"><div className="flex gap-2 px-3 pb-2 min-w-max">
-            {[
-              { id: "todos", label: "Todas" },
-              ...attendants.map((a) => ({
-                id: a.id,
-                label: a.display_name ?? "Sem nome",
-              })),
-              { id: "_unassigned", label: "Sem atendente" },
-            ].map((opt) => {
-              const isActive = ownerFilter === opt.id;
-              const count = ownerCounts[opt.id] ?? 0;
-              return (
-                <button
-                  key={opt.id}
-                  onClick={() => setOwnerFilter(opt.id)}
-                  className="px-3 py-1.5 rounded-full transition shrink-0 text-[11px] font-semibold whitespace-nowrap flex items-center gap-1.5"
-                  style={{
-                    background: isActive
-                      ? "var(--sakura-rose-2,#a06a56)"
-                      : "rgb(241 245 249)",
-                    color: isActive ? "white" : "rgb(51 65 85)",
-                  }}
-                >
-                  {opt.label}
-                  <span
-                    className="px-1.5 py-0.5 rounded-full text-[10px]"
+      <BottomSheet open={openFilter !== null} onClose={() => setOpenFilter(null)}>
+        {openFacet && (
+          <div className="px-3 pb-4">
+            <h3 className="px-2 pb-2 text-base font-semibold text-slate-900">
+              {openFacet.title}
+            </h3>
+            <div className="flex flex-col gap-0.5">
+              {openFacet.options.map((o) => {
+                const isActive = o.key === openFacet.value;
+                return (
+                  <button
+                    key={o.key}
+                    onClick={() => {
+                      openFacet.onSelect(o.key);
+                      setOpenFilter(null);
+                    }}
+                    className="flex items-center justify-between gap-3 px-3 py-3 rounded-xl text-left transition active:bg-slate-100"
                     style={{
                       background: isActive
-                        ? "rgba(255,255,255,0.18)"
-                        : "rgb(226 232 240)",
+                        ? "var(--sakura-cream,#fbf6ee)"
+                        : "transparent",
                     }}
                   >
-                    {count}
-                  </span>
-                </button>
-              );
-            })}
+                    <span className="flex items-center gap-2.5 text-[15px] font-medium text-slate-800">
+                      {o.emoji && <span className="text-[18px]">{o.emoji}</span>}
+                      {o.label}
+                    </span>
+                    <span className="flex items-center gap-2 shrink-0">
+                      <span className="text-[13px] text-slate-400">{o.count}</span>
+                      {isActive && (
+                        <span
+                          className="font-bold"
+                          style={{ color: "var(--sakura-rose-2,#a06a56)" }}
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white border-t border-slate-100">
-        <p className="px-4 pt-3 pb-1.5 text-[9px] uppercase tracking-[1.5px] font-semibold text-slate-400">
-          Etapa no funil
-        </p>
-        <PipelineBar active={bucket} onChange={setBucket} counts={counts} />
-      </div>
+        )}
+      </BottomSheet>
 
       <div className="px-4 py-2 border-b border-slate-100 bg-white">
         <input
