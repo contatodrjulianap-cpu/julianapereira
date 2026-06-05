@@ -372,12 +372,12 @@ function Localizacao() {
 
 function CtaFinal() {
   return (
-    <section className="bg-brand-cocoa py-20 text-center md:py-28">
+    <section className="border-t border-brand-line bg-brand-sand py-20 text-center md:py-28">
       <div className="mx-auto max-w-2xl px-5 sm:px-8">
-        <h2 className="font-serif text-4xl font-normal leading-tight text-brand-ice sm:text-5xl">
+        <h2 className="font-serif text-4xl font-normal leading-tight text-brand-cocoa sm:text-5xl">
           Vamos transformar o seu sorriso?
         </h2>
-        <p className="mt-5 text-lg leading-relaxed text-brand-ice/70">
+        <p className="mt-5 text-lg leading-relaxed text-brand-cocoa/75">
           Comece com uma avaliação. A gente cuida do resto, com calma e
           precisão.
         </p>
@@ -386,13 +386,13 @@ function CtaFinal() {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-full bg-brand-sand px-8 py-3.5 text-sm font-medium text-brand-cocoa transition hover:bg-white sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-full bg-brand-green px-8 py-3.5 text-sm font-medium text-brand-ice transition hover:bg-brand-green-deep sm:w-auto"
           >
             Agendar uma avaliação
           </a>
           <Link
             href="/quiz"
-            className="inline-flex w-full items-center justify-center rounded-full border border-brand-ice/30 px-8 py-3.5 text-sm font-medium text-brand-ice transition hover:bg-white/5 sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-full border border-brand-green/40 px-8 py-3.5 text-sm font-medium text-brand-green transition hover:bg-brand-sand-2 sm:w-auto"
           >
             Descobrir meu tratamento
           </Link>
