@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { CLIENT_CONFIG } from "@/lib/client-config";
-import { SakuraFlower, PetalLayer } from "./_institucional/sakura-art";
 
 const WA_TEXT = encodeURIComponent(
   "Olá! Vim pelo site da Clínica Sakura e gostaria de agendar uma avaliação.",
@@ -70,14 +69,13 @@ function Header() {
 function Hero() {
   return (
     <section id="top" className="relative overflow-hidden bg-brand-green text-brand-ice">
-      <PetalLayer />
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-16 sm:px-8 md:grid-cols-2 md:pb-28 md:pt-24">
         <div className="relative z-10 text-center md:text-left">
           <p className="text-xs tracking-[0.4em] text-brand-sand/80">
             ESTÉTICA DENTAL DE ALTO PADRÃO · SÃO PAULO
           </p>
           <h1 className="mt-6 font-serif text-5xl font-normal leading-[1.05] tracking-tight text-white sm:text-6xl">
-            O sorriso muda a forma como você se vê.
+            O sorriso muda a forma como você e o mundo te vê.
           </h1>
           <p className="mx-auto mt-7 max-w-md text-lg leading-relaxed text-brand-ice/75 md:mx-0">
             Lentes de porcelana e estética dental de precisão, com a
@@ -111,8 +109,6 @@ function Hero() {
               className="h-full w-full object-cover"
             />
           </div>
-          <SakuraFlower className="absolute -left-4 -top-4 h-14 w-14 text-white/80 md:-left-8 md:h-20 md:w-20" />
-          <SakuraFlower className="absolute -bottom-3 right-2 h-9 w-9 text-white/70 md:right-0 md:h-14 md:w-14" />
         </div>
       </div>
     </section>
@@ -123,8 +119,7 @@ function Conceito() {
   return (
     <section id="conceito" className="bg-brand-sand py-20 md:py-28">
       <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
-        <SakuraFlower className="mx-auto h-9 w-9 text-brand-green" />
-        <p className="mt-7 text-xs tracking-[0.4em] text-brand-green">A CLÍNICA</p>
+        <p className="text-xs tracking-[0.4em] text-brand-green">A CLÍNICA</p>
         <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-brand-cocoa sm:text-5xl">
           Autoridade em estética dental,
           <br className="hidden sm:block" /> num novo nível
@@ -185,9 +180,8 @@ function Pilares() {
               key={item.titulo}
               className="rounded-3xl border border-white/12 bg-white/5 p-7 text-center"
             >
-              <SakuraFlower className="mx-auto h-9 w-9 text-white/85" />
-              <p className="mt-3 text-xs tracking-[0.3em] text-brand-sand/70">0{i + 1}</p>
-              <h3 className="mt-2 font-serif text-2xl text-white">{item.titulo}</h3>
+              <p className="text-xs tracking-[0.3em] text-brand-sand/70">0{i + 1}</p>
+              <h3 className="mt-3 font-serif text-2xl text-white">{item.titulo}</h3>
               <p className="mt-2 text-sm leading-relaxed text-brand-ice/70">{item.texto}</p>
             </div>
           ))}
@@ -306,7 +300,6 @@ function Doutora() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/clinica/ju-bio.jpg" alt={CLIENT_CONFIG.professionalName} className="h-full w-full object-cover" />
           </div>
-          <SakuraFlower className="absolute -bottom-4 -right-4 h-14 w-14 text-brand-green" />
         </div>
         <div>
           <p className="text-xs tracking-[0.4em] text-brand-green">A FUNDADORA</p>
@@ -346,8 +339,7 @@ function Localizacao() {
   return (
     <section id="localizacao" className="bg-brand-green py-20 text-brand-ice md:py-28">
       <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
-        <SakuraFlower className="mx-auto h-9 w-9 text-white/85" />
-        <p className="mt-7 text-xs tracking-[0.4em] text-brand-sand/80">ONDE ESTAMOS</p>
+        <p className="text-xs tracking-[0.4em] text-brand-sand/80">ONDE ESTAMOS</p>
         <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-white sm:text-5xl">
           No coração de São Paulo
         </h2>
@@ -381,10 +373,8 @@ function Localizacao() {
 
 function CtaFinal() {
   return (
-    <section className="relative overflow-hidden bg-brand-cocoa py-20 text-center md:py-28">
-      <SakuraFlower className="absolute -left-6 top-8 h-24 w-24 text-white/10" />
-      <SakuraFlower className="absolute -right-4 bottom-6 h-32 w-32 text-white/[0.07]" />
-      <div className="relative mx-auto max-w-2xl px-5 sm:px-8">
+    <section className="bg-brand-cocoa py-20 text-center md:py-28">
+      <div className="mx-auto max-w-2xl px-5 sm:px-8">
         <h2 className="font-serif text-4xl font-normal leading-tight text-brand-ice sm:text-5xl">
           Vamos transformar o seu sorriso?
         </h2>
