@@ -304,12 +304,14 @@ function Casos() {
           {CASOS.map((c) => (
             <figure
               key={c.label}
-              className="overflow-hidden rounded-3xl border border-sakura-hairline bg-sakura-cream-2"
+              className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-sakura-hairline bg-sakura-cream-2"
             >
-              <div className="aspect-[16/10] overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.img} alt={`Antes e depois — ${c.label}`} className="h-full w-full object-cover" />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={c.img}
+                alt={`Antes e depois — ${c.label}`}
+                className="block h-auto w-full"
+              />
               <figcaption className="px-6 py-4 text-center text-sm tracking-wide text-sakura-cocoa-2">
                 Antes e depois · {c.label}
               </figcaption>
