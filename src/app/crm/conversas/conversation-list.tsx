@@ -353,7 +353,7 @@ export function ConversationList({
           <button
             key={t.key}
             onClick={() => setOpenFilter(t.key)}
-            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition"
+            className="shrink-0 flex flex-col items-start px-3 py-1.5 rounded-xl transition"
             style={{
               background: t.active
                 ? "var(--sakura-rose-2,#a06a56)"
@@ -361,11 +361,16 @@ export function ConversationList({
               color: t.active ? "white" : "rgb(51 65 85)",
             }}
           >
-            <span className="text-[15px]">{t.emoji}</span>
-            <span className="max-w-[110px] truncate">
-              {t.active ? t.selLabel ?? t.label : t.label}
+            <span className="text-[9px] uppercase tracking-wide font-semibold opacity-60 leading-none">
+              {t.label}
             </span>
-            <span className="text-[9px] opacity-60">▾</span>
+            <span className="flex items-center gap-1 mt-0.5 leading-tight">
+              <span className="text-[13px]">{t.emoji}</span>
+              <span className="max-w-[110px] truncate text-[12px] font-semibold">
+                {t.selLabel ?? t.label}
+              </span>
+              <span className="text-[8px] opacity-60">▾</span>
+            </span>
           </button>
         ))}
       </div>

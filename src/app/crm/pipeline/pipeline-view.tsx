@@ -506,7 +506,7 @@ export function PipelineView({
       emoji: "🎯",
       label: "Arquétipo",
       active: filterArch !== "all",
-      selLabel: filterArch === "all" ? undefined : ARCH_LABEL[filterArch],
+      selLabel: filterArch === "all" ? "Todos" : ARCH_LABEL[filterArch],
     },
     ...(isAdmin && salesUsers.length > 0
       ? [
@@ -515,7 +515,10 @@ export function PipelineView({
             emoji: "👤",
             label: "Atendente",
             active: filterOwner !== "all",
-            selLabel: salesUsers.find((u) => u.id === filterOwner)?.display_name,
+            selLabel:
+              filterOwner === "all"
+                ? "Todas"
+                : salesUsers.find((u) => u.id === filterOwner)?.display_name,
           },
         ]
       : []),
@@ -614,18 +617,23 @@ export function PipelineView({
               <button
                 key={t.key}
                 onClick={() => setOpenFilter(t.key)}
-                className={`shrink-0 flex items-center gap-1.5 px-3 py-2 md:py-1.5 rounded-full text-xs md:text-[12px] font-semibold transition ${
+                className={`shrink-0 flex flex-col items-start px-3 py-1.5 rounded-xl transition ${
                   t.active
                     ? "text-white"
                     : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-slate-400"
                 }`}
                 style={t.active ? { background: "var(--sakura-rose-2,#a06a56)" } : undefined}
               >
-                <span className="text-[15px]">{t.emoji}</span>
-                <span className="max-w-[120px] truncate">
-                  {t.active ? t.selLabel ?? t.label : t.label}
+                <span className="text-[9px] uppercase tracking-wide font-semibold opacity-60 leading-none">
+                  {t.label}
                 </span>
-                <span className="text-[9px] opacity-60">▾</span>
+                <span className="flex items-center gap-1 mt-0.5 leading-tight">
+                  <span className="text-[13px]">{t.emoji}</span>
+                  <span className="max-w-[120px] truncate text-[12px] font-semibold">
+                    {t.selLabel ?? t.label}
+                  </span>
+                  <span className="text-[8px] opacity-60">▾</span>
+                </span>
               </button>
             ))}
           </div>
