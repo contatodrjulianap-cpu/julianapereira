@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
+import { Geist, Geist_Mono, Gilda_Display } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { FbPixel } from "@/components/fb-pixel";
+import { CLIENT_CONFIG } from "@/lib/client-config";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,19 +16,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const cormorant = Cormorant_Garamond({
-  variable: "--font-cormorant",
-  weight: ["300", "400", "500", "600", "700"],
+// Gilda Display — serif editorial da marca Sakura (títulos). Peso único 400.
+const gilda = Gilda_Display({
+  variable: "--font-gilda",
+  weight: "400",
   subsets: ["latin"],
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Dra. Juliana Pereira",
-  description: "Odontologia estética em São Paulo",
+  title: CLIENT_CONFIG.professionalName,
+  description: CLIENT_CONFIG.tagline,
   appleWebApp: {
     capable: true,
-    title: "Sakura CRM",
+    title: CLIENT_CONFIG.crmName,
     statusBarStyle: "default",
   },
   other: {
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#b08a3e",
+  themeColor: "#414930",
 };
 
 export default function RootLayout({
@@ -47,7 +49,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} ${cormorant.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${gilda.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <FbPixel pixelId={process.env.NEXT_PUBLIC_FB_PIXEL_ID ?? ""} />

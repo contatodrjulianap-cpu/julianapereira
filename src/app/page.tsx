@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CLIENT_CONFIG } from "@/lib/client-config";
-import { SakuraBranch, SakuraFlower, PetalLayer } from "./_institucional/sakura-art";
+import { SakuraFlower, PetalLayer } from "./_institucional/sakura-art";
 
 const WA_TEXT = encodeURIComponent(
   "Olá! Vim pelo site da Clínica Sakura e gostaria de agendar uma avaliação.",
@@ -8,20 +8,23 @@ const WA_TEXT = encodeURIComponent(
 const WHATSAPP_URL = `https://wa.me/${CLIENT_CONFIG.publicWhatsappPhone}?text=${WA_TEXT}`;
 
 export const metadata = {
-  title: `${CLIENT_CONFIG.clinicName} — Odontologia Estética em São Paulo`,
+  title: `${CLIENT_CONFIG.clinicName} — Estética Dental de Alto Padrão`,
   description:
-    "Sorrir é florescer. Lentes de porcelana, facetas em resina, clareamento e harmonização do sorriso com a Dra. Juliana Pereira, na Av. Paulista.",
+    "Lentes de porcelana e estética dental de alto padrão em São Paulo, com a Dra. Juliana Pereira. Resultado natural, elegante e de precisão.",
 };
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-sakura-cream font-sans text-sakura-cocoa antialiased">
+    <div
+      className="min-h-screen bg-brand-sand text-brand-cocoa antialiased"
+      style={{ fontFamily: "var(--font-helvetica)" }}
+    >
       <Header />
       <main>
         <Hero />
         <Conceito />
-        <Galho />
-        <Especialidades />
+        <Pilares />
+        <Tratamentos />
         <Casos />
         <Doutora />
         <Localizacao />
@@ -34,35 +37,28 @@ export default function Home() {
 
 /* ------------------------------------------------------------------ */
 
-function Wordmark({ className = "" }: { className?: string }) {
-  return (
-    <span className={`flex flex-col items-center leading-none ${className}`}>
-      <span className="font-serif text-2xl font-medium tracking-[0.32em] text-sakura-cocoa">
-        SAKURA
-      </span>
-      <span className="mt-1 text-[0.5rem] tracking-[0.42em] text-sakura-cocoa-3">
-        ODONTOLOGIA ESTÉTICA
-      </span>
-    </span>
-  );
-}
-
 function Header() {
   return (
-    <header className="sticky top-0 z-40 border-b border-sakura-hairline/60 bg-sakura-cream/85 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-brand-green/95 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3 sm:px-8">
-        <Wordmark />
-        <nav className="hidden items-center gap-8 text-sm tracking-wide text-sakura-cocoa-2 md:flex">
-          <a href="#conceito" className="transition hover:text-sakura-rose-2">A Sakura</a>
-          <a href="#especialidades" className="transition hover:text-sakura-rose-2">Tratamentos</a>
-          <a href="#casos" className="transition hover:text-sakura-rose-2">Resultados</a>
-          <a href="#localizacao" className="transition hover:text-sakura-rose-2">Onde estamos</a>
+        <a href="#top" className="flex items-center gap-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/clinica/monograma-branco.png" alt={CLIENT_CONFIG.clinicName} className="h-9 w-auto" />
+          <span className="hidden font-serif text-lg tracking-[0.2em] text-brand-ice sm:block">
+            CLÍNICA SAKURA
+          </span>
+        </a>
+        <nav className="hidden items-center gap-8 text-sm tracking-wide text-brand-ice/80 md:flex">
+          <a href="#conceito" className="transition hover:text-white">A clínica</a>
+          <a href="#tratamentos" className="transition hover:text-white">Tratamentos</a>
+          <a href="#casos" className="transition hover:text-white">Resultados</a>
+          <a href="#localizacao" className="transition hover:text-white">Contato</a>
         </nav>
         <a
           href={WHATSAPP_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-full bg-sakura-rose-2 px-5 py-2 text-sm font-medium text-sakura-cream shadow-sm transition hover:bg-sakura-cocoa"
+          className="rounded-full bg-brand-sand px-5 py-2 text-sm font-medium text-brand-green transition hover:bg-white"
         >
           Agendar
         </a>
@@ -73,34 +69,33 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
+    <section id="top" className="relative overflow-hidden bg-brand-green text-brand-ice">
       <PetalLayer />
-      <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 pb-20 pt-16 sm:px-8 md:grid-cols-2 md:pb-28 md:pt-24">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-16 sm:px-8 md:grid-cols-2 md:pb-28 md:pt-24">
         <div className="relative z-10 text-center md:text-left">
-          <p className="text-xs tracking-[0.4em] text-sakura-rose-2">
-            SÃO PAULO · AV. PAULISTA
+          <p className="text-xs tracking-[0.4em] text-brand-sand/80">
+            ESTÉTICA DENTAL DE ALTO PADRÃO · SÃO PAULO
           </p>
-          <h1 className="mt-5 font-serif text-6xl font-medium leading-[0.95] tracking-tight text-sakura-cocoa sm:text-7xl">
-            Sorrir é<br />
-            <span className="text-sakura-rose-2">florescer</span>
+          <h1 className="mt-6 font-serif text-5xl font-normal leading-[1.05] tracking-tight text-white sm:text-6xl">
+            O sorriso muda a forma como você se vê.
           </h1>
-          <p className="mx-auto mt-6 max-w-md text-lg leading-relaxed text-sakura-cocoa-2 md:mx-0">
-            Odontologia estética que floresce no tempo certo. Lentes, facetas em
-            resina, clareamento e harmonização do sorriso, com a precisão e o
-            cuidado da {CLIENT_CONFIG.professionalName}.
+          <p className="mx-auto mt-7 max-w-md text-lg leading-relaxed text-brand-ice/75 md:mx-0">
+            Lentes de porcelana e estética dental de precisão, com a
+            naturalidade e a elegância que são a assinatura da{" "}
+            {CLIENT_CONFIG.professionalName}.
           </p>
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row md:items-start">
             <a
               href={WHATSAPP_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-full items-center justify-center rounded-full bg-sakura-rose-2 px-7 py-3.5 text-sm font-medium text-sakura-cream shadow-sm transition hover:bg-sakura-cocoa sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full bg-brand-sand px-7 py-3.5 text-sm font-medium text-brand-green transition hover:bg-white sm:w-auto"
             >
               Agendar uma avaliação
             </a>
             <Link
               href="/quiz"
-              className="inline-flex w-full items-center justify-center rounded-full border border-sakura-rose-2/40 px-7 py-3.5 text-sm font-medium text-sakura-cocoa transition hover:border-sakura-rose-2 hover:bg-sakura-cream-2 sm:w-auto"
+              className="inline-flex w-full items-center justify-center rounded-full border border-brand-sand/40 px-7 py-3.5 text-sm font-medium text-brand-ice transition hover:border-brand-sand hover:bg-white/5 sm:w-auto"
             >
               Descobrir meu tratamento
             </Link>
@@ -108,7 +103,7 @@ function Hero() {
         </div>
 
         <div className="relative z-10">
-          <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-[2rem] border border-sakura-hairline bg-sakura-cream-2 shadow-xl">
+          <div className="relative mx-auto aspect-[4/5] w-full max-w-sm overflow-hidden rounded-[2rem] border border-white/15 shadow-2xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/clinica/ju-hero.jpg"
@@ -116,8 +111,8 @@ function Hero() {
               className="h-full w-full object-cover"
             />
           </div>
-          <SakuraFlower className="absolute -left-4 -top-4 h-16 w-16 text-sakura-rose/70 md:-left-8 md:h-24 md:w-24" />
-          <SakuraFlower className="absolute -bottom-3 right-2 h-10 w-10 text-sakura-rose/60 md:right-0 md:h-16 md:w-16" />
+          <SakuraFlower className="absolute -left-4 -top-4 h-14 w-14 text-white/80 md:-left-8 md:h-20 md:w-20" />
+          <SakuraFlower className="absolute -bottom-3 right-2 h-9 w-9 text-white/70 md:right-0 md:h-14 md:w-14" />
         </div>
       </div>
     </section>
@@ -126,91 +121,74 @@ function Hero() {
 
 function Conceito() {
   return (
-    <section id="conceito" className="bg-sakura-cream-2 py-20 md:py-28">
+    <section id="conceito" className="bg-brand-sand py-20 md:py-28">
       <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
-        <SakuraBranch className="mx-auto h-10 w-52 text-sakura-rose" />
-        <p className="mt-8 text-xs tracking-[0.4em] text-sakura-rose-2">
-          UMA NOVA ESTAÇÃO
-        </p>
-        <h2 className="mt-4 font-serif text-4xl font-medium leading-tight text-sakura-cocoa sm:text-5xl">
-          A clínica que floresceu
-          <br className="hidden sm:block" /> no tempo certo
+        <SakuraFlower className="mx-auto h-9 w-9 text-brand-green" />
+        <p className="mt-7 text-xs tracking-[0.4em] text-brand-green">A CLÍNICA</p>
+        <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-brand-cocoa sm:text-5xl">
+          Autoridade em estética dental,
+          <br className="hidden sm:block" /> num novo nível
         </h2>
-        <div className="mt-8 space-y-5 text-lg leading-relaxed text-sakura-cocoa-2">
+        <div className="mt-8 space-y-5 text-lg leading-relaxed text-brand-cocoa/80">
           <p>
-            No Japão, a sakura marca a chegada da primavera. Ela anuncia o fim
-            de um ciclo e o começo de outro. Não floresce por acaso, floresce
-            depois de criar raízes, atravessar estações e se preparar em
-            silêncio para transformar a paisagem.
+            A Clínica Sakura nasce como a evolução natural da trajetória da{" "}
+            {CLIENT_CONFIG.professionalName}, consolidando sua autoridade em
+            estética dental em um novo nível: as lentes de porcelana.
           </p>
           <p>
-            Assim nasce esta nova fase: uma clínica maior, com uma equipe mais
-            completa, pronta para acolher mais pacientes. Um lugar que não só
-            transforma sorrisos, mas transborda cuidado, delicadeza, renovação
-            e propósito.
+            A flor de cerejeira traduz a proposta da clínica — beleza,
+            renovação e naturalidade. Transformar sorrisos com leveza e alto
+            padrão técnico, onde nada é por acaso.
           </p>
         </div>
-        <blockquote className="mx-auto mt-10 max-w-xl border-l-2 border-sakura-rose pl-5 text-left font-serif text-2xl italic leading-snug text-sakura-cocoa">
-          “Como a sakura, seu sorriso floresce no momento em que você decide
-          cuidar dele.”
+        <blockquote className="mx-auto mt-10 max-w-xl font-serif text-2xl italic leading-snug text-brand-green">
+          “Nada é excessivo. Tudo é intencional.”
         </blockquote>
       </div>
     </section>
   );
 }
 
-const GALHO_ITENS = [
+const PILARES = [
   {
-    titulo: "A raiz",
-    texto: "A Dra. Juliana, fundadora. A origem, os valores e o padrão que não muda.",
+    titulo: "Resultado natural",
+    texto: "Sorrisos que parecem — e são — seus. Sem exageros, sem artificial.",
   },
   {
-    titulo: "Os galhos",
-    texto: "As especialidades que crescem em direções próprias, da mesma árvore.",
+    titulo: "Alto padrão técnico",
+    texto: "Planejamento digital e execução de precisão em cada caso.",
   },
   {
-    titulo: "Os profissionais",
-    texto: "Cada um com sua área, todos compartilhando a mesma essência.",
+    titulo: "Elegância",
+    texto: "Estética nos detalhes que ninguém vê, mas que todos percebem.",
   },
   {
-    titulo: "As flores",
-    texto: "Os pacientes transformados. Cada sorriso que floresce em cada ponta.",
+    titulo: "Cuidado de perto",
+    texto: "Da avaliação à cimentação, você acompanhada em cada etapa.",
   },
 ];
 
-function Galho() {
+function Pilares() {
   return (
-    <section className="bg-sakura-cream py-20 md:py-28">
+    <section className="bg-brand-green py-20 text-brand-ice md:py-28">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs tracking-[0.4em] text-sakura-rose-2">CRESCIMENTO</p>
-          <h2 className="mt-4 font-serif text-4xl font-medium leading-tight text-sakura-cocoa sm:text-5xl">
-            Uma raiz. Muitos galhos.
-            <br /> Flores em cada ponta.
+          <p className="text-xs tracking-[0.4em] text-brand-sand/80">POR QUE A SAKURA</p>
+          <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-white sm:text-5xl">
+            Elegância é consequência da precisão
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-sakura-cocoa-2">
-            A cerejeira não cresce só para cima. Ela se abre, se ramifica, e
-            quanto mais se ramifica, mais flores produz. Essa é a lógica de
-            crescimento da Sakura.
-          </p>
         </div>
 
         <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-          {GALHO_ITENS.map((item, i) => (
+          {PILARES.map((item, i) => (
             <div
               key={item.titulo}
-              className="rounded-3xl border border-sakura-hairline bg-sakura-cream-2/60 p-7 text-center"
+              className="rounded-3xl border border-white/12 bg-white/5 p-7 text-center"
             >
-              <SakuraFlower className="mx-auto h-10 w-10 text-sakura-rose" />
-              <p className="mt-2 text-xs tracking-[0.3em] text-sakura-rose-2">
-                0{i + 1}
-              </p>
-              <h3 className="mt-3 font-serif text-2xl text-sakura-cocoa">
-                {item.titulo}
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-sakura-cocoa-2">
-                {item.texto}
-              </p>
+              <SakuraFlower className="mx-auto h-9 w-9 text-white/85" />
+              <p className="mt-3 text-xs tracking-[0.3em] text-brand-sand/70">0{i + 1}</p>
+              <h3 className="mt-2 font-serif text-2xl text-white">{item.titulo}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-brand-ice/70">{item.texto}</p>
             </div>
           ))}
         </div>
@@ -234,18 +212,18 @@ const TRATAMENTOS = [
   },
 ];
 
-function Especialidades() {
+function Tratamentos() {
   return (
-    <section id="especialidades" className="bg-sakura-cream-2 py-20 md:py-28">
+    <section id="tratamentos" className="bg-brand-sand py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs tracking-[0.4em] text-sakura-rose-2">TRATAMENTOS</p>
-          <h2 className="mt-4 font-serif text-4xl font-medium leading-tight text-sakura-cocoa sm:text-5xl">
-            O que floresce aqui
+          <p className="text-xs tracking-[0.4em] text-brand-green">TRATAMENTOS</p>
+          <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-brand-cocoa sm:text-5xl">
+            Elegância em lentes e resinas
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-sakura-cocoa-2">
-            Do planejamento à cimentação, cada etapa pensada pra um sorriso que
-            parece — e é — natural.
+          <p className="mt-6 text-lg leading-relaxed text-brand-cocoa/80">
+            Do planejamento à cimentação, cada etapa pensada pra um sorriso de
+            aparência natural.
           </p>
         </div>
 
@@ -253,25 +231,25 @@ function Especialidades() {
           {TRATAMENTOS.map((t) => (
             <article
               key={t.nome}
-              className="overflow-hidden rounded-3xl border border-sakura-hairline bg-sakura-cream"
+              className="overflow-hidden rounded-3xl border border-brand-line bg-brand-sand-2"
             >
               <div className="aspect-[16/10] overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={t.img} alt={t.nome} className="h-full w-full object-cover" />
               </div>
               <div className="p-7">
-                <h3 className="font-serif text-2xl text-sakura-cocoa">{t.nome}</h3>
-                <p className="mt-2 leading-relaxed text-sakura-cocoa-2">{t.texto}</p>
+                <h3 className="font-serif text-2xl text-brand-cocoa">{t.nome}</h3>
+                <p className="mt-2 leading-relaxed text-brand-cocoa/80">{t.texto}</p>
               </div>
             </article>
           ))}
         </div>
 
-        <p className="mt-10 text-center text-sakura-cocoa-2">
-          Também realizamos <strong className="font-medium text-sakura-cocoa">clareamento</strong>,{" "}
-          <strong className="font-medium text-sakura-cocoa">harmonização do sorriso</strong> e tratamentos
-          personalizados.{" "}
-          <Link href="/quiz" className="font-medium text-sakura-rose-2 underline-offset-4 hover:underline">
+        <p className="mt-10 text-center text-brand-cocoa/80">
+          Também realizamos{" "}
+          <strong className="font-medium text-brand-cocoa">clareamento</strong> e{" "}
+          <strong className="font-medium text-brand-cocoa">harmonização do sorriso</strong>.{" "}
+          <Link href="/quiz" className="font-medium text-brand-green underline-offset-4 hover:underline">
             Descubra o seu →
           </Link>
         </p>
@@ -287,32 +265,28 @@ const CASOS = [
 
 function Casos() {
   return (
-    <section id="casos" className="bg-sakura-cream py-20 md:py-28">
+    <section id="casos" className="bg-brand-ice py-20 md:py-28">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs tracking-[0.4em] text-sakura-rose-2">RESULTADOS</p>
-          <h2 className="mt-4 font-serif text-4xl font-medium leading-tight text-sakura-cocoa sm:text-5xl">
+          <p className="text-xs tracking-[0.4em] text-brand-green">RESULTADOS</p>
+          <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-brand-cocoa sm:text-5xl">
             Casos reais
           </h2>
-          <p className="mt-6 text-lg leading-relaxed text-sakura-cocoa-2">
+          <p className="mt-6 text-lg leading-relaxed text-brand-cocoa/80">
             Transformações conduzidas do planejamento à cimentação, na própria
             clínica.
           </p>
         </div>
 
-        <div className="mt-14 grid gap-8 md:grid-cols-2">
+        <div className="mt-14 grid items-start gap-8 md:grid-cols-2">
           {CASOS.map((c) => (
             <figure
               key={c.label}
-              className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-sakura-hairline bg-sakura-cream-2"
+              className="mx-auto w-full max-w-sm overflow-hidden rounded-3xl border border-brand-line bg-brand-sand-2"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={c.img}
-                alt={`Antes e depois — ${c.label}`}
-                className="block h-auto w-full"
-              />
-              <figcaption className="px-6 py-4 text-center text-sm tracking-wide text-sakura-cocoa-2">
+              <img src={c.img} alt={`Antes e depois — ${c.label}`} className="block h-auto w-full" />
+              <figcaption className="px-6 py-4 text-center text-sm tracking-wide text-brand-cocoa/80">
                 Antes e depois · {c.label}
               </figcaption>
             </figure>
@@ -325,40 +299,40 @@ function Casos() {
 
 function Doutora() {
   return (
-    <section className="bg-sakura-cream-2 py-20 md:py-28">
+    <section className="bg-brand-sand py-20 md:py-28">
       <div className="mx-auto grid max-w-5xl items-center gap-12 px-5 sm:px-8 md:grid-cols-[0.8fr_1fr]">
         <div className="relative mx-auto w-full max-w-xs">
-          <div className="aspect-[4/5] overflow-hidden rounded-[2rem] border border-sakura-hairline shadow-lg">
+          <div className="aspect-[4/5] overflow-hidden rounded-[2rem] border border-brand-line shadow-lg">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/clinica/ju-bio.jpg" alt={CLIENT_CONFIG.professionalName} className="h-full w-full object-cover" />
           </div>
-          <SakuraFlower className="absolute -bottom-4 -right-4 h-16 w-16 text-sakura-rose/70" />
+          <SakuraFlower className="absolute -bottom-4 -right-4 h-14 w-14 text-brand-green" />
         </div>
         <div>
-          <p className="text-xs tracking-[0.4em] text-sakura-rose-2">A FUNDADORA</p>
-          <h2 className="mt-4 font-serif text-4xl font-medium leading-tight text-sakura-cocoa sm:text-5xl">
+          <p className="text-xs tracking-[0.4em] text-brand-green">A FUNDADORA</p>
+          <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-brand-cocoa sm:text-5xl">
             {CLIENT_CONFIG.professionalName}
           </h2>
-          <p className="mt-2 text-sm tracking-wide text-sakura-cocoa-3">
-            CRO-SP {CLIENT_CONFIG.crosp} · Odontologia Estética
+          <p className="mt-2 text-sm tracking-wide text-brand-cocoa/60">
+            CRO-SP {CLIENT_CONFIG.crosp} · Estética Dental
           </p>
-          <div className="mt-6 space-y-4 text-lg leading-relaxed text-sakura-cocoa-2">
+          <div className="mt-6 space-y-4 text-lg leading-relaxed text-brand-cocoa/80">
             <p>
-              Anos construindo uma trajetória de dedicação, técnica e um jeito
-              único de cuidar de cada sorriso e de ensinar Odontologia Estética
-              a dentistas de todo o Brasil.
+              Anos construindo uma trajetória de dedicação e técnica, cuidando
+              de cada sorriso e ensinando estética dental a dentistas de todo o
+              Brasil.
             </p>
             <p>
-              A Sakura nasce desse cuidado que não cabia mais em um só espaço.
-              É a raiz de onde crescem novos galhos: mais profissionais, mais
-              especialidades, a mesma essência.
+              A Clínica Sakura é a consolidação desse trabalho num novo
+              patamar: lentes de porcelana e um padrão de resultado em que
+              naturalidade e elegância caminham juntas.
             </p>
           </div>
           <a
             href={CLIENT_CONFIG.instagramUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-sakura-rose-2 transition hover:text-sakura-cocoa"
+            className="mt-7 inline-flex items-center gap-2 text-sm font-medium text-brand-green transition hover:text-brand-cocoa"
           >
             @{CLIENT_CONFIG.instagramHandle} →
           </a>
@@ -370,14 +344,14 @@ function Doutora() {
 
 function Localizacao() {
   return (
-    <section id="localizacao" className="bg-sakura-cream py-20 md:py-28">
+    <section id="localizacao" className="bg-brand-green py-20 text-brand-ice md:py-28">
       <div className="mx-auto max-w-3xl px-5 text-center sm:px-8">
-        <SakuraBranch className="mx-auto h-9 w-44 text-sakura-rose" />
-        <p className="mt-7 text-xs tracking-[0.4em] text-sakura-rose-2">ONDE ESTAMOS</p>
-        <h2 className="mt-4 font-serif text-4xl font-medium leading-tight text-sakura-cocoa sm:text-5xl">
+        <SakuraFlower className="mx-auto h-9 w-9 text-white/85" />
+        <p className="mt-7 text-xs tracking-[0.4em] text-brand-sand/80">ONDE ESTAMOS</p>
+        <h2 className="mt-4 font-serif text-4xl font-normal leading-tight text-white sm:text-5xl">
           No coração de São Paulo
         </h2>
-        <address className="mt-6 space-y-1 text-lg not-italic leading-relaxed text-sakura-cocoa-2">
+        <address className="mt-6 space-y-1 text-lg not-italic leading-relaxed text-brand-ice/80">
           {CLIENT_CONFIG.address.lines.map((line) => (
             <p key={line}>{line}</p>
           ))}
@@ -387,7 +361,7 @@ function Localizacao() {
             href={CLIENT_CONFIG.address.mapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-full border border-sakura-rose-2/40 px-7 py-3.5 text-sm font-medium text-sakura-cocoa transition hover:border-sakura-rose-2 hover:bg-sakura-cream-2 sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-full border border-brand-sand/40 px-7 py-3.5 text-sm font-medium text-brand-ice transition hover:border-brand-sand hover:bg-white/5 sm:w-auto"
           >
             Ver no mapa
           </a>
@@ -395,7 +369,7 @@ function Localizacao() {
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-full bg-sakura-rose-2 px-7 py-3.5 text-sm font-medium text-sakura-cream shadow-sm transition hover:bg-sakura-cocoa sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-full bg-brand-sand px-7 py-3.5 text-sm font-medium text-brand-green transition hover:bg-white sm:w-auto"
           >
             Falar no WhatsApp
           </a>
@@ -407,28 +381,29 @@ function Localizacao() {
 
 function CtaFinal() {
   return (
-    <section className="relative overflow-hidden bg-sakura-cocoa py-20 text-center md:py-28">
-      <SakuraFlower className="absolute -left-6 top-8 h-28 w-28 text-sakura-rose/15" />
-      <SakuraFlower className="absolute -right-4 bottom-6 h-36 w-36 text-sakura-rose/10" />
+    <section className="relative overflow-hidden bg-brand-cocoa py-20 text-center md:py-28">
+      <SakuraFlower className="absolute -left-6 top-8 h-24 w-24 text-white/10" />
+      <SakuraFlower className="absolute -right-4 bottom-6 h-32 w-32 text-white/[0.07]" />
       <div className="relative mx-auto max-w-2xl px-5 sm:px-8">
-        <h2 className="font-serif text-4xl font-medium leading-tight text-sakura-cream sm:text-5xl">
-          Pronta pra ver seu sorriso florescer?
+        <h2 className="font-serif text-4xl font-normal leading-tight text-brand-ice sm:text-5xl">
+          Vamos transformar o seu sorriso?
         </h2>
-        <p className="mt-5 text-lg leading-relaxed text-sakura-cream/70">
-          Comece com uma avaliação. A gente cuida do resto, no tempo certo.
+        <p className="mt-5 text-lg leading-relaxed text-brand-ice/70">
+          Comece com uma avaliação. A gente cuida do resto, com calma e
+          precisão.
         </p>
         <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a
             href={WHATSAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-full items-center justify-center rounded-full bg-sakura-rose px-8 py-3.5 text-sm font-medium text-sakura-cocoa shadow-sm transition hover:bg-sakura-cream sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-full bg-brand-sand px-8 py-3.5 text-sm font-medium text-brand-cocoa transition hover:bg-white sm:w-auto"
           >
             Agendar uma avaliação
           </a>
           <Link
             href="/quiz"
-            className="inline-flex w-full items-center justify-center rounded-full border border-sakura-cream/30 px-8 py-3.5 text-sm font-medium text-sakura-cream transition hover:bg-sakura-cocoa-2 sm:w-auto"
+            className="inline-flex w-full items-center justify-center rounded-full border border-brand-ice/30 px-8 py-3.5 text-sm font-medium text-brand-ice transition hover:bg-white/5 sm:w-auto"
           >
             Descobrir meu tratamento
           </Link>
@@ -440,27 +415,28 @@ function CtaFinal() {
 
 function Footer() {
   return (
-    <footer className="border-t border-sakura-hairline bg-sakura-cream-2 py-12">
+    <footer className="border-t border-white/10 bg-brand-green py-12 text-brand-ice">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-5 text-center sm:px-8">
-        <Wordmark />
-        <p className="max-w-md text-sm leading-relaxed text-sakura-cocoa-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/clinica/logo-branca-vertical.png" alt={CLIENT_CONFIG.clinicName} className="h-20 w-auto" />
+        <p className="max-w-md text-sm leading-relaxed text-brand-ice/60">
           {CLIENT_CONFIG.professionalName} · CRO-SP {CLIENT_CONFIG.crosp}
           <br />
           {CLIENT_CONFIG.address.lines[0]}
         </p>
-        <div className="flex items-center gap-6 text-sm text-sakura-cocoa-2">
-          <a href={CLIENT_CONFIG.instagramUrl} target="_blank" rel="noopener noreferrer" className="transition hover:text-sakura-rose-2">
+        <div className="flex items-center gap-6 text-sm text-brand-ice/80">
+          <a href={CLIENT_CONFIG.instagramUrl} target="_blank" rel="noopener noreferrer" className="transition hover:text-white">
             Instagram
           </a>
-          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="transition hover:text-sakura-rose-2">
+          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="transition hover:text-white">
             WhatsApp
           </a>
-          <a href={CLIENT_CONFIG.address.mapsUrl} target="_blank" rel="noopener noreferrer" className="transition hover:text-sakura-rose-2">
+          <a href={CLIENT_CONFIG.address.mapsUrl} target="_blank" rel="noopener noreferrer" className="transition hover:text-white">
             Localização
           </a>
         </div>
-        <p className="text-xs tracking-wide text-sakura-cocoa-3">
-          © {CLIENT_CONFIG.clinicName} · Sorrir é florescer
+        <p className="text-xs tracking-[0.25em] text-brand-ice/50">
+          CLÍNICA SAKURA · ESTÉTICA DENTAL
         </p>
       </div>
     </footer>

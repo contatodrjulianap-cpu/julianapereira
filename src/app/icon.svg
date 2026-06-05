@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <rect width="64" height="64" rx="14" fill="#3A2A20"/>
+  <rect width="64" height="64" rx="14" fill="#414930"/>
   <g>
-    <g fill="#EDBDB8">
+    <g fill="#f1f1f1">
       <path d="M32 33 C25 27 23 17 29 11 C30 15 34 15 35 11 C41 17 39 27 32 33 Z" transform="rotate(0 32 32)"/>
       <path d="M32 33 C25 27 23 17 29 11 C30 15 34 15 35 11 C41 17 39 27 32 33 Z" transform="rotate(72 32 32)"/>
       <path d="M32 33 C25 27 23 17 29 11 C30 15 34 15 35 11 C41 17 39 27 32 33 Z" transform="rotate(144 32 32)"/>
       <path d="M32 33 C25 27 23 17 29 11 C30 15 34 15 35 11 C41 17 39 27 32 33 Z" transform="rotate(216 32 32)"/>
       <path d="M32 33 C25 27 23 17 29 11 C30 15 34 15 35 11 C41 17 39 27 32 33 Z" transform="rotate(288 32 32)"/>
     </g>
-    <circle cx="32" cy="32" r="4.4" fill="#C99A5B"/>
+    <circle cx="32" cy="32" r="4" fill="#414930"/>
   </g>
 </svg>
