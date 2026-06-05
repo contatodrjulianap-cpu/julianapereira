@@ -169,3 +169,44 @@
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ====================================================================
+   Institucional Sakura — paleta + serif expostas como utilities
+   (bg-sakura-cream, text-sakura-cocoa, border-sakura-hairline, font-serif)
+==================================================================== */
+@theme inline {
+  --color-sakura-cream: var(--sakura-cream);
+  --color-sakura-cream-2: var(--sakura-cream-2);
+  --color-sakura-cream-3: var(--sakura-cream-3);
+  --color-sakura-cocoa: var(--sakura-cocoa);
+  --color-sakura-cocoa-2: var(--sakura-cocoa-2);
+  --color-sakura-cocoa-3: var(--sakura-cocoa-3);
+  --color-sakura-rose: var(--sakura-rose);
+  --color-sakura-rose-2: var(--sakura-rose-2);
+  --color-sakura-gold: var(--sakura-gold);
+  --color-sakura-hairline: var(--sakura-hairline);
+  --font-serif: var(--font-cormorant);
+}
+
+/* Pétalas de sakura caindo no hero — decorativo, leve, sem JS */
+@keyframes sakura-fall {
+  0%   { transform: translateY(-12vh) translateX(0) rotate(0deg); opacity: 0; }
+  12%  { opacity: 0.65; }
+  88%  { opacity: 0.65; }
+  100% { transform: translateY(112vh) translateX(7vw) rotate(380deg); opacity: 0; }
+}
+.sakura-petal {
+  position: absolute;
+  top: 0;
+  width: 13px;
+  height: 13px;
+  background: var(--sakura-rose);
+  border-radius: 14px 1px 14px 1px;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform;
+  animation: sakura-fall linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sakura-petal { display: none; }
+}
