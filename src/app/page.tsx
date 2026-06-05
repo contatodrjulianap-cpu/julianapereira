@@ -24,8 +24,8 @@ export default function Home() {
         <Conceito />
         <Pilares />
         <Tratamentos />
-        <Casos />
         <Doutora />
+        <Casos />
         <Localizacao />
         <CtaFinal />
       </main>
@@ -75,12 +75,11 @@ function Hero() {
             ESTÉTICA DENTAL DE ALTO PADRÃO · SÃO PAULO
           </p>
           <h1 className="mt-6 font-serif text-5xl font-normal leading-[1.05] tracking-tight text-white sm:text-6xl">
-            O sorriso muda a forma como você e o mundo te vê.
+            O sorriso muda tudo.
           </h1>
           <p className="mx-auto mt-7 max-w-md text-lg leading-relaxed text-brand-ice/75 md:mx-0">
-            Lentes de porcelana e estética dental de precisão, com a
-            naturalidade e a elegância que são a assinatura da{" "}
-            {CLIENT_CONFIG.professionalName}.
+            O seu sorriso, planejado com cuidado e técnica: natural e elegante,
+            do jeito que combina com você.
           </p>
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row md:items-start">
             <a
