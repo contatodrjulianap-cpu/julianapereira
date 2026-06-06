@@ -310,14 +310,14 @@ export default async function StatusPage() {
         {reminders.length > 0 && (
           <section className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
             <h2 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
-              📞 Lembretes de avaliação
+              📞 Avaliações · lembretes &amp; no-shows
               <span className="text-[11px] font-normal bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
                 {reminders.length}
               </span>
             </h2>
             <p className="text-[11px] text-amber-800 mb-3">
-              Avaliações chegando. Abra a conversa e mande o lembrete na mão —
-              depois marque como feito.
+              Avaliações chegando ou que faltaram. Abra a conversa, resolva na
+              mão e marque como feito.
             </p>
             <ul className="space-y-1.5">
               {reminders.map((t) => (

@@ -100,6 +100,23 @@ export async function PATCH(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Auto-sync: status avançou pra um estágio onde lembrete/no-show não fazem mais
+  // sentido (avaliação aconteceu ou fechou) → resolve as tarefas abertas do lead.
+  // É o "auto-sync" do modelo Sakura (fonte única): mover o card limpa a fila.
+  const newStatus = (data?.status as string | null) ?? null;
+  const RESOLVE_TASKS_ON = new Set(["attended", "won", "lost", "disqualified"]);
+  if (newStatus && RESOLVE_TASKS_ON.has(newStatus)) {
+    await admin
+      .from("tasks")
+      .update({
+        done: true,
+        done_at: new Date().toISOString(),
+        done_by: user.id,
+      })
+      .eq("lead_id", id)
+      .eq("done", false);
+  }
+
   await logEvent({
     type: "lead_update",
     direction: "internal",

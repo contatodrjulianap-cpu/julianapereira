@@ -26,6 +26,11 @@ const spTimeFmt = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
   minute: "2-digit",
 });
+const spDayMonthFmt = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+});
 
 function ymd(d: Date): string {
   return spDateFmt.format(d); // 'YYYY-MM-DD' no fuso SP
@@ -89,6 +94,19 @@ async function run(req: NextRequest) {
     .lte("scheduled_at", soonEnd.toISOString())
     .limit(500);
 
+  // No-show: avaliação passou (>2h) e o lead ainda está 'scheduled' (ninguém
+  // marcou 'attended'/avançou) → provável falta. Janela de 2 dias pra não
+  // varrer histórico antigo. Quando o status avança, o auto-resolve fecha a task.
+  const twoHoursAgo = new Date(now.getTime() - 2 * 3_600_000);
+  const twoDaysAgo = new Date(now.getTime() - 2 * 86_400_000);
+  const { data: noshow } = await db
+    .from("leads")
+    .select("id, name, scheduled_at, assigned_owner_id, status")
+    .gte("scheduled_at", twoDaysAgo.toISOString())
+    .lte("scheduled_at", twoHoursAgo.toISOString())
+    .eq("status", "scheduled")
+    .limit(500);
+
   const rows: Record<string, unknown>[] = [];
 
   for (const l of (d1 ?? []) as LeadRow[]) {
@@ -120,6 +138,19 @@ async function run(req: NextRequest) {
     });
   }
 
+  for (const l of (noshow ?? []) as LeadRow[]) {
+    const aval = new Date(l.scheduled_at);
+    rows.push({
+      lead_id: l.id,
+      kind: "no_show",
+      title: `No-show? ${l.name ?? "paciente"} não compareceu (${spDayMonthFmt.format(aval)}) — reagendar`,
+      due_at: now.toISOString(),
+      due_day: ymd(aval), // idempotente por avaliação (1 task por no-show)
+      assigned_owner_id: l.assigned_owner_id,
+      source: "auto",
+    });
+  }
+
   let inserted = 0;
   if (rows.length > 0) {
     const { data, error } = await db
@@ -134,7 +165,11 @@ async function run(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    scanned: { d1: d1?.length ?? 0, today: today?.length ?? 0 },
+    scanned: {
+      d1: d1?.length ?? 0,
+      today: today?.length ?? 0,
+      noshow: noshow?.length ?? 0,
+    },
     candidates: rows.length,
     inserted,
     skipped_existing: rows.length - inserted,
