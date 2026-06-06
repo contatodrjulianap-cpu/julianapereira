@@ -24,7 +24,7 @@ const SERIF = { fontFamily: "var(--font-gilda)" } as const;
 const PASSOS = [
   ["Sua aplicação chegou", "A equipe já recebeu o seu caso aqui."],
   ["Vamos te chamar no WhatsApp", "Pra entender melhor o que você quer no seu sorriso."],
-  ["Reserva da avaliação", "Encaixamos o melhor horário com a Dra. Juliana."],
+  ["Reserva da avaliação", "Encaixamos o melhor horário com a Equipe da Dra. Juliana."],
   ["Avaliação", "Você sai com o plano do seu caso, com previsibilidade e sem surpresa."],
 ];
 
