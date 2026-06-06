@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sakura — Estrutura Comercial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rose:#B18180;
+    --rose-deep:#586046;
+    --brown:#473631;
+    --ink:#2A2420;
+    --cream:#E8E0D4;
+    --taupe:#C9BEAC;
+    --white:#ffffff;
+    --serif:"Cormorant Garamond",Georgia,serif;
+    --sans:"Jost","Century Gothic",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#cfc7c0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+
+  .deck{scroll-snap-type:y mandatory;overflow-y:auto;height:100vh}
+  .slide{
+    width:100vw;height:100vh;scroll-snap-align:start;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .stage{
+    position:relative;aspect-ratio:16/9;width:min(100vw,177.78vh);height:min(56.25vw,100vh);
+    background:var(--cream);overflow:hidden;
+    container-type:size;container-name:stage;
+    box-shadow:0 10px 40px rgba(0,0,0,.18);
+  }
+  /* everything inside is sized in cqw so it scales with the stage */
+  .stage .pad{position:absolute;inset:0;padding:6cqw 8cqw 8.5cqw;display:flex;flex-direction:column;justify-content:center}
+
+  .eyebrow{font-family:var(--sans);font-weight:500;letter-spacing:.45em;text-transform:uppercase;color:var(--rose-deep);font-size:1.35cqw}
+  .num{position:absolute;top:5cqw;right:7cqw;font-family:var(--serif);font-style:italic;color:var(--rose-deep);font-size:2.2cqw;opacity:.8}
+  .foot{position:absolute;bottom:4cqw;left:8cqw;font-family:var(--sans);letter-spacing:.3em;text-transform:uppercase;color:#b6aaa3;font-size:1.05cqw}
+  .foot.r{left:auto;right:8cqw}
+
+  h1{font-family:var(--serif);font-weight:500;line-height:1.02;font-size:7cqw;color:var(--ink)}
+  h2{font-family:var(--serif);font-weight:500;line-height:1.05;font-size:5cqw;color:var(--ink)}
+  h2 em{font-style:italic;color:var(--rose-deep)}
+  .lead{font-family:var(--serif);font-size:2.7cqw;line-height:1.35;color:var(--brown);font-weight:400}
+  p,li,td,th{font-family:var(--sans);font-weight:300;font-size:1.7cqw;line-height:1.5;color:#3a322f}
+  strong{font-weight:500;color:var(--ink)}
+
+  .rule{width:9cqw;height:.28cqw;background:var(--rose);margin:2.4cqw 0;border-radius:2px}
+  .rule.c{margin-left:auto;margin-right:auto}
+
+  /* sakura branch motif */
+  .branch{position:absolute;pointer-events:none}
+  .branch svg{display:block;width:100%;height:100%}
+
+  /* COVER */
+  .cover{background:var(--cream)}
+  .cover .art{position:absolute;top:0;right:0;width:42%;height:100%;}
+  .cover .wordmark{font-family:var(--serif);font-weight:500;font-size:11cqw;letter-spacing:.12em;color:var(--ink);line-height:.9}
+  .cover .sub{font-family:var(--sans);letter-spacing:.5em;text-transform:uppercase;color:var(--brown);font-size:1.9cqw;margin-top:1cqw;margin-left:.4cqw}
+  .cover .tag{font-family:var(--serif);font-style:italic;font-size:3.2cqw;color:var(--brown);margin-top:6cqw}
+  .cover .tag b{font-style:normal;color:var(--rose-deep);font-weight:600;letter-spacing:.02em}
+  .cover .by{position:absolute;bottom:7cqw;left:8cqw;font-family:var(--serif);font-style:italic;font-weight:600;color:var(--rose-deep);font-size:2.6cqw;letter-spacing:.06em}
+  .cover .date{position:absolute;bottom:4.4cqw;left:8cqw;font-family:var(--sans);letter-spacing:.3em;text-transform:uppercase;color:#b6aaa3;font-size:1.1cqw}
+
+  /* SECTION DIVIDER */
+  .divider{background:var(--brown);color:var(--cream)}
+  .divider .pad{align-items:flex-start}
+  .divider .eyebrow{color:var(--rose)}
+  .divider h1{color:var(--cream);font-size:8cqw}
+  .divider .lead{color:#e7ddd6}
+  .divider .rule{background:var(--rose)}
+  .divider .num{color:var(--rose)}
+  .divider .big{position:absolute;right:6cqw;bottom:-3cqw;font-family:var(--serif);font-weight:600;font-size:34cqw;color:rgba(232,224,212,.10);line-height:.7}
+
+  /* grids & cards */
+  .cols{display:grid;gap:3cqw;margin-top:1.5cqw}
+  .c2{grid-template-columns:1fr 1fr}
+  .c3{grid-template-columns:1fr 1fr 1fr}
+  .c4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--white);border:1px solid #ece2db;border-radius:1.4cqw;padding:2.6cqw;box-shadow:0 4px 18px rgba(74,58,52,.05)}
+  .card .k{font-family:var(--sans);font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--rose-deep);font-size:1.15cqw;margin-bottom:.9cqw}
+  .card h3{font-family:var(--serif);font-weight:600;font-size:2.5cqw;color:var(--ink);line-height:1.1;margin-bottom:.6cqw}
+  .card p{font-size:1.45cqw;line-height:1.45}
+  .card .big-n{font-family:var(--serif);font-weight:600;font-size:3.4cqw;color:var(--rose-deep);line-height:1}
+
+  ul.clean{list-style:none}
+  ul.clean li{position:relative;padding-left:2.6cqw;margin:1cqw 0;font-size:1.7cqw}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.55cqw;width:1.1cqw;height:1.1cqw;background:var(--rose);border-radius:50%}
+  ul.clean li.no::before{background:none;border:.18cqw solid #cdbfb8;border-radius:50%}
+
+  table{width:100%;border-collapse:collapse;margin-top:1.6cqw}
+  th{font-family:var(--sans);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:1.15cqw;color:var(--rose-deep);text-align:left;padding:.85cqw 1.2cqw;border-bottom:.22cqw solid var(--rose)}
+  td{padding:.82cqw 1.2cqw;border-bottom:1px solid #e8ddd6;font-size:1.45cqw}
+  tr td:first-child{font-weight:500;color:var(--ink)}
+  .price{font-family:var(--serif);font-weight:600;color:var(--rose-deep);font-size:1.7cqw;white-space:nowrap}
+  .tag-icp{display:inline-block;font-family:var(--sans);font-weight:600;font-size:1.1cqw;letter-spacing:.08em;background:var(--taupe);color:var(--brown);padding:.2cqw .8cqw;border-radius:1cqw}
+
+  /* staircase / pyramid */
+  .stair{display:flex;flex-direction:column;gap:.7cqw;margin-top:1cqw}
+  .step{display:flex;align-items:center;justify-content:space-between;background:var(--white);border-left:.6cqw solid var(--rose);border-radius:.5cqw;padding:1.15cqw 2cqw;box-shadow:0 3px 12px rgba(74,58,52,.05)}
+  .step .lbl{font-family:var(--sans);font-weight:500;font-size:1.55cqw;color:var(--ink)}
+  .step .lbl small{display:block;font-weight:300;color:#8d827c;font-size:1.05cqw;letter-spacing:.02em}
+  .step .v{font-family:var(--serif);font-weight:600;font-size:2.1cqw;color:var(--rose-deep)}
+  .step.s1{border-color:var(--brown)} .step.s2{border-color:var(--rose-deep)}
+
+  .pill{display:inline-flex;align-items:center;gap:.6cqw;background:#fff;border:1px solid #ece2db;border-radius:5cqw;padding:.7cqw 1.6cqw;font-size:1.35cqw;font-weight:400;color:var(--brown);margin:.4cqw .4cqw 0 0}
+  .pill.no{color:#a8978f;text-decoration:line-through;text-decoration-color:var(--rose)}
+  .pill b{color:var(--rose-deep);font-weight:600}
+
+  .quote{font-family:var(--serif);font-style:italic;font-size:3.4cqw;line-height:1.25;color:var(--brown)}
+  .quote b{font-style:normal;color:var(--rose-deep);font-weight:600}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:5cqw;align-items:center;height:100%}
+  .label-side{font-family:var(--sans);font-weight:600;letter-spacing:.1em;font-size:1.3cqw}
+
+  /* print → one slide per page */
+  @media print{
+    @page{size:1280px 720px;margin:0}
+    html,body{background:#fff}
+    .deck{display:block;height:auto;overflow:visible}
+    .slide{height:720px;width:1280px;page-break-after:always;display:block}
+    .stage{width:1280px;height:720px;box-shadow:none;aspect-ratio:auto}
+    .nav{display:none}
+  }
+  .nav{position:fixed;bottom:18px;right:20px;z-index:50;font-family:var(--sans);font-size:12px;color:#5a4f49;background:#fff;border-radius:20px;padding:7px 14px;box-shadow:0 4px 14px rgba(0,0,0,.15);letter-spacing:.04em}
+</style>
+</head>
+<body>
+
+<!-- reusable branch SVG (defs) -->
+<svg width="0" height="0" style="position:absolute"><defs>
+  <g id="blossom">
+    <g fill="#F2ECDF" stroke="#BFB39B" stroke-width="1.8">
+      <path id="petal" d="M0,-4 C-7,-9 -7,-20 0,-23 C7,-20 7,-9 0,-4 Z"/>
+      <use href="#petal" transform="rotate(72)"/>
+      <use href="#petal" transform="rotate(144)"/>
+      <use href="#petal" transform="rotate(216)"/>
+      <use href="#petal" transform="rotate(288)"/>
+    </g>
+    <circle r="2.6" fill="#586046"/>
+  </g>
+</defs></svg>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · COVER -->
+  <section class="slide"><div class="stage cover">
+    <div class="pad" style="justify-content:center">
+      <img src="/slides/comercial/assets/logo-escuro.png" alt="Clínica Sakura · por Juliana Pereira" style="width:33cqw;max-width:33cqw;height:auto">
+      <div class="tag" style="margin-top:5cqw">Estrutura <b>Comercial</b></div>
+      <div class="lead" style="margin-top:1.4cqw;max-width:50cqw">Como transformar a clínica numa máquina de vendas previsível, do primeiro contato ao sorriso pronto.</div>
+    </div>
+    <div class="date">Diniz Digital × Momento Mori · Junho 2026</div>
+  </div></section>
+
+  <!-- 2 · PROMESSA -->
+  <section class="slide"><div class="stage">
+    <span class="num">01</span>
+    <div class="pad">
+      <div class="eyebrow">Por que este documento existe</div>
+      <h2 style="margin-top:1.6cqw">Vender <em>mais e melhor</em><br>com um processo que a clínica controla.</h2>
+      <div class="rule"></div>
+      <div class="cols c3">
+        <div class="card"><div class="k">Previsível</div><p>Cada lead tem um caminho claro: qualificação, avaliação, oferta fechada. Nada depende de improviso.</p></div>
+        <div class="card"><div class="k">Premium</div><p>Posicionamento de clínica de alto valor, sem desconto popular. O preço sustenta a marca.</p></div>
+        <div class="card"><div class="k">A clínica no centro</div><p>A estrutura serve a Ju e à equipe, libera o tempo da especialista pro que só ela faz.</p></div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · Estrutura Comercial</div>
+    <div class="foot r">01 / 22</div>
+  </div></section>
+
+  <!-- 3 · SUMÁRIO -->
+  <section class="slide"><div class="stage">
+    <span class="num">02</span>
+    <div class="pad">
+      <div class="eyebrow">O caminho</div>
+      <h2 style="margin-top:1.4cqw">As 4 etapas da fundação comercial</h2>
+      <div class="rule"></div>
+      <div class="cols c4">
+        <div class="card"><div class="big-n">01</div><h3>ICP</h3><p>Quem é o paciente que vale ouro — e quem não é.</p></div>
+        <div class="card"><div class="big-n">02</div><h3>Esteira</h3><p>Do tira-curiosidade ao luxo: 5 camadas de produto.</p></div>
+        <div class="card"><div class="big-n">03</div><h3>Oferta</h3><p>Resina e Porcelana como pacotes fechados de valor.</p></div>
+        <div class="card"><div class="big-n">04</div><h3>Quadro</h3><p>A escada inteira numa peça que o closer apresenta.</p></div>
+      </div>
+      <p style="margin-top:2.4cqw;color:#8d827c">+ decisões já fechadas com o Wanderson e os próximos passos (Etapas 2 a 5).</p>
+    </div>
+    <div class="foot">Clínica Sakura · Estrutura Comercial</div><div class="foot r">02 / 22</div>
+  </div></section>
+
+  <!-- 4 · DIVIDER ICP -->
+  <section class="slide"><div class="stage divider">
+    <span class="num">01</span>
+    <div class="big">01</div>
+    <div class="pad">
+      <div class="eyebrow">Etapa 1.1</div>
+      <h1 style="margin-top:1cqw">ICP</h1>
+      <div class="rule"></div>
+      <div class="lead" style="max-width:48cqw">Definir com precisão a paciente que queremos atrair — pra não gastar tráfego, agenda e energia com quem não fecha.</div>
+    </div>
+  </div></section>
+
+  <!-- 5 · ICP perfil -->
+  <section class="slide"><div class="stage">
+    <span class="num">03</span>
+    <div class="pad">
+      <div class="eyebrow">Quem queremos</div>
+      <h2 style="margin-top:1.2cqw">A paciente Sakura</h2>
+      <div class="rule"></div>
+      <div class="lead" style="max-width:74cqw">Mulher (60%) ou homem (40%), <strong>28–45 anos</strong>, classe A/B, mora em SP ou viaja sem fricção. Profissional que <strong>trabalha aparecendo</strong> — vende, lidera, palestra, posta. Insegura com o sorriso, valoriza o <strong>resultado natural</strong> sobre o "fake", e quer a <strong>Ju especificamente</strong>.</div>
+      <div class="cols c3" style="margin-top:2.6cqw">
+        <div class="card"><div class="k">Renda</div><p><strong>R$ 15k/mês+</strong> ou patrimônio que justifica investir R$ 13–60k no sorriso, à vista/PIX.</p></div>
+        <div class="card"><div class="k">Ticket alvo</div><p><strong>R$ 15k</strong> entrada → <strong>R$ 23k</strong> consolidado → <strong>R$ 50–60k</strong> no topo.</p></div>
+        <div class="card"><div class="k">Gatilho</div><p>Conhece o trabalho da Ju via Instagram ou indicação. Não chega frio do Google.</p></div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · ICP</div><div class="foot r">03 / 22</div>
+  </div></section>
+
+  <!-- 6 · ICP arquétipos -->
+  <section class="slide"><div class="stage">
+    <span class="num">04</span>
+    <div class="pad">
+      <div class="eyebrow">Perfil profissional</div>
+      <h2 style="margin-top:1.2cqw">Quatro arquétipos <em>que trabalham aparecendo</em></h2>
+      <div class="rule"></div>
+      <div class="cols c4">
+        <div class="card"><div class="k">01</div><h3>Empresária</h3><p>Vende cara a cara, recebe cliente, fecha contrato presencial.</p></div>
+        <div class="card"><div class="k">02</div><h3>Liberal</h3><p>Advogada, médica, arquiteta. Renda própria, decide sozinha.</p></div>
+        <div class="card"><div class="k">03</div><h3>Influenciadora</h3><p>Vive de imagem. O sorriso é ativo de trabalho, não vaidade.</p></div>
+        <div class="card"><div class="k">04</div><h3>Executiva</h3><p>Palestra, lidera reunião, vende ideia. Aparência conta.</p></div>
+      </div>
+      <p style="margin-top:2.6cqw;color:var(--brown);font-size:2cqw;font-family:var(--serif);font-style:italic">Filtro comum: <strong style="font-style:normal">o sorriso é ferramenta profissional.</strong></p>
+    </div>
+    <div class="foot">Clínica Sakura · ICP</div><div class="foot r">04 / 22</div>
+  </div></section>
+
+  <!-- 7 · ICP dores e desejos -->
+  <section class="slide"><div class="stage">
+    <span class="num">05</span>
+    <div class="pad">
+      <div class="eyebrow">O que trava e o que move</div>
+      <h2 style="margin-top:1.2cqw">Dores &amp; Desejos</h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div>
+          <div class="k" style="font-family:var(--sans);font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--rose-deep);font-size:1.2cqw;margin-bottom:.6cqw">Dores que travam a decisão</div>
+          <ul class="clean">
+            <li>"Vou <strong>destruir meu dente</strong> / virar dente de tubarão"</li>
+            <li>"Vai ficar <strong>fake</strong>, vão perceber que eu fiz"</li>
+            <li>"E se <strong>der errado em mim?</strong>"</li>
+            <li>"Resina <strong>amarela</strong> e não dura" (plantado por outro)</li>
+          </ul>
+        </div>
+        <div>
+          <div class="k" style="font-family:var(--sans);font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--rose-deep);font-size:1.2cqw;margin-bottom:.6cqw">Desejos que movem</div>
+          <ul class="clean">
+            <li><strong>Sorriso que muda como ela se sente</strong> — acesso emocional</li>
+            <li><strong>Rir sem trava</strong>, sem a mão na frente da boca</li>
+            <li>Resultado <strong>natural</strong>, com previsibilidade</li>
+            <li>Fazer com <strong>a referência</strong> — a Ju, não um substituto</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · ICP</div><div class="foot r">05 / 22</div>
+  </div></section>
+
+  <!-- 8 · ICP qualificação -->
+  <section class="slide"><div class="stage">
+    <span class="num">06</span>
+    <div class="pad">
+      <div class="eyebrow">Filtro</div>
+      <h2 style="margin-top:1.2cqw">Quem <em>é</em> · quem <em>não é</em></h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div class="card">
+          <div class="k">É ICP ✅</div>
+          <ul class="clean">
+            <li>Considera fazer lente há 6+ meses (não impulsiva)</li>
+            <li>Orçamento p/ R$ 8k+ à vista ou em até 7x</li>
+            <li>Quer resultado natural acima de quantidade de dente</li>
+            <li>Aceita a Ju ou equipe Sakura supervisionada</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#e7cfca">
+          <div class="k" style="color:#b06a63">NÃO é ICP ✕</div>
+          <ul class="clean">
+            <li class="no">Quer "dente funkeiro" branco neon e quadrado</li>
+            <li class="no">Caça preço sem ouvir a oferta</li>
+            <li class="no">Pede garantia "para sempre" / claim absoluto</li>
+            <li class="no">Classe 3 — condição que não habilita lentes</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · ICP</div><div class="foot r">06 / 22</div>
+  </div></section>
+
+  <!-- 9 · DIVIDER ESTEIRA -->
+  <section class="slide"><div class="stage divider">
+    <span class="num">02</span><div class="big">02</div>
+    <div class="pad">
+      <div class="eyebrow">Etapa 1.2</div>
+      <h1 style="margin-top:1cqw">Esteira</h1>
+      <div class="rule"></div>
+      <div class="lead" style="max-width:50cqw">Cinco camadas de produto, do tira-curiosidade ao luxo — todas convergindo pro carro-chefe (a lente) e pra recorrência da manutenção.</div>
+    </div>
+  </div></section>
+
+  <!-- 10 · Esteira 5 camadas -->
+  <section class="slide"><div class="stage">
+    <span class="num">07</span>
+    <div class="pad">
+      <div class="eyebrow">Visão geral</div>
+      <h2 style="margin-top:1cqw">As 5 camadas</h2>
+      <div class="rule"></div>
+      <div class="stair">
+        <div class="step s1"><div class="lbl">High-end — Exclusividade Ju <small>Posicionamento, prova social, paga o tráfego</small></div><div class="v">R$ 50–60k</div></div>
+        <div class="step s2"><div class="lbl">Back-end — Lentes Resina / Porcelana / Mista <small>Carro-chefe · onde mora o lucro</small></div><div class="v">R$ 7–36,5k</div></div>
+        <div class="step"><div class="lbl">Front-end — clareamento, gengivo, reposicionamento <small>Primeira venda, cria relação, qualifica</small></div><div class="v">R$ 700–10k</div></div>
+        <div class="step"><div class="lbl">Recorrência — manutenção semestral <small>Trava o LTV, financia campanhas</small></div><div class="v">R$ 750–2,5k</div></div>
+        <div class="step"><div class="lbl">Isca — consulta &amp; quiz online <small>Atrai lead frio, compra atenção</small></div><div class="v">R$ 0–2k</div></div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · Esteira</div><div class="foot r">07 / 22</div>
+  </div></section>
+
+  <!-- 11 · Esteira x ICP -->
+  <section class="slide"><div class="stage">
+    <span class="num">08</span>
+    <div class="pad">
+      <div class="eyebrow">Mapa</div>
+      <h2 style="margin-top:1cqw">Cada perfil, seu caminho</h2>
+      <div class="rule"></div>
+      <table>
+        <tr><th>Camada</th><th>ICP A · Premium</th><th>ICP B · High</th><th>ICP C · Médio</th></tr>
+        <tr><td>Back-end (lente)</td><td>Porcelana <span class="price">R$ 22–33k</span></td><td>Resina Ju <span class="price">R$ 13–25k</span></td><td>Resina equipe <span class="price">R$ 7–12k</span></td></tr>
+        <tr><td>High-end</td><td>Exclusividade Ju <span class="price">R$ 50–60k</span></td><td>Aspiracional (2–3 anos)</td><td>Não acessa</td></tr>
+        <tr><td>Front-end</td><td>Gengivo / reposicionamento</td><td>Clareamento + gengivo</td><td>Limpeza + clareamento</td></tr>
+        <tr><td>Recorrência</td><td>Manutenção Ju</td><td>Manutenção Ju ou equipe</td><td>Manutenção equipe</td></tr>
+      </table>
+      <p style="margin-top:1.8cqw;color:#8d827c">Regra de ouro: <strong>todo front-end é candidato a back-end.</strong> Toda avaliação apresenta o quadro completo.</p>
+    </div>
+    <div class="foot">Clínica Sakura · Esteira</div><div class="foot r">08 / 22</div>
+  </div></section>
+
+  <!-- 12 · DIVIDER OFERTA -->
+  <section class="slide"><div class="stage divider">
+    <span class="num">03</span><div class="big">03</div>
+    <div class="pad">
+      <div class="eyebrow">Etapa 1.3</div>
+      <h1 style="margin-top:1cqw">Oferta</h1>
+      <div class="rule"></div>
+      <div class="lead" style="max-width:50cqw">Dois pacotes fechados, ambos com a Ju executando. A diferença de preço é justificada pelo que está dentro — não só pelo material.</div>
+    </div>
+  </div></section>
+
+  <!-- 13 · Resina x Porcelana -->
+  <section class="slide"><div class="stage">
+    <span class="num">09</span>
+    <div class="pad">
+      <div class="eyebrow">Os dois caminhos</div>
+      <h2 style="margin-top:1cqw">Plano Resina <em>×</em> Plano Porcelana</h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div class="card">
+          <h3>Plano Resina</h3>
+          <div class="big-n">R$ 13–25k</div>
+          <ul class="clean" style="margin-top:1cqw">
+            <li>Lente resina arcada superior, executada pela Ju</li>
+            <li>Avaliação + gengivo + clareamento + placa</li>
+            <li>1ª manutenção Ju + documentação fotográfica</li>
+            <li>Suporte WhatsApp 90 dias · instalação em sessão única</li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:var(--rose)">
+          <h3>Plano Porcelana</h3>
+          <div class="big-n">R$ 22–33k</div>
+          <ul class="clean" style="margin-top:1cqw">
+            <li><strong>Tudo do Resina</strong>, executado por Ju + Dr. Alan</li>
+            <li><strong>Prova do mock-up</strong> — aprova antes de cimentar</li>
+            <li><strong>Suporte 12 meses</strong> + <strong>garantia de 2 anos</strong></li>
+            <li>Para quem valoriza segurança e acabamento máximo</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · Oferta</div><div class="foot r">09 / 22</div>
+  </div></section>
+
+  <!-- 14 · valor declarado -->
+  <section class="slide"><div class="stage">
+    <span class="num">10</span>
+    <div class="pad">
+      <div class="eyebrow">O pacote, não só a lente</div>
+      <h2 style="margin-top:1cqw">Valor declarado em bônus</h2>
+      <div class="rule"></div>
+      <p style="max-width:70cqw">Tudo que a clínica já faz e cobraria à parte, mas vai dentro do pacote. Serve pro closer mostrar o valor entregue além da lente.</p>
+      <table>
+        <tr><th>Incluso no pacote</th><th>Referência</th><th>Resina</th><th>Porcelana</th></tr>
+        <tr><td>Gengivoplastia preparatória</td><td class="price">R$ 2.000</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Clareamento prévio</td><td class="price">R$ 1.000</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Placa de bruxismo</td><td class="price">R$ 2.500</td><td>✓</td><td>✓</td></tr>
+        <tr><td>1ª manutenção com a Ju (D+180)</td><td class="price">R$ 2.500</td><td>✓</td><td>✓</td></tr>
+        <tr><td>Mock-up · suporte 12m · garantia 2 anos</td><td class="price">exclusivo</td><td>—</td><td>✓</td></tr>
+        <tr><td><strong>Total declarado</strong></td><td></td><td class="price">R$ 8.000</td><td class="price">R$ 8.000 +</td></tr>
+      </table>
+    </div>
+    <div class="foot">Clínica Sakura · Oferta</div><div class="foot r">10 / 22</div>
+  </div></section>
+
+  <!-- 15 · objeções -->
+  <section class="slide"><div class="stage">
+    <span class="num">11</span>
+    <div class="pad">
+      <div class="eyebrow">Cada item tem função comercial</div>
+      <h2 style="margin-top:1cqw">A oferta quebra a objeção</h2>
+      <div class="rule"></div>
+      <table>
+        <tr><th>A paciente diz…</th><th>O que da oferta responde</th></tr>
+        <tr><td>"Vou destruir meu dente"</td><td>Avaliação clínica como 2ª opinião + filosofia da Ju ("eu cuido de você")</td></tr>
+        <tr><td>"E se der errado em mim?"</td><td>Casos reais documentados + prova do mock-up: vê o resultado antes</td></tr>
+        <tr><td>"Resina amarela / não dura"</td><td>1ª manutenção Ju inclusa + plano semestral de manutenção</td></tr>
+        <tr><td>"Vai ficar fake"</td><td>Filosofia natural + critério explícito de não-ICP (recusa "dente funkeiro")</td></tr>
+        <tr><td>"Não fico em SP"</td><td>Protocolo de fora: a equipe busca no aeroporto e leva à clínica</td></tr>
+      </table>
+    </div>
+    <div class="foot">Clínica Sakura · Oferta</div><div class="foot r">11 / 22</div>
+  </div></section>
+
+  <!-- 16 · DIVIDER QUADRO -->
+  <section class="slide"><div class="stage divider">
+    <span class="num">04</span><div class="big">04</div>
+    <div class="pad">
+      <div class="eyebrow">Etapa 1.4</div>
+      <h1 style="margin-top:1cqw">Quadro de<br>Produtos</h1>
+      <div class="rule"></div>
+      <div class="lead" style="max-width:50cqw">A escada inteira numa peça-mestre. Toda avaliação mostra o quadro completo — subir ou descer é sempre opção da paciente.</div>
+    </div>
+  </div></section>
+
+  <!-- 17 · escada 7 camadas -->
+  <section class="slide"><div class="stage">
+    <span class="num">12</span>
+    <div class="pad">
+      <div class="eyebrow">A escada</div>
+      <h2 style="margin-top:1cqw">7 camadas, do quiz ao topo</h2>
+      <div class="rule"></div>
+      <table>
+        <tr><th>#</th><th>Camada</th><th>Produto-âncora</th><th>PIX / piso</th><th>Cheio</th><th>ICP</th></tr>
+        <tr><td>1</td><td>Ancoragem</td><td>Exclusividade Ju — porcelana</td><td class="price">R$ 50.000</td><td>R$ 60.000</td><td><span class="tag-icp">A</span></td></tr>
+        <tr><td>2</td><td>Alto ticket</td><td>Plano Porcelana</td><td class="price">R$ 22.000</td><td>R$ 33.000</td><td><span class="tag-icp">B/A</span></td></tr>
+        <tr><td>3</td><td>Alto ticket</td><td>Mista (equipe + Ju)</td><td class="price">R$ 19.500</td><td>R$ 36.500</td><td><span class="tag-icp">B</span></td></tr>
+        <tr><td>4</td><td>Médio-alto</td><td>Plano Resina Ju</td><td class="price">R$ 13.000</td><td>R$ 25.000</td><td><span class="tag-icp">B</span></td></tr>
+        <tr><td>5</td><td>Médio</td><td>Resina equipe arcada</td><td class="price">R$ 7.000</td><td>R$ 12.000</td><td><span class="tag-icp">C</span></td></tr>
+        <tr><td>6</td><td>Frontend high</td><td>Reposicionamento · gengivo · HOF</td><td class="price">R$ 1.350+</td><td>até 10k</td><td><span class="tag-icp">A/B</span></td></tr>
+        <tr><td>7</td><td>Frontend entrada</td><td>Clareamento · limpeza · consulta</td><td class="price">R$ 0+</td><td>até 2k</td><td><span class="tag-icp">Todos</span></td></tr>
+      </table>
+    </div>
+    <div class="foot">Clínica Sakura · Quadro</div><div class="foot r">12 / 22</div>
+  </div></section>
+
+  <!-- 18 · ancoragem -->
+  <section class="slide"><div class="stage">
+    <span class="num">13</span>
+    <div class="two" style="padding:7cqw 8cqw">
+      <div>
+        <div class="eyebrow">A lógica</div>
+        <h2 style="margin-top:1cqw">Ancorar do <em>topo</em> pra baixo</h2>
+        <div class="rule"></div>
+        <p style="max-width:34cqw">Apresentar a Exclusividade primeiro. Quem vê <strong>R$ 60k</strong> no topo acha <strong>R$ 25k</strong> barato. O número de cima calibra a percepção de todo o resto.</p>
+        <p style="margin-top:1.4cqw;max-width:34cqw;color:#8d827c">Nunca cotar item isolado — sempre pacote fechado.</p>
+      </div>
+      <div class="stair">
+        <div class="step s1"><div class="lbl">Exclusividade Ju</div><div class="v">R$ 60k</div></div>
+        <div class="step s2"><div class="lbl">Mista</div><div class="v">R$ 36,5k</div></div>
+        <div class="step"><div class="lbl">Porcelana</div><div class="v">R$ 33k</div></div>
+        <div class="step"><div class="lbl">Resina Ju</div><div class="v">R$ 25k</div></div>
+        <div class="step"><div class="lbl">Resina equipe</div><div class="v">R$ 12k</div></div>
+        <div class="step"><div class="lbl">Consulta equipe</div><div class="v">R$ 0</div></div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · Quadro</div><div class="foot r">13 / 22</div>
+  </div></section>
+
+  <!-- 19 · regras do closer / cartas -->
+  <section class="slide"><div class="stage">
+    <span class="num">14</span>
+    <div class="pad">
+      <div class="eyebrow">Como apresentar</div>
+      <h2 style="margin-top:1cqw">Regras do closer &amp; cartas na manga</h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div>
+          <div class="k" style="font-family:var(--sans);font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--rose-deep);font-size:1.2cqw;margin-bottom:.6cqw">Regras</div>
+          <ul class="clean">
+            <li>Pré-qualificação clínica antes do quadro (Classe 3 sai)</li>
+            <li>Mostrar sempre as 7 camadas, de cima pra baixo</li>
+            <li>Nunca cotar item isolado — pacote fechado</li>
+            <li>Frontend que fecha vira upsell em 30–90 dias</li>
+          </ul>
+        </div>
+        <div>
+          <div class="k" style="font-family:var(--sans);font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:var(--rose-deep);font-size:1.2cqw;margin-bottom:.6cqw">Alavancas (usar conforme objeção)</div>
+          <div>
+            <span class="pill"><b>Piso</b> · paciente legal</span>
+            <span class="pill"><b>Parcelamento</b> 8–12x</span>
+            <span class="pill"><b>PIX</b> com desconto</span>
+            <span class="pill">Avaliação-cortesia familiar</span>
+            <span class="pill">Kit + fotos do sorriso</span>
+            <span class="pill">HOF sob demanda</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · Quadro</div><div class="foot r">14 / 22</div>
+  </div></section>
+
+  <!-- 20 · decisões Wanderson -->
+  <section class="slide"><div class="stage">
+    <span class="num">15</span>
+    <div class="pad">
+      <div class="eyebrow">Já fechado com o Wanderson · 05/06</div>
+      <h2 style="margin-top:1cqw">Decisões que ajustam a estrutura</h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div class="card">
+          <div class="k">Confirmado ✓</div>
+          <ul class="clean">
+            <li>Exclusividade Ju = Experience Sakura (<strong>mesmo produto</strong>: traz do aeroporto)</li>
+            <li>Kit (chocolate + contrato + batom) e fotos <strong>já existem</strong></li>
+            <li>Porcelana com <strong>garantia de 2 anos</strong></li>
+            <li>Treinamento da closer Barbara — <strong>urgente</strong></li>
+          </ul>
+        </div>
+        <div class="card" style="border-color:#e7cfca">
+          <div class="k" style="color:#b06a63">Cortado ✕ — não combina com high ticket</div>
+          <div>
+            <span class="pill no">Cartão fidelidade</span>
+            <span class="pill no">Pacote anual pré-pago</span>
+            <span class="pill no">Combo preparo com desconto</span>
+            <span class="pill no">Reparo intercorrente 12m</span>
+            <span class="pill no">Sedação nos planos</span>
+          </div>
+          <p style="margin-top:1.2cqw;font-size:1.3cqw;color:#8d827c">HOF (botox/preenchimento): só sob demanda — risco jurídico.</p>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · Decisões</div><div class="foot r">15 / 22</div>
+  </div></section>
+
+  <!-- 21 · próximos passos -->
+  <section class="slide"><div class="stage">
+    <span class="num">16</span>
+    <div class="pad">
+      <div class="eyebrow">A fundação está pronta</div>
+      <h2 style="margin-top:1cqw">Próximos passos</h2>
+      <div class="rule"></div>
+      <div class="cols c3">
+        <div class="card"><div class="big-n">2</div><h3>Apresentação &amp; scripts</h3><p>Quadro vira o slide-mãe; pitch que sobe a paciente pela escada + script de fechamento.</p></div>
+        <div class="card"><div class="big-n">3</div><h3>Pré-venda (SDR)</h3><p>Script da Gabi qualifica ICP A/B/C já no WhatsApp e direciona pra oferta certa.</p></div>
+        <div class="card"><div class="big-n">5</div><h3>Funil de aplicação</h3><p>LP de captação leva o lead pra Resina Ju ou Porcelana, com o quadro como referência do closer.</p></div>
+      </div>
+      <p style="margin-top:2.6cqw;color:var(--brown);font-family:var(--serif);font-style:italic;font-size:2cqw">O ICP, a esteira, a oferta e o quadro são a raiz. Daqui pra frente é a clínica florescendo em escala.</p>
+    </div>
+    <div class="foot">Clínica Sakura · Próximos passos</div><div class="foot r">16 / 22</div>
+  </div></section>
+
+  <!-- 22 · encerramento -->
+  <section class="slide"><div class="stage cover">
+    <div class="pad" style="justify-content:center">
+      <img src="/slides/comercial/assets/logo-escuro.png" alt="Clínica Sakura" style="width:26cqw;height:auto;margin-bottom:2.4cqw">
+      <div class="quote">A fundação está <b>pronta.</b></div>
+      <div class="rule"></div>
+      <p style="max-width:48cqw;font-size:2cqw">A estrutura comercial pronta pra crescer: em pacientes, em equipe, em previsibilidade. Daqui pra frente é execução.</p>
+    </div>
+    <div class="date" style="bottom:4.4cqw">Diniz Digital × Momento Mori · Junho 2026</div>
+  </div></section>
+
+</div>
+
+<div class="nav" id="nav">1 / 22 · ← → navega · ⌘P exporta PDF</div>
+<script>
+  const deck=document.getElementById('deck'),slides=[...document.querySelectorAll('.slide')],nav=document.getElementById('nav');
+  let i=0;
+  function go(n){i=Math.max(0,Math.min(slides.length-1,n));slides[i].scrollIntoView({behavior:'smooth'});}
+  addEventListener('keydown',e=>{
+    if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();go(i+1);}
+    if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();go(i-1);}
+  });
+  const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){i=slides.indexOf(en.target);nav.firstChild.textContent=(i+1)+' / '+slides.length+' · ← → navega · ⌘P exporta PDF';}})},{threshold:.6});
+  slides.forEach(s=>io.observe(s));
+</script>
+</body>
+</html>

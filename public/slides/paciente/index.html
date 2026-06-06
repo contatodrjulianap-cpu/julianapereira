@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clínica Sakura · por Juliana Pereira</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500;1,600&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rose:#B18180;--rose-deep:#586046;--green:#41482F;--brown:#473631;--ink:#2A2420;
+    --cream:#E8E0D4;--taupe:#C9BEAC;
+    --serif:"Cormorant Garamond",Georgia,serif;--sans:"Jost",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:#cfc7c0;color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+  .deck{scroll-snap-type:y mandatory;overflow-y:auto;height:100vh}
+  .slide{width:100vw;height:100vh;scroll-snap-align:start;display:flex;align-items:center;justify-content:center}
+  .stage{position:relative;aspect-ratio:16/9;width:min(100vw,177.78vh);height:min(56.25vw,100vh);
+    background:var(--cream);overflow:hidden;container-type:size;box-shadow:0 10px 40px rgba(0,0,0,.18)}
+  .pad{position:absolute;inset:0;padding:6cqw 8cqw 7cqw;display:flex;flex-direction:column;justify-content:center;z-index:3}
+
+  img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+  .scrim{position:absolute;inset:0;z-index:2}
+  .scrim.left{background:linear-gradient(90deg,rgba(20,14,12,.82) 0%,rgba(20,14,12,.5) 38%,rgba(20,14,12,.05) 68%,transparent 100%)}
+  .scrim.bottom{background:linear-gradient(0deg,rgba(20,14,12,.85) 0%,rgba(20,14,12,.25) 40%,transparent 70%)}
+  .scrim.soft{background:rgba(20,14,12,.32)}
+
+  .eyebrow{font-family:var(--sans);font-weight:500;letter-spacing:.45em;text-transform:uppercase;color:var(--rose-deep);font-size:1.35cqw}
+  .eyebrow.on{color:var(--rose)}
+  h1{font-family:var(--serif);font-weight:500;line-height:1.02;font-size:7cqw;color:var(--ink)}
+  h2{font-family:var(--serif);font-weight:500;line-height:1.06;font-size:5cqw;color:var(--ink)}
+  h2 em,h1 em{font-style:italic;color:var(--rose-deep)}
+  .on h2,.on h1,.light h2,.light h1{color:#fff}
+  .light em{color:var(--rose)}
+  .lead{font-family:var(--serif);font-size:2.7cqw;line-height:1.35;color:var(--brown);font-weight:400}
+  .light .lead{color:#f0e7e1}
+  p,li{font-family:var(--sans);font-weight:300;font-size:1.7cqw;line-height:1.55;color:#3a322f}
+  .light p,.light li{color:#ece2dc}
+  strong{font-weight:500;color:inherit}
+  .rule{width:9cqw;height:.28cqw;background:var(--rose);margin:2.2cqw 0;border-radius:2px}
+
+  .quote{font-family:var(--serif);font-style:italic;font-weight:500;font-size:4.6cqw;line-height:1.18;color:var(--ink)}
+  .quote.light{color:#fff}
+  .quote b{font-style:normal;color:var(--rose-deep);font-weight:600}
+  .quote.light b{color:var(--rose)}
+  .cite{font-family:var(--sans);letter-spacing:.3em;text-transform:uppercase;font-size:1.25cqw;color:var(--rose-deep);margin-top:2.4cqw}
+  .light .cite{color:var(--rose)}
+
+  .branch{position:absolute;pointer-events:none;z-index:2}
+
+  /* cover wordmark */
+  .wordmark{font-family:var(--serif);font-weight:500;letter-spacing:.16em;line-height:.9}
+  .num{position:absolute;top:5cqw;right:7cqw;font-family:var(--serif);font-style:italic;font-size:2.2cqw;color:var(--rose-deep);opacity:.85;z-index:4}
+  .on .num,.light .num{color:var(--rose)}
+  .foot{position:absolute;bottom:3.6cqw;left:8cqw;font-family:var(--sans);letter-spacing:.3em;text-transform:uppercase;color:#b6aaa3;font-size:1.05cqw;z-index:4}
+  .foot.r{left:auto;right:8cqw}
+  .light .foot{color:rgba(255,255,255,.6)}
+
+  /* gallery */
+  .gal{display:grid;gap:1.4cqw;width:100%;height:100%;position:absolute;inset:0;z-index:1;padding:0}
+  .gal img{width:100%;height:100%;object-fit:cover}
+  .g3{grid-template-columns:1.3fr 1fr 1fr}
+  .g3b{grid-template-columns:1fr 1fr 1.3fr}
+  .galcap{position:absolute;z-index:4;bottom:5cqw;left:5cqw;background:rgba(247,243,239,.94);padding:1.4cqw 2.4cqw;border-radius:1cqw}
+  .galcap .eyebrow{font-size:1.15cqw}
+  .galcap h3{font-family:var(--serif);font-weight:500;font-size:2.6cqw;color:var(--ink);line-height:1}
+
+  /* cards / lists */
+  .cols{display:grid;gap:3cqw;margin-top:1.6cqw}
+  .c2{grid-template-columns:1fr 1fr}.c3{grid-template-columns:1fr 1fr 1fr}
+  .card{background:rgba(255,255,255,.92);border:1px solid #ece2db;border-radius:1.4cqw;padding:2.6cqw}
+  .card .k{font-family:var(--sans);font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--rose-deep);font-size:1.15cqw;margin-bottom:.9cqw}
+  .card h3{font-family:var(--serif);font-weight:600;font-size:2.7cqw;color:var(--ink);line-height:1.05;margin-bottom:.7cqw}
+  .card p{font-size:1.5cqw}
+  ul.clean{list-style:none}
+  ul.clean li{position:relative;padding-left:2.6cqw;margin:1.1cqw 0;font-size:1.75cqw}
+  ul.clean li::before{content:"";position:absolute;left:0;top:.6cqw;width:1.05cqw;height:1.05cqw;background:var(--rose);border-radius:50%}
+
+  .steps{display:flex;gap:1.4cqw;margin-top:2cqw}
+  .stp{flex:1;background:rgba(255,255,255,.92);border-radius:1.2cqw;padding:2cqw 1.6cqw;border-top:.45cqw solid var(--rose)}
+  .stp .n{font-family:var(--serif);font-weight:600;color:var(--rose-deep);font-size:2.4cqw;line-height:1}
+  .stp h4{font-family:var(--serif);font-weight:600;font-size:2cqw;color:var(--ink);margin:.5cqw 0 .3cqw}
+  .stp p{font-size:1.3cqw}
+
+  @media print{
+    @page{size:1280px 720px;margin:0}
+    html,body{background:#fff}
+    .deck{display:block;height:auto;overflow:visible}
+    .slide{height:720px;width:1280px;page-break-after:always;display:block}
+    .stage{width:1280px;height:720px;box-shadow:none;aspect-ratio:auto}
+    .nav{display:none}
+  }
+  .nav{position:fixed;bottom:18px;right:20px;z-index:50;font-family:var(--sans);font-size:12px;color:#5a4f49;background:#fff;border-radius:20px;padding:7px 14px;box-shadow:0 4px 14px rgba(0,0,0,.15);letter-spacing:.04em}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <g id="blossom">
+    <g fill="#F2ECDF" stroke="#BFB39B" stroke-width="1.6">
+      <path id="petal" d="M0,-4 C-7,-9 -7,-20 0,-23 C7,-20 7,-9 0,-4 Z"/>
+      <use href="#petal" transform="rotate(72)"/><use href="#petal" transform="rotate(144)"/>
+      <use href="#petal" transform="rotate(216)"/><use href="#petal" transform="rotate(288)"/>
+    </g>
+    <circle r="2.6" fill="#586046"/>
+  </g>
+</defs></svg>
+
+<div class="deck" id="deck">
+
+  <!-- 1 · CAPA -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-47.jpg" alt="">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <img src="/slides/paciente/assets/logo-branco.png" alt="Clínica Sakura · por Juliana Pereira" style="width:36cqw;max-width:36cqw;height:auto">
+      <div style="font-family:var(--serif);font-style:italic;font-size:3.4cqw;color:#fff;margin-top:5cqw">O sorriso muda <b style="font-style:normal;color:var(--rose);font-weight:600">tudo.</b></div>
+      <p style="max-width:40cqw;margin-top:1.4cqw;color:#f0e7e1">O seu sorriso, planejado com cuidado e técnica: natural, do jeito que combina com você.</p>
+    </div>
+  </div></section>
+
+  <!-- 2 · HOOK -->
+  <section class="slide"><div class="stage">
+    <div class="pad">
+      <div class="eyebrow">Antes de tudo</div>
+      <div class="quote" style="margin-top:1.6cqw;max-width:62cqw">Não é sobre dentes.<br>É sobre voltar a <b>se reconhecer no espelho.</b></div>
+      <div class="rule"></div>
+      <p style="max-width:50cqw">A maioria das pessoas que chega aqui não quer "ficar com dente perfeito". Quer parar de se esconder: na foto, na reunião, na risada.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">01</div>
+  </div></section>
+
+  <!-- 3 · O HOJE (empatia) -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-41.jpg" alt="" style="object-position:center 25%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">Talvez você se reconheça</div>
+      <h2 style="margin-top:1.4cqw;max-width:50cqw">Você sorri de boca fechada.</h2>
+      <div class="rule"></div>
+      <ul class="clean" style="max-width:46cqw">
+        <li>Tampa a boca com a mão quando ri.</li>
+        <li>Foge da foto, ou só posa "de lábio fechado".</li>
+        <li>Adia há anos: "um dia eu faço".</li>
+        <li>Já ouviu de algum dentista que "ia destruir seu dente".</li>
+      </ul>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">02</div>
+  </div></section>
+
+  <!-- 4 · OS MEDOS -->
+  <section class="slide"><div class="stage">
+    <div class="pad">
+      <div class="eyebrow">O que trava a decisão</div>
+      <h2 style="margin-top:1.2cqw">Os medos que a gente <em>entende</em></h2>
+      <div class="rule"></div>
+      <div class="cols c3">
+        <div class="card"><h3>"Vou destruir meu dente?"</h3><p>O medo nº 1. A imagem do "dente de tubarão" lixado.</p></div>
+        <div class="card"><h3>"Vai ficar fake?"</h3><p>O pavor de um sorriso artificial, que todo mundo percebe.</p></div>
+        <div class="card"><h3>"E se der errado comigo?"</h3><p>"No meu caso é diferente, vai que não fica bom."</p></div>
+      </div>
+      <p style="margin-top:2.4cqw;font-family:var(--serif);font-style:italic;font-size:2.2cqw;color:var(--brown)">Esses medos são legítimos. A resposta da Sakura é uma só: <strong style="font-style:normal">previsibilidade.</strong></p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">03</div>
+  </div></section>
+
+  <!-- 5 · A VIRADA / FILOSOFIA -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-28.jpg" alt="" style="object-position:center 20%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A filosofia da Dra. Juliana</div>
+      <div class="quote light" style="margin-top:1.4cqw;max-width:56cqw">"Eu não destruo seu dente.<br>Eu <b>cuido</b> de você."</div>
+      <div class="rule"></div>
+      <p style="max-width:46cqw">Desgaste mínimo necessário, planejamento prévio e resultado natural acima de tudo. Nada de "dente de Hollywood": o objetivo é parecer você, só que livre pra sorrir.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">04</div>
+  </div></section>
+
+  <!-- 6 · PROVA VIVA -->
+  <section class="slide"><div class="stage">
+    <img class="bg" src="/slides/paciente/assets/photo-05.jpg" alt="" style="object-position:center 40%">
+    <div class="scrim bottom"></div>
+    <div class="pad light" style="justify-content:flex-end;padding-bottom:9cqw">
+      <div class="quote light" style="max-width:58cqw;font-size:4cqw">"Eu fiz no meu <b>próprio sorriso.</b>"</div>
+      <p style="max-width:46cqw;color:#f0e7e1;margin-top:1.4cqw">A Ju usa o que ela entrega. Quando a referência confia o próprio sorriso ao método, você sabe que está em boas mãos.</p>
+    </div>
+    <div class="foot light">Clínica Sakura · por Juliana Pereira</div><div class="foot r light">05</div>
+  </div></section>
+
+  <!-- 7 · CASOS REAIS 1 (sorrisos bonitos) -->
+  <section class="slide"><div class="stage on">
+    <div class="gal g3">
+      <img src="/slides/paciente/assets/photo-04.jpg" alt=""><img src="/slides/paciente/assets/photo-56.jpg" alt=""><img src="/slides/paciente/assets/photo-31.jpg" alt="">
+    </div>
+    <div class="galcap">
+      <div class="eyebrow">Casos reais · documentados</div>
+      <h3>Sorrisos que voltaram a aparecer</h3>
+    </div>
+  </div></section>
+
+  <!-- 8 · ANTES E DEPOIS -->
+  <section class="slide"><div class="stage on" style="background:#2A2420">
+    <div style="position:absolute;inset:0;display:flex;gap:3cqw;align-items:center;justify-content:center;padding:5.5cqw 6cqw 4cqw;z-index:1">
+      <img src="/slides/paciente/assets/photo-03.jpg" alt="" style="height:86%;max-width:40%;object-fit:contain;border-radius:.5cqw">
+      <img src="/slides/paciente/assets/photo-53.jpg" alt="" style="height:86%;max-width:40%;object-fit:contain;border-radius:.5cqw">
+    </div>
+    <div style="position:absolute;top:4cqw;left:6cqw;z-index:4">
+      <div class="eyebrow on">Antes &amp; depois · casos reais</div>
+      <h3 style="font-family:var(--serif);font-weight:500;font-size:2.8cqw;color:#fff;line-height:1;margin-top:.5cqw">Cada caso, um plano próprio</h3>
+    </div>
+  </div></section>
+
+  <!-- 9 · CASOS REAIS 3 -->
+  <section class="slide"><div class="stage on">
+    <div class="gal g3">
+      <img src="/slides/paciente/assets/photo-72.jpg" alt=""><img src="/slides/paciente/assets/photo-00.jpg" alt=""><img src="/slides/paciente/assets/photo-74.jpg" alt="">
+    </div>
+    <div class="galcap">
+      <div class="eyebrow">Antes &amp; depois</div>
+      <h3>A transformação que se vê</h3>
+    </div>
+  </div></section>
+
+  <!-- 10 · NATURAL -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-06.jpg" alt="" style="object-position:center 28%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A marca registrada</div>
+      <h2 class="light" style="margin-top:1.2cqw;max-width:52cqw">Natural a ponto de ninguém <em>perceber</em> que você fez.</h2>
+      <div class="rule"></div>
+      <p style="max-width:44cqw">Sem volume exagerado, sem branco artificial. Um sorriso que integra ao seu rosto, e que aguenta a vida real, da mordida na fruta à foto sem filtro.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">09</div>
+  </div></section>
+
+  <!-- 11 · COMO FUNCIONA -->
+  <section class="slide"><div class="stage">
+    <div class="pad">
+      <div class="eyebrow">Previsibilidade do começo ao fim</div>
+      <h2 style="margin-top:1cqw">Como funciona o seu tratamento</h2>
+      <div class="rule"></div>
+      <div class="steps">
+        <div class="stp"><div class="n">01</div><h4>Avaliação</h4><p>Diagnóstico completo, fotos e um plano claro: o que será feito, em quantas sessões.</p></div>
+        <div class="stp"><div class="n">02</div><h4>Preparo</h4><p>Cuidados prévios (gengiva, clareamento) quando o seu caso pede.</p></div>
+        <div class="stp"><div class="n">03</div><h4>Prova do sorriso</h4><p>No mock-up você vê e aprova o resultado <strong>antes</strong> de virar definitivo.</p></div>
+        <div class="stp"><div class="n">04</div><h4>Instalação</h4><p>O dia do sorriso novo, com a Ju conduzindo cada detalhe.</p></div>
+        <div class="stp"><div class="n">05</div><h4>Manutenção</h4><p>Acompanhamento e 1ª manutenção inclusa pra durar bonito.</p></div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">10</div>
+  </div></section>
+
+  <!-- 11a · ETAPA 01 · AVALIAÇÃO -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-21.jpg" alt="" style="object-position:center 25%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A jornada · etapa 01 de 05</div>
+      <h2 class="light" style="margin-top:1.2cqw;max-width:50cqw">Avaliação</h2>
+      <div class="rule"></div>
+      <p style="max-width:44cqw">Diagnóstico completo, fotos e um plano claro: o que será feito, em quantas sessões e com qual material. Você entende o seu caso antes de começar.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">11</div>
+  </div></section>
+
+  <!-- 11b · ETAPA 02 · PREPARO -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-68.jpg" alt="" style="object-position:center 35%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A jornada · etapa 02 de 05</div>
+      <h2 class="light" style="margin-top:1.2cqw;max-width:50cqw">Preparo</h2>
+      <div class="rule"></div>
+      <p style="max-width:44cqw">Cuidados prévios (gengiva, clareamento, placa) quando o seu caso pede, pra base ficar saudável e o resultado durar.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">12</div>
+  </div></section>
+
+  <!-- 11c · ETAPA 03 · PROVA DO SORRISO -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-60.jpg" alt="" style="object-position:center 40%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A jornada · etapa 03 de 05</div>
+      <h2 class="light" style="margin-top:1.2cqw;max-width:52cqw">Prova do sorriso</h2>
+      <div class="rule"></div>
+      <p style="max-width:44cqw">No mock-up você vê e aprova o resultado <strong>antes</strong> de virar definitivo. Nada é cimentado sem o seu sim.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">13</div>
+  </div></section>
+
+  <!-- 11d · ETAPA 04 · INSTALAÇÃO -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-22.jpg" alt="" style="object-position:center 40%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A jornada · etapa 04 de 05</div>
+      <h2 class="light" style="margin-top:1.2cqw;max-width:50cqw">Instalação</h2>
+      <div class="rule"></div>
+      <p style="max-width:44cqw">O dia do sorriso novo, com a Ju conduzindo cada detalhe, no tempo que o seu caso pede.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">14</div>
+  </div></section>
+
+  <!-- 11e · ETAPA 05 · MANUTENÇÃO -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-00.jpg" alt="" style="object-position:center 25%">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">A jornada · etapa 05 de 05</div>
+      <h2 class="light" style="margin-top:1.2cqw;max-width:50cqw">Manutenção</h2>
+      <div class="rule"></div>
+      <p style="max-width:44cqw">Acompanhamento e 1ª manutenção inclusa, pra durar bonito ao longo do tempo. A gente não some depois da instalação.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">15</div>
+  </div></section>
+
+  <!-- 12 · OS DOIS CAMINHOS -->
+  <section class="slide"><div class="stage">
+    <div class="pad">
+      <div class="eyebrow">Dois caminhos, o mesmo cuidado</div>
+      <h2 style="margin-top:1cqw">Lentes em <em>resina</em> ou <em>porcelana</em></h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div class="card"><h3>Lente em Resina</h3><p>Executada pela Dra. Juliana, resultado natural e instalação em uma única sessão. A escolha de quem quer transformar o sorriso com agilidade e qualidade.</p></div>
+        <div class="card" style="border-color:var(--rose)"><h3>Lente em Porcelana</h3><p>Máximo de acabamento e durabilidade: prova do mock-up, acompanhamento estendido e <strong>garantia de 2 anos</strong>. Para quem quer o topo em segurança.</p></div>
+      </div>
+      <p style="margin-top:2cqw;color:#8d827c">Qual faz mais sentido pra você é o que a gente define junto, aqui, hoje.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">16</div>
+  </div></section>
+
+  <!-- 13 · TUDO QUE VEM JUNTO -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-22.jpg" alt="">
+    <div class="scrim left"></div>
+    <div class="pad">
+      <div class="eyebrow on">Não é só a lente</div>
+      <h2 class="light" style="margin-top:1cqw">O seu sorriso vem com tudo incluso</h2>
+      <div class="rule"></div>
+      <ul class="clean" style="max-width:46cqw">
+        <li>Avaliação clínica completa e planejamento</li>
+        <li>Preparos necessários (gengiva, clareamento, placa)</li>
+        <li>Prova do sorriso antes de cimentar (porcelana)</li>
+        <li>1ª manutenção com a Ju + documentação do antes/depois</li>
+        <li>Suporte direto com a clínica e garantia</li>
+      </ul>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">17</div>
+  </div></section>
+
+  <!-- 14 · DÚVIDAS -->
+  <section class="slide"><div class="stage">
+    <div class="pad">
+      <div class="eyebrow">As perguntas que todo mundo faz</div>
+      <h2 style="margin-top:1cqw">Suas dúvidas, respondidas</h2>
+      <div class="rule"></div>
+      <div class="cols c2">
+        <div>
+          <ul class="clean">
+            <li><strong>"Resina amarela?"</strong> Com manutenção certa, mantém a cor e o brilho. A 1ª já vem inclusa.</li>
+            <li><strong>"Dói?"</strong> O processo é confortável e planejado; você sabe cada etapa antes.</li>
+          </ul>
+        </div>
+        <div>
+          <ul class="clean">
+            <li><strong>"Vai ficar fake?"</strong> A filosofia é natural; recusamos o "exagerado" por princípio.</li>
+            <li><strong>"Não moro em SP."</strong> Temos protocolo pra paciente de fora, com a equipe te recebendo.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">18</div>
+  </div></section>
+
+  <!-- 15 · INVESTIMENTO (sem número) -->
+  <section class="slide"><div class="stage">
+    <div class="pad" style="align-items:center;text-align:center">
+      <div class="eyebrow" style="text-align:center">O investimento</div>
+      <h2 style="margin-top:1.2cqw;max-width:64cqw;text-align:center">Cada sorriso é <em>único</em>. O seu plano também.</h2>
+      <div class="rule" style="margin-left:auto;margin-right:auto"></div>
+      <p style="max-width:52cqw;text-align:center">É isso que a gente monta com você agora: o seu plano completo, com tudo incluso e sem surpresa. Você sai daqui sabendo exatamente o que será feito, em quantas sessões e em quanto fica, com as melhores condições de pagamento.</p>
+    </div>
+    <div class="foot">Clínica Sakura · por Juliana Pereira</div><div class="foot r">19</div>
+  </div></section>
+
+  <!-- 16 · CTA -->
+  <section class="slide"><div class="stage on light">
+    <img class="bg" src="/slides/paciente/assets/photo-47.jpg" alt="" style="object-position:center 32%">
+    <div class="scrim soft"></div>
+    <div class="scrim bottom"></div>
+    <div class="pad" style="align-items:center;text-align:center;justify-content:center">
+      <div class="quote light" style="font-size:5cqw">O sorriso muda <b>tudo.</b></div>
+      <p style="max-width:50cqw;text-align:center;color:#f5ede8;margin-top:1.2cqw;font-size:2cqw">Você já está aqui. O passo que falta é decidir: vamos planejar, juntos, o sorriso que você adia há tempo demais.</p>
+      <div style="margin-top:3.4cqw;background:var(--brown);color:var(--cream);font-family:var(--sans);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:1.5cqw;padding:1.4cqw 3.4cqw;border-radius:5cqw">Vamos começar o seu sorriso</div>
+      <img src="/slides/paciente/assets/logo-branco.png" alt="Clínica Sakura" style="margin-top:3cqw;width:26cqw;height:auto">
+    </div>
+  </div></section>
+
+</div>
+<div class="nav" id="nav">1 / 16 · ← → navega · ⌘P exporta PDF</div>
+<script>
+  const slides=[...document.querySelectorAll('.slide')],nav=document.getElementById('nav');let i=0;
+  function go(n){i=Math.max(0,Math.min(slides.length-1,n));slides[i].scrollIntoView({behavior:'smooth'});}
+  addEventListener('keydown',e=>{if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();go(i+1);}if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();go(i-1);}});
+  const io=new IntersectionObserver(es=>es.forEach(en=>{if(en.isIntersecting){i=slides.indexOf(en.target);nav.firstChild.textContent=(i+1)+' / '+slides.length+' · ← → navega · ⌘P exporta PDF';}}),{threshold:.6});
+  slides.forEach(s=>io.observe(s));
+</script>
+</body>
+</html>
