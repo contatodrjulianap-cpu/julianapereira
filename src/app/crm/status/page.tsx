@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CrmShell } from "../crm-shell";
+import { ReminderItem } from "./reminder-item";
 
 export const dynamic = "force-dynamic";
 
@@ -129,6 +130,19 @@ export default async function StatusPage() {
     const atendidos = new Set((outMsgs ?? []).map((m) => m.lead_id));
     prontasEsperando = prontaCandidates.filter((p) => !atendidos.has(p.id));
   }
+
+  // Lembretes de avaliação (tabela tasks, fase closer): abertos vencendo até hoje.
+  // Gerados pelo cron a partir de scheduled_at; o atendente manda na mão e marca feito.
+  let remindersQ = supabase
+    .from("tasks")
+    .select("id, title, due_at, lead_id, assigned_owner_id")
+    .eq("done", false)
+    .lte("due_at", endToday.toISOString())
+    .order("due_at", { ascending: true })
+    .limit(200);
+  if (!isAdmin) remindersQ = remindersQ.eq("assigned_owner_id", user.id);
+  const { data: reminderRows } = await remindersQ;
+  const reminders = reminderRows ?? [];
 
   const tasksToday: TaskLead[] = [];
   const tasksUpcoming: TaskLead[] = [];
@@ -288,6 +302,37 @@ export default async function StatusPage() {
                   </li>
                 );
               })}
+            </ul>
+          </section>
+        )}
+
+        {/* Lembretes de avaliação (fase closer) — gerados do scheduled_at, mandados na mão */}
+        {reminders.length > 0 && (
+          <section className="mb-5 rounded-2xl border-2 border-amber-300 bg-amber-50 p-4">
+            <h2 className="text-sm font-bold text-amber-900 mb-2 flex items-center gap-2">
+              📞 Lembretes de avaliação
+              <span className="text-[11px] font-normal bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                {reminders.length}
+              </span>
+            </h2>
+            <p className="text-[11px] text-amber-800 mb-3">
+              Avaliações chegando. Abra a conversa e mande o lembrete na mão —
+              depois marque como feito.
+            </p>
+            <ul className="space-y-1.5">
+              {reminders.map((t) => (
+                <ReminderItem
+                  key={t.id}
+                  id={t.id}
+                  title={t.title}
+                  leadId={t.lead_id}
+                  ownerName={
+                    isAdmin && t.assigned_owner_id
+                      ? (ownerNameById.get(t.assigned_owner_id) ?? null)
+                      : null
+                  }
+                />
+              ))}
             </ul>
           </section>
         )}

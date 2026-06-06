@@ -8,6 +8,7 @@ import {
   type AttendantStats,
 } from "./attendant-performance";
 import { UtmBreakdown, type UtmRow } from "./utm-breakdown";
+import { CommercialFunnel, type CommercialCounts } from "./commercial-funnel";
 
 export const dynamic = "force-dynamic";
 
@@ -243,6 +244,28 @@ export default async function FunnelPage({
   }
   const utmRows = Array.from(utmMap.values()).sort((a, b) => b.total - a.total);
 
+  // Funil comercial (SDR × Closer) — coorte de leads criados no período.
+  // Count queries (head:true) pra não esbarrar no max-rows 1k do PostgREST.
+  const commBase = () =>
+    admin
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .gte("created_at", range.start_at)
+      .lt("created_at", range.end_at);
+  const [commLeads, commAgendados, commCompareceram, commFecharam] =
+    await Promise.all([
+      commBase(),
+      commBase().not("scheduled_at", "is", null),
+      commBase().in("status", ["attended", "won"]),
+      commBase().eq("status", "won"),
+    ]);
+  const commercialCounts: CommercialCounts = {
+    leads: commLeads.count ?? 0,
+    agendados: commAgendados.count ?? 0,
+    compareceram: commCompareceram.count ?? 0,
+    fecharam: commFecharam.count ?? 0,
+  };
+
   return (
     <CrmShell active="funnel" userEmail={user.email ?? ""}>
       <FunnelView
@@ -252,6 +275,7 @@ export default async function FunnelPage({
         error={error?.message ?? null}
         range={range}
       />
+      <CommercialFunnel counts={commercialCounts} rangeLabel={range.label} />
       <AttendantPerformance stats={attendantStats} rangeLabel={range.label} />
       <UtmBreakdown rows={utmRows} rangeLabel={range.label} />
     </CrmShell>
