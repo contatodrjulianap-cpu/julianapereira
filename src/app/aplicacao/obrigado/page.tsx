@@ -120,7 +120,7 @@ export default async function ObrigadoPage({
           <a
             href={furaFilaHref}
             className="inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-sm font-semibold tracking-wide w-full"
-            style={{ background: C.rose, color: "#3a2723" }}
+            style={{ background: C.cream, color: C.green }}
           >
             Furar a fila no WhatsApp
           </a>
