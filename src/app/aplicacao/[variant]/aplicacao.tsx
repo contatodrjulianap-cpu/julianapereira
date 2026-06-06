@@ -232,7 +232,7 @@ export function Aplicacao({ variant }: { variant: Variant }) {
         <H2>Sorrisos que voltaram a aparecer</H2>
         <Rule />
         <div className="grid grid-cols-3 gap-2">
-          {["foto-53", "foto-02", "foto-35"].map((f) => (
+          {["foto-59", "foto-31", "foto-56"].map((f) => (
             <div key={f} className="relative aspect-[3/4] rounded-lg overflow-hidden">
               <Image src={`/aplicacao/${f}.jpg`} alt="" fill className="object-cover" />
             </div>
