@@ -110,7 +110,7 @@ export function Aplicacao({ variant }: { variant: Variant }) {
       });
       if (!res.ok) throw new Error("submit");
       trackEvent("quiz_step_view", { step: "aplicacao_submit", variant });
-      window.location.href = "/aplicacao/obrigado";
+      window.location.href = `/aplicacao/obrigado?v=${variant}`;
     } catch {
       setSending(false);
       setErr("Deu um erro ao enviar. Tenta de novo?");
@@ -120,7 +120,7 @@ export function Aplicacao({ variant }: { variant: Variant }) {
   return (
     <main style={{ background: C.cream, color: C.ink }} className="min-h-dvh">
       {/* ===== HERO ===== */}
-      <section className="relative min-h-[88dvh] flex items-end overflow-hidden">
+      <section className="relative min-h-[62dvh] flex items-end overflow-hidden">
         <Image
           src="/aplicacao/foto-47.jpg"
           alt=""
