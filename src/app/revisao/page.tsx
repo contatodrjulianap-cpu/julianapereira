@@ -108,8 +108,11 @@ export default function RevisaoPage() {
           </a>
         </div>
 
-        <div
-          className="rounded-2xl p-5 text-center"
+        <a
+          href="https://drive.google.com/drive/folders/1EtAOF6sr1c2vIxrDm1i6vt0E64cNEZ7S"
+          target="_blank"
+          rel="noopener"
+          className="block rounded-2xl p-5 text-center active:opacity-90"
           style={{ background: C.green }}
         >
           <p className="text-[#fff] text-sm" style={SERIF}>
@@ -117,10 +120,16 @@ export default function RevisaoPage() {
           </p>
           <p className="text-[#d9ddcf] text-[13px] mt-1">
             Os 11 documentos (ICP, oferta, scripts de closer/fechamento,
-            playbook do SDR, matriz de objeções, plano de CRM) estão no Google
-            Drive, em formato comentável.
+            playbook do SDR, matriz de objeções, plano de CRM) — em formato
+            comentável.
           </p>
-        </div>
+          <span
+            className="text-[12px] font-semibold mt-2 inline-block"
+            style={{ color: C.cream }}
+          >
+            Abrir no Google Drive →
+          </span>
+        </a>
 
         <p className="text-center text-xs mt-8" style={{ color: C.taupe }}>
           Uso interno · Diniz Digital × Momento Mori
