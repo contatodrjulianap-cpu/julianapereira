@@ -19,10 +19,10 @@ create table if not exists public.tasks (
   title             text not null,              -- texto curto exibido na fila
   due_at            timestamptz not null,       -- quando a tarefa deve ser feita
   due_day           date not null,              -- dia (SP) de referência — chave de idempotência
-  assigned_owner_id uuid references public.crm_users(id) on delete set null,
+  assigned_owner_id uuid,                        -- = leads.assigned_owner_id (auth user). crm_users é VIEW, sem FK.
   done              boolean not null default false,
   done_at           timestamptz,
-  done_by           uuid references public.crm_users(id) on delete set null,
+  done_by           uuid,                         -- auth user que marcou feito (sem FK pelo mesmo motivo)
   source            text not null default 'auto',  -- 'auto' (cron) | 'manual'
   created_at        timestamptz not null default now(),
   unique (lead_id, kind, due_day)
