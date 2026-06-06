@@ -36,7 +36,7 @@ const Body = z.object({
   // surface: origem do lead. "bot" pula o greeting Z-API automático
   // porque no chat-bot o lead é quem inicia a conversa (clicando no
   // wa.me). Default "quiz" mantém o comportamento histórico.
-  surface: z.enum(["quiz", "bot"]).default("quiz"),
+  surface: z.enum(["quiz", "bot", "aplicacao"]).default("quiz"),
   utm: UtmSchema,
 });
 
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         name,
         email: email ?? null,
         instagram: instagram ?? null,
-        source: "quiz",
+        source: surface === "aplicacao" ? "aplicacao" : "quiz",
         archetype,
         geo,
         case_type: case_type ?? null,
