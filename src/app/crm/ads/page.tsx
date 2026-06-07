@@ -385,12 +385,14 @@ export default async function AdsPage({
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  // Warning: ACTIVE + gastou +R$200 + 0 wons + período >= 3 dias.
-                  // Sinaliza "candidata a pausar". Período = days da URL.
+                  // Warning: ACTIVE + gastou +R$100 + 0 leads atribuídos + período >= 3 dias.
+                  // "Queimou verba sem trazer 1 lead rastreável" = candidata a pausar.
+                  // (Antes usava 0 wons, mas wons quase não são marcados no CRM, então
+                  //  o alerta acendia em toda campanha. 0 leads Supabase é o sinal real.)
                   const isWarning =
                     r.effectiveStatus === "ACTIVE" &&
-                    r.spend > 20000 && // R$200 em centavos
-                    r.leads_supabase.won === 0 &&
+                    r.spend > 10000 && // R$100 em centavos
+                    r.leads_supabase.total === 0 &&
                     days >= 3;
                   const cid = r.campaignId ?? r.id;
                   return (
@@ -406,7 +408,7 @@ export default async function AdsPage({
                         className="hover:underline hover:text-rose-700"
                       >
                         {isWarning && (
-                          <span title="Gastou +R$200 sem fechar, candidata a pausar">
+                          <span title="Gastou +R$100 e não trouxe 1 lead rastreável, candidata a pausar">
                             ⚠️{" "}
                           </span>
                         )}

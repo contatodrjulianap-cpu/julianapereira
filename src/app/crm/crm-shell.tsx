@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CrmBottomNav } from "./crm-bottom-nav";
+import { CLIENT_CONFIG } from "@/lib/client-config";
 
 export type CrmTab =
   | "inbox"
@@ -16,6 +17,7 @@ export type CrmTab =
   | "conversas"
   | "voce"
   | "playbook"
+  | "metas"
   | "insights";
 
 export async function CrmShell({
@@ -56,10 +58,10 @@ export async function CrmShell({
           <div className="flex items-center gap-8">
             <div>
               <h1 className="text-[15px] font-semibold tracking-tight text-slate-900">
-                CRM Sakura
+                {CLIENT_CONFIG.crmHeaderTitle}
               </h1>
               <p className="text-[11px] text-slate-500 leading-none mt-0.5">
-                Dra. Juliana Pereira
+                {CLIENT_CONFIG.professionalName}
               </p>
             </div>
             <nav className="flex gap-0.5">
@@ -85,6 +87,9 @@ export async function CrmShell({
                 <>
                   <TabLink href="/crm/insights" active={active === "insights"}>
                     🧠 Insight
+                  </TabLink>
+                  <TabLink href="/crm/metas" active={active === "metas"}>
+                    🎯 Metas
                   </TabLink>
                   <TabLink href="/crm/funnel" active={active === "funnel"}>
                     📈 Funil
