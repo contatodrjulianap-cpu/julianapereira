@@ -140,6 +140,7 @@ function resolvePeriod(
 type Lead = {
   id: string;
   assigned_owner_id: string | null;
+  wa_number_id: string | null;
   status: string | null;
   scheduled_at: string | null;
   created_at: string;
@@ -206,17 +207,25 @@ async function buildKpis(
   startISO: string,
   endISO: string,
   withSla: boolean,
+  waOwner: Map<string, string>,
 ) {
+  // Lead sem dono atribuído herda o dono do número em que entrou (wa_number_id):
+  // inbound no número da Gabi conta como Gabi, no da Milena como Milena.
+  const effOwner = (l: Lead): string =>
+    l.assigned_owner_id ??
+    (l.wa_number_id ? (waOwner.get(l.wa_number_id) ?? null) : null) ??
+    "__none__";
+
   const { data: leadsRaw } = await admin
     .from("leads")
-    .select("id, assigned_owner_id, status, scheduled_at, created_at")
+    .select("id, assigned_owner_id, wa_number_id, status, scheduled_at, created_at")
     .gte("created_at", startISO)
     .lt("created_at", endISO)
     .limit(5000);
   const leads = (leadsRaw ?? []) as Lead[];
   const cohort = new Set(leads.map((l) => l.id));
   const ownerOf = new Map<string, string | null>();
-  for (const l of leads) ownerOf.set(l.id, l.assigned_owner_id);
+  for (const l of leads) ownerOf.set(l.id, effOwner(l));
 
   const byOwner = new Map<string, Kpi>();
   const bump = (k: string) => {
@@ -228,7 +237,7 @@ async function buildKpis(
     return v;
   };
   for (const l of leads) {
-    const owner = l.assigned_owner_id ?? "__none__";
+    const owner = effOwner(l);
     const k = bump(owner);
     k.leads += 1;
     const st = l.status ?? "";
@@ -320,12 +329,19 @@ export default async function MetasPage({
   // Linha de ritmo só faz sentido em período em curso.
   const paceFrac = pr.ongoing ? pr.paceFrac : undefined;
 
+  // Mapa número → dono, pra atribuir leads sem dono ao responsável do número.
+  const { data: waRows } = await admin
+    .from("wa_numbers")
+    .select("id, owner_id");
+  const waOwner = new Map<string, string>();
+  for (const w of waRows ?? []) if (w.owner_id) waOwner.set(w.id, w.owner_id);
+
   const [usersRes, kpis, backlogRes] = await Promise.all([
     admin.from("crm_users").select("id, display_name, role"),
-    buildKpis(admin, pr.startISO, pr.endISO, true),
+    buildKpis(admin, pr.startISO, pr.endISO, true, waOwner),
     admin
       .from("leads")
-      .select("assigned_owner_id")
+      .select("assigned_owner_id, wa_number_id")
       .eq("status", "new")
       .is("follow_up_at", null)
       .limit(5000),
@@ -337,7 +353,10 @@ export default async function MetasPage({
 
   const backlogByOwner = new Map<string, number>();
   for (const r of backlogRes.data ?? []) {
-    const k = r.assigned_owner_id ?? "__none__";
+    const k =
+      r.assigned_owner_id ??
+      (r.wa_number_id ? (waOwner.get(r.wa_number_id) ?? null) : null) ??
+      "__none__";
     backlogByOwner.set(k, (backlogByOwner.get(k) ?? 0) + 1);
   }
   const backlogTotal = (backlogRes.data ?? []).length;
