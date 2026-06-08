@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { CrmShell } from "../crm-shell";
+import { PeriodFilter } from "./period-filter";
 
 export const dynamic = "force-dynamic";
 
 // Painel ÚNICO de metas comerciais (admin-only). Coorte por DATA DE CRIAÇÃO do
-// lead. Topo: barras de progresso da meta do MÊS e do DIA (lead → agendamento →
-// comparecimento → conversão). Abaixo: placar por atendente (Hoje + Mês) com
-// SLA e backlog.
+// lead. Filtro de período no topo (hoje/ontem/7d/este mês/mês passado/custom)
+// dirige toda a tela: barras de progresso (lead → agendamento → comparecimento
+// → conversão) + placar por atendente com SLA e backlog. A meta escala pelo nº
+// de dias do período; períodos em curso mostram a linha de ritmo.
 //
 // Metas oficiais (AJUSTES-E-DECISOES, decisões Wanderson · iguais ao /crm/funnel):
 // lead→agendado 11% · agendado→comparecido 70% · comparecido→fechado 20%.
@@ -18,7 +20,6 @@ const META_COMPAREC = 70;
 const META_CONV = 20;
 
 const LEADS_DIA = 90;
-const DIAS_MES = 30;
 const R_AGEND = 0.11;
 const R_COMP = 0.7;
 const R_CONV = 0.2;
@@ -29,13 +30,6 @@ const META_DIA = {
   comp: LEADS_DIA * R_AGEND * R_COMP, // 6,93
   conv: LEADS_DIA * R_AGEND * R_COMP * R_CONV, // 1,386
 };
-const META_MES = {
-  lead: META_DIA.lead * DIAS_MES, // 2700
-  agend: META_DIA.agend * DIAS_MES, // 297
-  comp: META_DIA.comp * DIAS_MES, // 207,9
-  conv: META_DIA.conv * DIAS_MES, // 41,6
-};
-
 // Meia-noite SP do dia-calendário de `date` (Vercel roda UTC; BRT = UTC-3 fixo).
 function spDayStart(date: Date): Date {
   const p = new Intl.DateTimeFormat("en-CA", {
@@ -62,6 +56,85 @@ function spMonth(date: Date): { start: Date; days: number } {
   const start = new Date(`${y}-${String(m).padStart(2, "0")}-01T00:00:00-03:00`);
   const days = new Date(Date.UTC(y, m, 0)).getUTCDate();
   return { start, days };
+}
+
+const DAY_MS = 86400000;
+const isYmd = (s?: string): s is string => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
+type ResolvedPeriod = {
+  period: string;
+  label: string;
+  startISO: string;
+  endISO: string; // exclusivo, capado em now
+  totalDays: number; // dias-calendário do período (escala a meta)
+  ongoing: boolean; // período ainda em curso → mostra linha de ritmo
+  paceFrac: number; // fração decorrida do período (1 se fechado)
+  from?: string;
+  to?: string;
+};
+
+// Traduz o filtro do topo num intervalo [start, end) em horário de SP.
+// BRT é UTC-3 fixo (sem DST desde 2019), então somar/subtrair DAY_MS de uma
+// meia-noite SP continua caindo em meia-noite SP.
+function resolvePeriod(
+  sp: { period?: string; from?: string; to?: string },
+  now: Date,
+): ResolvedPeriod {
+  const todayStart = spDayStart(now);
+  const { start: monthStart, days: daysInMonth } = spMonth(now);
+  const period = sp.period ?? "hoje";
+
+  let start: Date;
+  let endExcl: Date;
+  let label: string;
+
+  if (period === "custom" && isYmd(sp.from)) {
+    start = new Date(`${sp.from}T00:00:00-03:00`);
+    const toY = isYmd(sp.to) ? sp.to : sp.from;
+    endExcl = new Date(new Date(`${toY}T00:00:00-03:00`).getTime() + DAY_MS);
+    label = `${sp.from} → ${toY}`;
+  } else if (period === "ontem") {
+    start = new Date(todayStart.getTime() - DAY_MS);
+    endExcl = todayStart;
+    label = "ontem";
+  } else if (period === "7d") {
+    start = new Date(todayStart.getTime() - 6 * DAY_MS);
+    endExcl = new Date(todayStart.getTime() + DAY_MS);
+    label = "últimos 7 dias";
+  } else if (period === "mes") {
+    start = monthStart;
+    endExcl = new Date(monthStart.getTime() + daysInMonth * DAY_MS);
+    label = "este mês";
+  } else if (period === "mes_passado") {
+    const pm = spMonth(new Date(monthStart.getTime() - DAY_MS));
+    start = pm.start;
+    endExcl = monthStart;
+    label = "mês passado";
+  } else {
+    start = todayStart;
+    endExcl = new Date(todayStart.getTime() + DAY_MS);
+    label = "hoje";
+  }
+
+  const span = endExcl.getTime() - start.getTime();
+  const totalDays = Math.max(1, Math.round(span / DAY_MS));
+  const queryEnd = Math.min(now.getTime(), endExcl.getTime());
+  const ongoing = now.getTime() < endExcl.getTime();
+  const paceFrac = ongoing
+    ? Math.min(1, Math.max(0, (queryEnd - start.getTime()) / span))
+    : 1;
+
+  return {
+    period: period === "custom" && !isYmd(sp.from) ? "hoje" : period,
+    label,
+    startISO: start.toISOString(),
+    endISO: new Date(queryEnd).toISOString(),
+    totalDays,
+    ongoing,
+    paceFrac,
+    from: sp.from,
+    to: sp.to,
+  };
 }
 
 type Lead = {
@@ -215,7 +288,11 @@ function sumTeam(kpis: Map<string, Kpi>) {
   return { leads, agendou, compareceu, fechou };
 }
 
-export default async function MetasPage() {
+export default async function MetasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -230,19 +307,22 @@ export default async function MetasPage() {
 
   const admin = createServiceClient();
   const now = new Date();
-  const todayStart = spDayStart(now);
-  const { start: monthStart, days: daysInMonth } = spMonth(now);
-  const nowISO = now.toISOString();
-  // fração do mês decorrida (ritmo esperado)
-  const paceFrac = Math.min(
-    1,
-    (now.getTime() - monthStart.getTime()) / (daysInMonth * 86400000),
-  );
+  const sp = await searchParams;
+  const pr = resolvePeriod(sp, now);
 
-  const [usersRes, todayKpis, monthKpis, backlogRes] = await Promise.all([
+  // Meta escala pelo nº de dias-calendário do período selecionado.
+  const META = {
+    lead: META_DIA.lead * pr.totalDays,
+    agend: META_DIA.agend * pr.totalDays,
+    comp: META_DIA.comp * pr.totalDays,
+    conv: META_DIA.conv * pr.totalDays,
+  };
+  // Linha de ritmo só faz sentido em período em curso.
+  const paceFrac = pr.ongoing ? pr.paceFrac : undefined;
+
+  const [usersRes, kpis, backlogRes] = await Promise.all([
     admin.from("crm_users").select("id, display_name, role"),
-    buildKpis(admin, todayStart.toISOString(), nowISO, true),
-    buildKpis(admin, monthStart.toISOString(), nowISO, false),
+    buildKpis(admin, pr.startISO, pr.endISO, true),
     admin
       .from("leads")
       .select("assigned_owner_id")
@@ -262,15 +342,14 @@ export default async function MetasPage() {
   }
   const backlogTotal = (backlogRes.data ?? []).length;
 
-  const todayTot = sumTeam(todayKpis);
-  const monthTot = sumTeam(monthKpis);
+  const tot = sumTeam(kpis);
 
   function ownerName(id: string) {
     if (id === "__none__") return "Sem dono";
     return nameOf.get(id) ?? id.slice(0, 8);
   }
 
-  const pacePct = Math.round(paceFrac * 100);
+  const pacePct = Math.round(pr.paceFrac * 100);
 
   return (
     <CrmShell active="metas" userEmail={user.email ?? ""}>
@@ -278,110 +357,74 @@ export default async function MetasPage() {
         <h1 className="text-lg font-semibold text-slate-900">
           🎯 Metas comerciais
         </h1>
-        <p className="text-xs text-slate-500 mt-1 mb-5">
+        <p className="text-xs text-slate-500 mt-1">
           Funil FSS · metas 11% / 70% / 20% (lead→agend→comparec→conv). Base ~90
           leads/dia. Coorte por data de criação · SLA = mediana da 1ª resposta.
         </p>
 
-        {/* Metas do MÊS */}
-        <section className="mb-6">
+        <PeriodFilter period={pr.period} from={pr.from} to={pr.to} />
+
+        {/* Metas do período */}
+        <section className="mt-5 mb-7">
           <h2 className="text-sm font-semibold text-slate-800 mb-3">
-            Metas do mês
+            Metas · {pr.label}
             <span className="ml-2 text-xs font-normal text-slate-400">
-              ritmo esperado: {pacePct}% do mês decorrido (traço)
+              {pr.totalDays} {pr.totalDays === 1 ? "dia" : "dias"}
+              {pr.ongoing
+                ? ` · ritmo esperado: ${pacePct}% decorrido (traço)`
+                : " · período fechado"}
             </span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <MetaBar
               label="Leads"
-              real={monthTot.leads}
-              meta={META_MES.lead}
+              real={tot.leads}
+              meta={META.lead}
               paceFrac={paceFrac}
             />
             <MetaBar
               label="Agendamentos"
-              real={monthTot.agendou}
-              meta={META_MES.agend}
+              real={tot.agendou}
+              meta={META.agend}
               paceFrac={paceFrac}
             />
             <MetaBar
               label="Comparecimentos"
-              real={monthTot.compareceu}
-              meta={META_MES.comp}
+              real={tot.compareceu}
+              meta={META.comp}
               paceFrac={paceFrac}
             />
             <MetaBar
               label="Conversões (fechamentos)"
-              real={monthTot.fechou}
-              meta={META_MES.conv}
+              real={tot.fechou}
+              meta={META.conv}
               paceFrac={paceFrac}
-            />
-          </div>
-        </section>
-
-        {/* Metas do DIA */}
-        <section className="mb-7">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">
-            Metas do dia
-            <span className="ml-2 text-xs font-normal text-slate-400">
-              hoje
-            </span>
-          </h2>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <MetaBar label="Leads" real={todayTot.leads} meta={META_DIA.lead} />
-            <MetaBar
-              label="Agendamentos"
-              real={todayTot.agendou}
-              meta={META_DIA.agend}
-            />
-            <MetaBar
-              label="Comparecimentos"
-              real={todayTot.compareceu}
-              meta={META_DIA.comp}
-            />
-            <MetaBar
-              label="Conversões (fechamentos)"
-              real={todayTot.fechou}
-              meta={META_DIA.conv}
             />
           </div>
         </section>
 
         {/* Placar por atendente */}
         <WindowBlock
-          title="Por atendente — hoje"
-          kpis={todayKpis}
+          title={`Por atendente · ${pr.label}`}
+          kpis={kpis}
           ownerName={ownerName}
           roleHint={(id) => roleHint(ownerName(id))}
           backlogByOwner={backlogByOwner}
           backlogTotal={backlogTotal}
           showBacklog
-          metaAgend={Math.round(META_DIA.agend)}
-          metaComparec={Math.round(META_DIA.comp)}
-          metaFechou={Math.round(META_DIA.conv)}
-        />
-
-        <div className="h-6" />
-
-        <WindowBlock
-          title="Por atendente — mês"
-          kpis={monthKpis}
-          ownerName={ownerName}
-          roleHint={(id) => roleHint(ownerName(id))}
-          backlogByOwner={backlogByOwner}
-          backlogTotal={backlogTotal}
-          showBacklog={false}
-          metaAgend={Math.round(META_MES.agend)}
-          metaComparec={Math.round(META_MES.comp)}
-          metaFechou={Math.round(META_MES.conv)}
+          metaAgend={Math.round(META.agend)}
+          metaComparec={Math.round(META.comp)}
+          metaFechou={Math.round(META.conv)}
         />
 
         <div className="mt-6 text-[11px] text-slate-400 leading-relaxed">
           <strong>Como ler:</strong> Agendou = leads da coorte em{" "}
           <em>scheduled/attended/won</em> ou com data marcada. Compareceu ={" "}
-          <em>attended/won</em>. Fechou = <em>won</em>. Barras do mês: verde =
-          no ritmo (≥ % do mês decorrido), amarelo ≥ 60% do ritmo. SLA do mês não
-          é calculado (só no placar de hoje). Backlog = snapshot atual.
+          <em>attended/won</em>. Fechou = <em>won</em>. Meta escala pelos{" "}
+          {pr.totalDays} {pr.totalDays === 1 ? "dia" : "dias"} do período. Em
+          período em curso, verde = no ritmo (≥ % decorrido), amarelo ≥ 60% do
+          ritmo; período fechado compara contra a meta cheia. Backlog = snapshot
+          atual (independe do filtro).
         </div>
       </div>
     </CrmShell>
